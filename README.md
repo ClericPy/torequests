@@ -21,7 +21,7 @@ curio sames awosome and difficult，multiprocessing.dummy and pool.map is non-3r
 from trequests import Pool
 requests = Pool(30)
 ```
-然后requests正常用就行了，不过不支持Session什么的，就只是简单的requests.get加几个参数，可以命名成request1，和原生requests分开混着用，原生的requests就用multiprocessing.dummy吧。。。
+然后requests正常用就行了，支持Session什么的，就只是简单的requests.get加几个参数，可以命名成request1，和原生requests分开混着用，原生的requests就用multiprocessing.dummy吧。。。
 
 #Example：
 ```python
@@ -52,3 +52,19 @@ print(time.time()-aa,'s')
 ```
 >['[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n']
 0.19313430786132812 s
+
+```python
+#!python3
+from trequests import Pool
+import time
+import requests
+aa = time.time()
+s = requests.Session()
+requests = Pool(50, session=s)
+ss = [requests.get('http://p.3.cn/prices/mgets?skuIds=J_1273600')] * 5000
+ss = [i.text for i in ss]
+print(ss[-10:])
+print(time.time() - aa, 's')
+```
+>['[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n']
+0.18413066864013672 s
