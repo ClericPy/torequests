@@ -3,7 +3,7 @@ from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
 
 '''
-Thank god, and more thanks for requests & tomorrow...
+thanks for requests & tomorrow...
 '''
 
 
