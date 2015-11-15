@@ -3,9 +3,14 @@ from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.dummy import Pool as multiPool
 
-'''
+__doc__='''
 Thanks for requests & tomorrow...
 
+========================================
+
+Try it yourself:
+
+========================================
 from trequests import mPool
 from trequests import tPool
 import requests
@@ -49,7 +54,9 @@ ss = [requests.get('http://p.3.cn/prices/mgets?skuIds=J_1273600')] * 5000
 ss = [len(i.text) for i in ss]
 print(ss[-50:])
 print(time.time() - aa, 's')
+
 ===============================
+
 # no Session multitreads
 [51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
 1.1978464126586914 s
