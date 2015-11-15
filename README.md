@@ -1,4 +1,4 @@
-# ezrequests
+# torequests
 ####Using tomorrow to make requests async
 >for python3.x, but tPool may not be fit for python2.x......
 
@@ -10,13 +10,13 @@ for first
 
 Obviously, use it like :
 ```python
-from ezrequests import tPool as Pool
+from torequests import tPool as Pool
 requests = Pool(30)
 ```
 or 
 ```python
-import ezrequests
-print(help(ezrequests))
+import torequests
+print(help(torequests))
 ```
 then use requests.get/post/put/head/delete/ as usual.
 so, this does support Session...
@@ -27,21 +27,21 @@ curio sames awosome and difficult，multiprocessing.dummy and pool.map is non-3r
 一句话，就是给requests简单异步包装一下
 ####用法：
 ```python
-from ezrequests import tPool as Pool
+from torequests import tPool as Pool
 requests = Pool(30)
 ```
 or 
 ```python
-import ezrequests
-print(help(ezrequests))
+import torequests
+print(help(torequests))
 ```
 然后requests正常用就行了，支持Session什么的，就只是简单的requests.get加几个参数，可以命名成trequest，和原生requests分开混着用，原生的requests就用multiprocessing.dummy吧。。。（后来把tomorrow包装的叫tPool，multiprocessing.dummy包装的叫mPool，后者只是多线程处理下urls。。。)
 
 #Example：
 
 ```python
-from ezrequests import mPool
-from ezrequests import tPool
+from torequests import mPool
+from torequests import tPool
 import requests
 import time
 
