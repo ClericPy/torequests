@@ -1,12 +1,11 @@
 # trequests
 ####Using tomorrow to make requests async
+>for python3.x, but tPool may not be fit for python2.x......
 Thanks https://github.com/madisonmay/Tomorrow very much.
 
 for first
 
 >pip install requests
-
->for python3.x, but tPool may not be fit for python2.x......
 
 Obviously, use it like :
 ```python
