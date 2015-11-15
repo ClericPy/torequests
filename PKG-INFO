@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: torequests
+Version: 0.0.1
+Summary: Requests + Tomorrow. Using tomorrow to make requests async, also can use requests with multiprocessing.dummy for many urls. 
+Home-page: http://clericpy.github.io/
+Author: ClericPy
+Author-email: pythonld@163.com
+License: MIT License
+Description: UNKNOWN
+Keywords: requests,tomorrow,async,multi-thread,multiprocessing.dummy,Pool
+Platform: any
