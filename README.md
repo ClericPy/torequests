@@ -6,7 +6,7 @@
 
 for first
 
->pip install requests
+>pip install torequests
 
 Obviously, use it like :
 ```python
