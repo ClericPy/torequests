@@ -4,7 +4,7 @@ https://github.com/madisonmay/Tomorrow
 
 Obviously, use it like :
 ```python
-from trequests import Pool
+from trequests import tPool as Pool
 
 requests = Pool(30)
 ...
@@ -21,16 +21,18 @@ curio sames awosome and difficult，multiprocessing.dummy and pool.map is non-3r
 from trequests import Pool
 requests = Pool(30)
 ```
-然后requests正常用就行了，支持Session什么的，就只是简单的requests.get加几个参数，可以命名成request1，和原生requests分开混着用，原生的requests就用multiprocessing.dummy吧。。。
+###然后requests正常用就行了，支持Session什么的，就只是简单的requests.get加几个参数，可以命名成trequest，和原生requests分开混着用，原生的requests就用multiprocessing.dummy吧。。。（后来把tomorrow包装的叫tPool，multiprocessing.dummy包装的叫mPool，后者只是多线程处理下urls。。。)
 
 #Example：
+
+## new usage of requests
 ```python
 #!python3
-from trequests import Pool
+from trequests import tPool as Pool
 import time
 aa=time.time()
 requests = Pool(50)
-ss=[requests.post('http://p.3.cn/prices/mgets?skuIds=J_1273600')]*500
+ss=[requests.get('http://p.3.cn/prices/mgets?skuIds=J_1273600')]*500
 print([len(i.text) for i in ss])
 print(time.time()-aa,'s')
 
@@ -40,19 +42,7 @@ print(time.time()-aa,'s')
 
 >0.16710209846496582 s
 
-```python
-from trequests import Pool
-import time
-aa=time.time()
-requests = Pool(50)
-ss=[requests.get('http://p.3.cn/prices/mgets?skuIds=J_1273600')]*5000
-ss=[i.text for i in ss]
-print(ss[-3])
-print(time.time()-aa,'s')
-```
->['[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n']
-0.19313430786132812 s
-
+## Session:
 ```python
 #!python3
 from trequests import Pool
@@ -68,3 +58,16 @@ print(time.time() - aa, 's')
 ```
 >['[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n']
 0.18413066864013672 s
+
+## multi-threads:
+```python
+from trequests import mPool as Pool
+import time
+aa = time.time()
+requests = Pool(50)
+ss=requests.get(['http://p.3.cn/prices/mgets?skuIds=J_1273600']*100)
+print([len(i.text) for i in ss])
+print(time.time() - aa, 's')
+```
+>[51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
+1.218897819519043 s
