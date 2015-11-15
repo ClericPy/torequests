@@ -1,6 +1,8 @@
 # trequests
 ####Using tomorrow to make requests async
-https://github.com/madisonmay/Tomorrow
+Thanks https://github.com/madisonmay/Tomorrow very much.
+
+>for python3.x, maybe fit with python2.x
 
 Obviously, use it like :
 ```python
