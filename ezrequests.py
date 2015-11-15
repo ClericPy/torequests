@@ -11,8 +11,8 @@ Thanks for requests & tomorrow...
 Try it yourself:
 
 ========================================
-from ezrequests import mPool
-from ezrequests import tPool
+from torequests import mPool
+from torequests import tPool
 import requests
 import time
 
@@ -113,7 +113,7 @@ def threads(n, timeout1=None):
 class tPool():
     '''
 Obviously, use it like :
-from ezrequests import tPool as Pool
+from torequests import tPool as Pool
 
 requests = Pool(30)
 ...
@@ -169,7 +169,7 @@ so, this does not support Session...
 class mPool():
     '''
 Obviously, use it like :
-from ezrequests import tPool
+from torequests import tPool
 
 requests = Pool(30)
 ...
