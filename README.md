@@ -39,61 +39,92 @@ print(help(torequests))
 
 #Example：
 
+Try it yourself:
+
+========================================
 ```python
 from torequests import mPool
 from torequests import tPool
 import requests
 import time
 
+# requests in single thread
+print('##### requests in single thread for 100 work')
+aa = time.time()
+ss = [requests.get(url)
+      for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 100]
+ss = [len(i.text) for i in ss]
+print(ss[-10:],'\n')
+print('>',time.time() - aa, 's\n')
+
+
 # no Session multitreads
-print('# no Session multitreads')
+print('##### no Session multitreads for 1000 work')
 aa = time.time()
 mrequests = mPool(50)
-ss = mrequests.get(['http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 100)
-print([len(i.text) for i in ss])
-print(time.time() - aa, 's')
+ss = mrequests.get(['http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 1000)
+ss = [len(i.text) for i in ss]
+print(ss[-10:],'\n')
+print('>',time.time() - aa, 's\n')
 
 # no Session tomorrow
-print('# no Session tomorrow')
+print('##### no Session tomorrow for 1000 work')
 
 aa = time.time()
 trequests = tPool(50)
-ss = [requests.get('http://p.3.cn/prices/mgets?skuIds=J_1273600')] * 5000
+ss = [trequests.get(url) for url in [
+    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 1000]
 ss = [len(i.text) for i in ss]
-print(ss[-50:])
-print(time.time() - aa, 's')
+print(ss[-10:],'\n')
+print('>',time.time() - aa, 's\n')
 
 
 # with Session multitreads
-print('# with Session multitreads')
+print('##### with Session multitreads for 1000 work')
 
 aa = time.time()
 s = requests.Session()
 mrequests = mPool(50, session=s)
-ss = mrequests.get(['http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 100)
-print([len(i.text) for i in ss])
-print(time.time() - aa, 's')
+ss = mrequests.get(['http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 1000)
+ss = [len(i.text) for i in ss]
+print(ss[-10:],'\n')
+print('>',time.time() - aa, 's\n')
 
 # with Session tomorrow
-print('# with Session tomorrow')
+print('##### with Session tomorrow for 1000 work')
 aa = time.time()
 s = requests.Session()
 trequests = tPool(50, session=s)
-ss = [requests.get('http://p.3.cn/prices/mgets?skuIds=J_1273600')] * 5000
+ss = [trequests.get(url) for url in [
+    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 1000]
 ss = [len(i.text) for i in ss]
-print(ss[-50:])
-print(time.time() - aa, 's')
+print(ss[-10:],'\n')
+print('>',time.time() - aa, 's\n')
 ```
-># no Session multitreads
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
-1.1978464126586914 s
-# no Session tomorrow
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
-0.10907530784606934 s
-# with Session multitreads
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
-0.31622314453125 s
-# with Session tomorrow
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
-0.08806300163269043 s
 
+===============================
+
+##### requests in single thread for 100 work
+[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
+
+> 1.8863472938537598 s
+
+##### no Session multitreads for 1000 work
+[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
+
+> 2.6028215885162354 s
+
+##### no Session tomorrow for 1000 work
+[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
+
+> 2.633859872817993 s
+
+##### with Session multitreads for 1000 work
+[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
+
+> 2.1975533962249756 s
+
+##### with Session tomorrow for 1000 work
+[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
+
+> 2.48775577545166 s
