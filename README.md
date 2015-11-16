@@ -1,5 +1,9 @@
 # torequests
 ####Using tomorrow to make requests async
+
+
+Source URL: https://github.com/ClericPy/torequests
+
 >for python3.x, but tPool may not be fit for python2.x......
 
 >Thanks https://github.com/madisonmay/Tomorrow very much.
@@ -175,7 +179,7 @@ ss = pp.map1(getint, [
 print('Tomorrow:\n', ss)
 # after using:
 ss = [i.text for i in pp.map1(getint, [
-    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3, autocheck=0)]
+    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3)]
 print('use Tomorrow:\n', ss)
 
 
@@ -185,7 +189,7 @@ def getint(url):
     return len(r.text)
 pp = pPool(10)
 ss = pp.map1(getint, [
-    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3, autocheck=0)
+    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3)
 print('Int:\n', ss)
 
 
@@ -195,8 +199,9 @@ def getstr(url):
     return r.text
 pp = pPool(10)
 ss = pp.map1(getstr, [
-    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3, autocheck=0)
+    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3)
 print('String:\n', ss)
+
 
 
 
@@ -204,11 +209,11 @@ print('String:\n', ss)
 ####result:
 ```
 Tomorrow:
- [<torequests.Tomorrow object at 0x03600390>, <torequests.Tomorrow object at 0x03600570>, <torequests.Tomorrow object at 0x03600730>]
+ [<torequests.Tomorrow object at 0x035316F0>, <torequests.Tomorrow object at 0x03531AF0>, <torequests.Tomorrow object at 0x03531ED0>]
 use Tomorrow:
  ['[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n']
 Int:
- [<torequests.Tomorrow object at 0x04331790>, <torequests.Tomorrow object at 0x0433C710>, <torequests.Tomorrow object at 0x0435E190>]
+ [51, 51, 51]
 String:
- [<torequests.Tomorrow object at 0x0435E3B0>, <torequests.Tomorrow object at 0x03600F10>, <torequests.Tomorrow object at 0x03600FF0>]
+ ['[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n']
 ```
