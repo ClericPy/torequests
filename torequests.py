@@ -192,6 +192,39 @@ so, this does not support Session...
             return requests.head(url, **kws)
         return head1(url, **kws)
 
+class pPool():
+    '''
+use it as gevent.pool.Pool or multiprocessing.dummy.Pool, no need for close
+pp=pPool(30)
+ss=pp.map1(func, argvs,autocheck=1)
+    '''
+
+    def __init__(self, num):
+        self.num = num
+
+    def map1(self,  func, argvs,autocheck=1):
+        @threads(self.num)
+        def get1(argv):
+            return func(argv)
+        def check(aa):
+            try:
+                return aa.__rmul__(1)
+            except:
+                pass
+            try:
+                return aa.replace('','')
+            except:
+                pass
+            return aa
+
+        if autocheck:
+            return list(map(check,map(get1,argvs)))
+        else:
+            return list(map(get1,argvs))
+
+
+
+
 
 class mPool():
     '''

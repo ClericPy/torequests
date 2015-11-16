@@ -149,3 +149,66 @@ print('>',time.time() - aa, 's\n')
 [51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
 
 > 2.48775577545166 s
+
+----
+###For fix 'tomorrow' will return a Tomorrow object in python3.x ( but return true object in py2.x), torequests add an bad choice to check type, pPool.
+>For now, autocheck only support:
+
+>  字符串(str) 布尔类型(bool) 整数(int) 浮点数(float) 数字(number) 列表(list) 元组(tuple) 字典(dict) 日期(datetime)
+
+
+####If you do not care about performance, you can use it by setting autocheck=1, else set autocheck=0. 
+### pPool Usage:
+```python
+from torequests import pPool
+import requests
+import time
+
+
+# get Tomorrow
+def getint(url):
+    r = requests.get(url)
+    return r
+pp = pPool(10)
+ss = pp.map1(getint, [
+    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3, autocheck=0)
+print('Tomorrow:\n', ss)
+# after using:
+ss = [i.text for i in pp.map1(getint, [
+    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3, autocheck=0)]
+print('use Tomorrow:\n', ss)
+
+
+# get int
+def getint(url):
+    r = requests.get(url)
+    return len(r.text)
+pp = pPool(10)
+ss = pp.map1(getint, [
+    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3, autocheck=0)
+print('Int:\n', ss)
+
+
+# get str
+def getstr(url):
+    r = requests.get(url)
+    return r.text
+pp = pPool(10)
+ss = pp.map1(getstr, [
+    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3, autocheck=0)
+print('String:\n', ss)
+
+
+
+```
+####result:
+```
+Tomorrow:
+ [<torequests.Tomorrow object at 0x03600390>, <torequests.Tomorrow object at 0x03600570>, <torequests.Tomorrow object at 0x03600730>]
+use Tomorrow:
+ ['[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n']
+Int:
+ [<torequests.Tomorrow object at 0x04331790>, <torequests.Tomorrow object at 0x0433C710>, <torequests.Tomorrow object at 0x0435E190>]
+String:
+ [<torequests.Tomorrow object at 0x0435E3B0>, <torequests.Tomorrow object at 0x03600F10>, <torequests.Tomorrow object at 0x03600FF0>]
+```
