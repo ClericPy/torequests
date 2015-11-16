@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: torequests
-Version: 0.0.7
+Version: 0.0.9
 Summary: Requests + Tomorrow. Using tomorrow to make requests async, also can use requests with multiprocessing.dummy for many urls. 
 Home-page: https://github.com/ClericPy/torequests
 Author: ClericPy

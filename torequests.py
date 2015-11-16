@@ -218,7 +218,7 @@ ss=pp.map1(func, argvs,autocheck=1)
             return aa
 
         if autocheck:
-            return list(map(check,map(get1,argvs)))
+            return list(map(check,list(map(get1,argvs))))
         else:
             return list(map(get1,argvs))
 
