@@ -1,4 +1,3 @@
-setup.cfg
 setup.py
 torequests.py
 torequests.egg-info/PKG-INFO
