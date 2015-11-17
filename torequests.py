@@ -216,11 +216,11 @@ ss=pp.map1(func, argvs,autocheck=1)
             except:
                 pass
             return aa
-
+        ss=list(map(get1,argvs))
         if autocheck:
-            return list(map(check,list(map(get1,argvs))))
+            return list(map(check,ss))
         else:
-            return list(map(get1,argvs))
+            return ss
 
 
 
