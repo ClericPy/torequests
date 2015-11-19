@@ -1,14 +1,14 @@
 # torequests
 ####Using tomorrow to make requests async
-
+## The only reason to use it is: nothing to learn & easy to use.
 
 Source URL: https://github.com/ClericPy/torequests
 
 >for python3.x, but tPool may not be fit for python2.x......
 
->Thanks https://github.com/madisonmay/Tomorrow very much.
+>Thanks to https://github.com/madisonmay/Tomorrow, requests could run fast in python3 and need to learn no more than requests-doc.
 
-for first
+For first
 
 >pip install torequests
 
