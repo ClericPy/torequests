@@ -27,6 +27,30 @@ so, this does support Session...
 
 curio sames awosome and difficult，multiprocessing.dummy and pool.map is non-3rd-library but I don't like it even using it much time，requests said never support async（such like asyncio）， aiohttp not easy like requests, gevent hates Windows, twisted hard to study and no good for py3, grab seems good, scrapy seems to abandon py3, god ,I have try so much and deserve so many failures.........
 
+# Special WARNING：
+####If you use it in one wrong way,  it will be no faster than single-thread.
+
+```python
+from torequests import tPool
+import time
+trequests = tPool(30)
+# wrong & slow:
+tt = time.time()
+aa = [trequests.get(url).text for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*1000]
+ss = (aa[-3])
+print('wrong way ', time.time()-tt)
+
+# right & fast:
+tt = time.time()
+aa = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*1000]
+aa = [i.text for i in aa]
+ss = (aa[-3])
+print('right way ', time.time()-tt)
+
+# result:
+# wrong way  18.834501266479492
+# right way  2.7255847454071045
+```
 
 一句话，就是给requests简单异步包装一下
 ####用法：
