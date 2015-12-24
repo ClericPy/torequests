@@ -5,11 +5,25 @@
 ## Someone told me the readme is much too long... So, you just need to remember that: make the http-response-job (like trequests.get) and parse-response-job separate, for the usage of tomorrow.
 ```python
 from torequests import tPool
+import time
+
 trequests = tPool(50)
+urls = ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*200
+
 def getsth(url):
-      return trequests.get(url)
+    return trequests.get(url)
+
 def parsesth(resp):
-      return resp.json()['id'][0]
+    return resp.json()[0]['id']
+time1 = time.time()
+list1 = [getsth(url) for url in urls]
+list2 = [parsesth(resp) for resp in list1]
+print(list2)
+print('timeused:', time.time()-time1)
+# here the test result:
+# ['J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', ...
+# timeused: 0.5613970756530762
+
 ```
 
 
