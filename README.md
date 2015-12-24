@@ -2,6 +2,17 @@
 ####Using tomorrow to make requests async
 ## The only reason to use it is: nothing to learn & easy to use.
 
+## Someone told me the readme is much too long... So, you just need to remember that: make the http-response-job (like trequests.get) and parse-response-job separate, for the usage of tomorrow.
+```python
+from torequests import tPool
+trequests = tPool(50)
+def getsth(url):
+      return trequests.get(url)
+def parsesth(resp):
+      return resp.json()['id'][0]
+```
+
+
 Source URL: https://github.com/ClericPy/torequests
 
 >for python3.x, but tPool may not be fit for python2.x......
