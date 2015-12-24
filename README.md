@@ -1,8 +1,8 @@
 # torequests
 ####Using tomorrow to make requests async
-## The only reason to use it is: nothing to learn & easy to use.
+## The only reason to use it is: nothing to learn & easy to use.(And it can run on win.....)
 
-## Someone told me the readme is much too long... So, you just need to remember that: make the http-response-job (like trequests.get) and parse-response-job separate, for the usage of tomorrow.
+### Someone told me the readme is much too long... So, you just need to remember that: make the http-response-job (like trequests.get) and parse-response-job separate, for the usage of tomorrow.
 ```python
 from torequests import tPool
 import time
