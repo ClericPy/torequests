@@ -196,13 +196,13 @@ class pPool():
     '''
 use it as gevent.pool.Pool or multiprocessing.dummy.Pool, no need for close
 pp=pPool(30)
-ss=pp.map1(func, argvs,autocheck=1)
+ss=pp.map(func, argvs,autocheck=1)
     '''
 
     def __init__(self, num):
         self.num = num
 
-    def map1(self,  func, argvs,autocheck=1):
+    def map(self,  func, argvs,autocheck=1):
         @threads(self.num)
         def get1(argv):
             return func(argv)
