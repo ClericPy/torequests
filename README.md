@@ -5,7 +5,7 @@
 'retry' and 'timeout' for tPool usage:
 ```python
 ss=[tt.get(i,timeout=1,retry=3) for i in ['http://127.0.0.1:8080']*10]
-ss=[i.text for i in ss if i.__bool__()]
+ss=[i.text if i.__bool__() else 'error' for i in ss]
 ```
 
 #### Someone told me the readme is much too long... So, you just need to remember that: make the http-response-job (like trequests.get) and parse-response-job separate, for the usage of tomorrow.
