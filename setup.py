@@ -4,9 +4,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='torequests',
-    version='0.0.11',
+    version='0.0.13',
     keywords=('requests tomorrow async multi-thread multiprocessing.dummy Pool'),
-    description='Requests + Tomorrow. Using tomorrow to make requests async, also can use requests with multiprocessing.dummy for many urls. ',
+    description='Requests + Tomorrow. Using tomorrow to make requests async, also can use requests with multiprocessing.dummy for many urls. read more :https://github.com/ClericPy/torequests ',
     license='MIT License',
     install_requires=['requests'],
     py_modules=['torequests'],
