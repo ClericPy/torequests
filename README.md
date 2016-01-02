@@ -2,7 +2,13 @@
 ####Using tomorrow to make requests async
 ## The only reason to use it is: nothing to learn & easy to use.(And it can run on win.....)
 
-### Someone told me the readme is much too long... So, you just need to remember that: make the http-response-job (like trequests.get) and parse-response-job separate, for the usage of tomorrow.
+'retry' and 'timeout' for tPool usage:
+```python
+ss=[tt.get(i,timeout=1,retry=3) for i in ['http://127.0.0.1:8080']*10]
+ss=[i.text for i in ss if i.__bool__()]
+```
+
+#### Someone told me the readme is much too long... So, you just need to remember that: make the http-response-job (like trequests.get) and parse-response-job separate, for the usage of tomorrow.
 ```python
 from torequests import tPool
 import time
