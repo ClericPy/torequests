@@ -73,7 +73,7 @@ ss=[i.text for i in ss if i.__bool__()]
                     return requests.get(url, **kws)
                 except:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, retry+1))
+                        print('retry %s for the %s time' % (url, _))
                     continue
             return
         return get1(url, **kws)
@@ -88,7 +88,7 @@ ss=[i.text for i in ss if i.__bool__()]
                     return requests.post(url, **kws)
                 except:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, retry+1))
+                        print('retry %s for the %s time' % (url, _))
                     continue
             return
         return post1(url, **kws)
@@ -103,7 +103,7 @@ ss=[i.text for i in ss if i.__bool__()]
                     return requests.delete(url, **kws)
                 except:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, retry+1))
+                        print('retry %s for the %s time' % (url, _))
                     continue
             return
         return delete1(url, **kws)
@@ -118,7 +118,7 @@ ss=[i.text for i in ss if i.__bool__()]
                     return requests.put(url, **kws)
                 except:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, retry+1))
+                        print('retry %s for the %s time' % (url, _))
                     continue
             return
         return put1(url, **kws)
@@ -133,7 +133,7 @@ ss=[i.text for i in ss if i.__bool__()]
                     return requests.head(url, **kws)
                 except:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, retry+1))
+                        print('retry %s for the %s time' % (url, _))
                     continue
             return
         return head1(url, **kws)
