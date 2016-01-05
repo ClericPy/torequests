@@ -72,8 +72,8 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.get(url, **kws)
                     return requests.get(url, **kws)
                 except:
-                    print('retry %s for the %s time'%(url,retry+1))
-                    # print('retry', _)
+                    if retrylog:
+                        print('retry %s for the %s time' % (url, retry+1))
                     continue
             return
         return get1(url, **kws)
@@ -87,7 +87,8 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.post(url, **kws)
                     return requests.post(url, **kws)
                 except:
-                    print('retry %s for the %s time'%(url,retry+1))
+                    if retrylog:
+                        print('retry %s for the %s time' % (url, retry+1))
                     continue
             return
         return post1(url, **kws)
@@ -101,7 +102,8 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.delete(url, **kws)
                     return requests.delete(url, **kws)
                 except:
-                    print('retry %s for the %s time'%(url,retry+1))
+                    if retrylog:
+                        print('retry %s for the %s time' % (url, retry+1))
                     continue
             return
         return delete1(url, **kws)
@@ -115,7 +117,8 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.put(url, **kws)
                     return requests.put(url, **kws)
                 except:
-                    print('retry %s for the %s time'%(url,retry+1))
+                    if retrylog:
+                        print('retry %s for the %s time' % (url, retry+1))
                     continue
             return
         return put1(url, **kws)
@@ -129,7 +132,8 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.head(url, **kws)
                     return requests.head(url, **kws)
                 except:
-                    print('retry %s for the %s time'%(url,retry+1))
+                    if retrylog:
+                        print('retry %s for the %s time' % (url, retry+1))
                     continue
             return
         return head1(url, **kws)
