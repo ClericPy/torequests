@@ -63,7 +63,7 @@ ss=[i.text for i in ss if i.__bool__()]
         self.num = num
         self.session = session
 
-    def get(self, url, retry=0, **kws):
+    def get(self, url, retry=0, retrylog=False, **kws):
         @threads(self.num)
         def get1(url, **kws):
             for _ in range(retry+1):
@@ -72,12 +72,13 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.get(url, **kws)
                     return requests.get(url, **kws)
                 except:
+                    print('retry %s for the %s time'%(url,retry+1))
                     # print('retry', _)
                     continue
             return
         return get1(url, **kws)
 
-    def post(self, url, retry=0, **kws):
+    def post(self, url, retry=0, retrylog=False, **kws):
         @threads(self.num)
         def post1(url, **kws):
             for _ in range(retry+1):
@@ -86,11 +87,12 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.post(url, **kws)
                     return requests.post(url, **kws)
                 except:
+                    print('retry %s for the %s time'%(url,retry+1))
                     continue
             return
         return post1(url, **kws)
 
-    def delete(self, url, retry=0, **kws):
+    def delete(self, url, retry=0, retrylog=False, **kws):
         @threads(self.num)
         def delete1(url, **kws):
             for _ in range(retry+1):
@@ -99,11 +101,12 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.delete(url, **kws)
                     return requests.delete(url, **kws)
                 except:
+                    print('retry %s for the %s time'%(url,retry+1))
                     continue
             return
         return delete1(url, **kws)
 
-    def put(self, url, retry=0, **kws):
+    def put(self, url, retry=0, retrylog=False, **kws):
         @threads(self.num)
         def put1(url, **kws):
             for _ in range(retry+1):
@@ -112,11 +115,12 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.put(url, **kws)
                     return requests.put(url, **kws)
                 except:
+                    print('retry %s for the %s time'%(url,retry+1))
                     continue
             return
         return put1(url, **kws)
 
-    def head(self, url, retry=0, **kws):
+    def head(self, url, retry=0, retrylog=False, **kws):
         @threads(self.num)
         def head1(url, **kws):
             for _ in range(retry+1):
@@ -125,6 +129,7 @@ ss=[i.text for i in ss if i.__bool__()]
                         return self.session.head(url, **kws)
                     return requests.head(url, **kws)
                 except:
+                    print('retry %s for the %s time'%(url,retry+1))
                     continue
             return
         return head1(url, **kws)
