@@ -1,274 +1,77 @@
 # torequests
-####Using tomorrow to make requests async
-## The only reason to use it is: nothing to learn & easy to use.(And it can run on win.....)
-
-'retry' and 'timeout' for tPool usage:
-```python
-ss=[tt.get(i,timeout=1,retry=3) for i in ['http://127.0.0.1:8080']*10]
-ss=[i.text if i.__bool__() else 'error' for i in ss]
-```
-
-#### Someone told me the readme is much too long... So, you just need to remember that: make the http-response-job (like trequests.get) and parse-response-job separate, for the usage of tomorrow.
-```python
-from torequests import tPool
-import time
-
-trequests = tPool(50)
-urls = ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*200
-
-def getsth(url):
-    return trequests.get(url)
-
-def parsesth(resp):
-    return resp.json()[0]['id']
-time1 = time.time()
-list1 = [getsth(url) for url in urls]
-list2 = [parsesth(resp) for resp in list1]
-print(list2)
-print('timeused:', time.time()-time1)
-# here the test result:
-# ['J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', 'J_1273600', ...
-# timeused: 0.5613970756530762
-
-```
+####Using tomorrow to make requests async, but not fit python2.x any more.
+## The only reason to use it is: nothing to learn & easy to use.(And it can run on windows.....)
 
 
-Source URL: https://github.com/ClericPy/torequests
+# Tutorial
 
->for python3.x, but tPool may not be fit for python2.x......
+## tPool:
 
->Thanks to https://github.com/madisonmay/Tomorrow, requests could run fast in python3 and need to learn no more than requests-doc.
+>### The args:
+num means Pool size; session is requests.Session; retry is the times when exception raised; retrylog is one bool object and determined whether show the log when retry occured; logging args will show what you want see when finished successfully.
 
-For first
-
->pip install torequests
-
-Obviously, use it like :
-```python
-from torequests import tPool as Pool
-requests = Pool(30)
-```
-or 
-```python
-import torequests
-print(help(torequests))
-```
-then use requests.get/post/put/head/delete/ as usual.
-so, this does support Session...
-
-curio sames awosome and difficult，multiprocessing.dummy and pool.map is non-3rd-library but I don't like it even using it much time，requests said never support async（such like asyncio）， aiohttp not easy like requests, gevent hates Windows, twisted hard to study and no good for py3, grab seems good, scrapy seems to abandon py3, god ,I have try so much and deserve so many failures.........
-
-# Special WARNING：
-####If you use it in one wrong way,  it will be no faster than single-thread.
+========================
+#####Usage:
 
 ```python
-from torequests import tPool
-import time
-trequests = tPool(30)
-# wrong & slow:
-tt = time.time()
-aa = [trequests.get(url).text for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*1000]
-ss = (aa[-3])
-print('wrong way ', time.time()-tt)
-
-# right & fast:
-tt = time.time()
-aa = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*1000]
-aa = [i.text for i in aa]
-ss = (aa[-3])
-print('right way ', time.time()-tt)
-
-# result:
-# wrong way  18.834501266479492
-# right way  2.7255847454071045
-```
-
-一句话，就是给requests简单异步包装一下
-####用法：
-```python
-from torequests import tPool as Pool
-requests = Pool(30)
-```
-or 
-```python
-import torequests
-print(help(torequests))
-```
-然后requests正常用就行了，支持Session什么的，就只是简单的requests.get加几个参数，可以命名成trequest，和原生requests分开混着用，原生的requests就用multiprocessing.dummy吧。。。（后来把tomorrow包装的叫tPool，multiprocessing.dummy包装的叫mPool，后者只是多线程处理下urls。。。)
-
-#Example：
-
-Try it yourself:
-
-========================================
-```python
-from torequests import mPool
 from torequests import tPool
 import requests
-import time
-
-# requests in single thread
-print('##### requests in single thread for 100 work')
-aa = time.time()
-ss = [requests.get(url)
-      for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 100]
-ss = [len(i.text) for i in ss]
-print(ss[-10:],'\n')
-print('>',time.time() - aa, 's\n')
-
-
-# no Session multitreads
-print('##### no Session multitreads for 1000 work')
-aa = time.time()
-mrequests = mPool(50)
-ss = mrequests.get(['http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 1000)
-ss = [len(i.text) for i in ss]
-print(ss[-10:],'\n')
-print('>',time.time() - aa, 's\n')
-
-# no Session tomorrow
-print('##### no Session tomorrow for 1000 work')
-
-aa = time.time()
-trequests = tPool(50)
-ss = [trequests.get(url) for url in [
-    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 1000]
-ss = [len(i.text) for i in ss]
-print(ss[-10:],'\n')
-print('>',time.time() - aa, 's\n')
-
-
-# with Session multitreads
-print('##### with Session multitreads for 1000 work')
-
-aa = time.time()
 s = requests.Session()
-mrequests = mPool(50, session=s)
-ss = mrequests.get(['http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 1000)
-ss = [len(i.text) for i in ss]
-print(ss[-10:],'\n')
-print('>',time.time() - aa, 's\n')
-
-# with Session tomorrow
-print('##### with Session tomorrow for 1000 work')
-aa = time.time()
-s = requests.Session()
-trequests = tPool(50, session=s)
-ss = [trequests.get(url) for url in [
-    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 1000]
-ss = [len(i.text) for i in ss]
-print(ss[-10:],'\n')
-print('>',time.time() - aa, 's\n')
+trequests = tPool(30, session = s)
+list1 = [trequests.get(url, timeout=1, retry=1, retrylog=1, logging='finished') for url in ['http://127.0.0.1:8080/']*5]
+list2 = [i.content if i.__bool__() else 'fail' for i in list1]
+print(list2)
 ```
 
-=======
-### no Session multitreads
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
+========================
 
-1.1978464126586914 s
+result:
 
-### no Session tomorrow
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
+```
+http://127.0.0.1:8080/ finished
+http://127.0.0.1:8080/ finished
+http://127.0.0.1:8080/ finished
+retry http://127.0.0.1:8080/ for the 1 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+retry http://127.0.0.1:8080/ for the 1 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+http://127.0.0.1:8080/ finished
+retry http://127.0.0.1:8080/ for the 2 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+[b'success', b'success', b'success', b'success', 'fail']
+```
 
-0.10907530784606934 s
+========================
+>PS:
+http://127.0.0.1:8080/ is one server that route a function like:
 
-### with Session multitreads
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
+```python
+    aa=random.randint(0,1)
+    if aa:
+        print(aa)
+        return 'success'
+    time.sleep(5)
+    return 'fail'
+```
 
-0.31622314453125 s
-
-### with Session tomorrow
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51]
-
-0.08806300163269043 s
-
-===============================
-
-##### requests in single thread for 100 work
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
-
-> 1.8863472938537598 s
-
-##### no Session multitreads for 1000 work
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
-
-> 2.6028215885162354 s
-
-##### no Session tomorrow for 1000 work
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
-
-> 2.633859872817993 s
-
-##### with Session multitreads for 1000 work
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
-
-> 2.1975533962249756 s
-
-##### with Session tomorrow for 1000 work
-[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
-
-> 2.48775577545166 s
-
-----
-###For fix 'tomorrow' will return a Tomorrow object in python3.x ( but return true object in py2.x), torequests add an bad choice to check type, pPool.
->For now, autocheck only support:
-
->  字符串(str) 布尔类型(bool) 整数(int) 浮点数(float) 数字(number) 列表(list) 元组(tuple) 字典(dict) 日期(datetime)
+========================
+as you see, only the requests.get is async.
 
 
-####If you do not care about performance, you can use it by setting autocheck=1, else set autocheck=0. 
-### pPool Usage:
+## pPool:
+
+Using tomorrow to generate an async Pool like gevent.pool.Pool or multiprocessing.dummy.Pool, no need for close.
+
 ```python
 from torequests import pPool
-import requests
-import time
-
-
-# get Tomorrow
-def getint(url):
-    r = requests.get(url)
-    return r
-pp = pPool(10)
-ss = pp.map1(getint, [
-    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3, autocheck=0)
-print('Tomorrow:\n', ss)
-# after using:
-ss = [i.text for i in pp.map1(getint, [
-    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3)]
-print('use Tomorrow:\n', ss)
-
-
-# get int
-def getint(url):
-    r = requests.get(url)
-    return len(r.text)
-pp = pPool(10)
-ss = pp.map1(getint, [
-    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3)
-print('Int:\n', ss)
-
-
-# get str
-def getstr(url):
-    r = requests.get(url)
-    return r.text
-pp = pPool(10)
-ss = pp.map1(getstr, [
-    'http://p.3.cn/prices/mgets?skuIds=J_1273600'] * 3)
-print('String:\n', ss)
-
-
-
-
+pp=pPool(30)
+ss=list(pp.map(func, argvs,autocheck=1))
 ```
-####result:
-```
-Tomorrow:
- [<torequests.Tomorrow object at 0x035316F0>, <torequests.Tomorrow object at 0x03531AF0>, <torequests.Tomorrow object at 0x03531ED0>]
-use Tomorrow:
- ['[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n']
-Int:
- [51, 51, 51]
-String:
- ['[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n', '[{"id":"J_1273600","p":"16999.00","m":"16999.00"}]\n']
-```
+
+========================
+
+Autocheck means return the real response instead of Tomorrow Class.
+As it's async, you can use print func as logging. 
+
+
+[More readme](readme1.md)
+
+
+

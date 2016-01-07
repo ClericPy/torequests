@@ -45,95 +45,144 @@ def threads(n, timeout1=None):
 class tPool():
 
     '''
-Obviously, use it like :
-from trequests import tPool as Pool
+    num means Pool size; session is requests.Session; retry is the times when exception raised; retrylog is one bool object and determined whether show the log when retry occured; logging args will show what you want see when finished successfully.
+========================
+Usage:
+from torequests import tPool
+import requests
+s = requests.Session()
+trequests = tPool(30, session = s)
+list1 = [trequests.get(url, timeout=1, retry=1, retrylog=1, logging='finished') for url in ['http://127.0.0.1:8080/']*5]
+list2 = [i.content if i.__bool__() else 'fail' for i in list1]
+print(list2)
 
-requests = Pool(30)
-...
-then use requests.get/post/put/head/delete/ as usual.
-so, this does not support Session...
-
-tt=tPool(30)
-
-ss=[tt.get(i,timeout=1,retry=3) for i in ['http://127.0.0.1:8080']*10]
-ss=[i.text for i in ss if i.__bool__()]
+========================
+http://127.0.0.1:8080/ finished
+http://127.0.0.1:8080/ finished
+http://127.0.0.1:8080/ finished
+retry http://127.0.0.1:8080/ for the 1 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+retry http://127.0.0.1:8080/ for the 1 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+http://127.0.0.1:8080/ finished
+retry http://127.0.0.1:8080/ for the 2 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+[b'success', b'success', b'success', b'success', 'fail']
+========================
+PS:
+http://127.0.0.1:8080/ is one server that route a function like:
+    aa=random.randint(0,1)
+    if aa:
+        print(aa)
+        return 'success'
+    time.sleep(5)
+    return 'fail'
+========================
+as you see, only the requests.get is async.
     '''
 
     def __init__(self, num, session=None):
         self.num = num
         self.session = session
 
-    def get(self, url, retry=0, retrylog=False, **kws):
+    def get(self, url, retry=0, retrylog=False, logging=None, **kws):
         @threads(self.num)
         def get1(url, **kws):
             for _ in range(retry+1):
                 try:
                     if self.session:
-                        return self.session.get(url, **kws)
-                    return requests.get(url, **kws)
-                except:
+                        ss = self.session.get(url, **kws)
+                        if logging:
+                            print(url,logging)
+                        return ss
+                    ss = requests.get(url, **kws)
+                    if logging:
+                        print(url,logging)
+                    return ss
+                except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, _+1))
+                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
             return
         return get1(url, **kws)
 
-    def post(self, url, retry=0, retrylog=False, **kws):
+    def post(self, url, retry=0, retrylog=False, logging=None, **kws):
         @threads(self.num)
         def post1(url, **kws):
             for _ in range(retry+1):
                 try:
                     if self.session:
-                        return self.session.post(url, **kws)
-                    return requests.post(url, **kws)
-                except:
+                        ss = self.session.post(url, **kws)
+                        if logging:
+                            print(url,logging)
+                        return ss
+                    ss = requests.post(url, **kws)
+                    if logging:
+                        print(url,logging)
+                    return ss
+                except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, _+1))
+                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
             return
         return post1(url, **kws)
 
-    def delete(self, url, retry=0, retrylog=False, **kws):
+    def delete(self, url, retry=0, retrylog=False, logging=None, **kws):
         @threads(self.num)
         def delete1(url, **kws):
             for _ in range(retry+1):
                 try:
                     if self.session:
-                        return self.session.delete(url, **kws)
-                    return requests.delete(url, **kws)
-                except:
+                        ss = self.session.delete(url, **kws)
+                        if logging:
+                            print(url,logging)
+                        return ss
+                    ss = requests.delete(url, **kws)
+                    if logging:
+                        print(url,logging)
+                    return ss
+                except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, _+1))
+                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
             return
         return delete1(url, **kws)
 
-    def put(self, url, retry=0, retrylog=False, **kws):
+    def put(self, url, retry=0, retrylog=False, logging=None, **kws):
         @threads(self.num)
         def put1(url, **kws):
             for _ in range(retry+1):
                 try:
                     if self.session:
-                        return self.session.put(url, **kws)
-                    return requests.put(url, **kws)
-                except:
+                        ss = self.session.put(url, **kws)
+                        if logging:
+                            print(url,logging)
+                        return ss
+                    ss = requests.put(url, **kws)
+                    if logging:
+                        print(url,logging)
+                    return ss
+                except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, _+1))
+                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
             return
         return put1(url, **kws)
 
-    def head(self, url, retry=0, retrylog=False, **kws):
+    def head(self, url, retry=0, retrylog=False, logging=None, **kws):
         @threads(self.num)
         def head1(url, **kws):
             for _ in range(retry+1):
                 try:
                     if self.session:
-                        return self.session.head(url, **kws)
-                    return requests.head(url, **kws)
-                except:
+                        ss = self.session.head(url, **kws)
+                        if logging:
+                            print(url,logging)
+                        return ss
+                    ss = requests.head(url, **kws)
+                    if logging:
+                        print(url,logging)
+                    return ss
+                except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time' % (url, _+1))
+                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
             return
         return head1(url, **kws)
@@ -142,9 +191,13 @@ ss=[i.text for i in ss if i.__bool__()]
 class pPool():
 
     '''
-use it as gevent.pool.Pool or multiprocessing.dummy.Pool, no need for close
+Using tomorrow to generate an async Pool like gevent.pool.Pool or multiprocessing.dummy.Pool, no need for close.
+
 pp=pPool(30)
 ss=pp.map(func, argvs,autocheck=1)
+========================
+Autocheck means return the real response instead of Tomorrow Class.
+As it's async, you can use print func as logging. 
     '''
 
     def __init__(self, num):
@@ -176,12 +229,13 @@ class mPool():
 
     '''
 Obviously, use it like :
-from trequests import Pool
+from trequests import mPool
 
-requests = Pool(30)
-...
-then use requests.get/post/put/head/delete/ as usual.
-so, this does not support Session...
+pp = mPool(30)
+ss = pp.get(urls)
+========================
+It's just use multiprocessing.dummy Pool, no more special features but sync, and not supports to use it.
+
     '''
 
     def __init__(self,  num, session=None):
