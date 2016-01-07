@@ -1,9 +1,16 @@
 # torequests
-####Using tomorrow to make requests async, but not fit python2.x any more.
-## The only reason to use it is: nothing to learn & easy to use.(And it can run on windows.....)
+
+#### Using tomorrow to make requests async, but not fit python2.x any more( by intention ).
+
+The only reason to use it is: nothing to learn & easy to use.(And it can run on windows.....)
 
 
 # Tutorial
+
+first of all:
+>pip install torequests -U
+
+The latest version is V 0.1.0
 
 ## tPool:
 
@@ -71,7 +78,7 @@ Autocheck means return the real response instead of Tomorrow Class.
 As it's async, you can use print func as logging. 
 
 
-[More readme](readme1.md)
+[More readme](README1.md)
 
 
 
