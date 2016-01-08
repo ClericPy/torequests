@@ -1,14 +1,19 @@
 # torequests
-####Using tomorrow to make requests async, but not fit python2.x any more.
-## The only reason to use it is: nothing to learn & easy to use.(And it can run on windows.....)
+
+#### Using tomorrow to make requests async, but not fit python2.x any more( by intention ).
+
+The only reason to use it is: nothing to learn & easy to use.(And it can run on windows.....)
 
 
 # Tutorial
 
+first of all:
+>pip install torequests -U
+
 ## tPool:
 
 >### The args:
-num means Pool size; session is requests.Session; retry is the times when exception raised; retrylog is one bool object and determined whether show the log when retry occured; logging args will show what you want see when finished successfully.
+num means Pool size; session is requests.Session; retry is the times when exception raised; retrylog is one bool object and determined whether show the log when retry occured; logging args will show what you want see when finished successfully; delay will run after some seconds, so it only fit float or int.
 
 ========================
 #####Usage:
@@ -70,8 +75,30 @@ ss=list(pp.map(func, argvs,autocheck=1))
 Autocheck means return the real response instead of Tomorrow Class.
 As it's async, you can use print func as logging. 
 
+## threads:
+no changing for original Tomorrow's threads
 
-[More readme](readme1.md)
+#####Normal usage:
+
+```python
+from torequests import threads
+
+newfunc = threads(10)(rawfunc)
+
+# or Decorator
+
+@threads(10)
+def rawfunc():
+	pass
+
+
+```
+
+========================
+
+
+
+[More readme](README1.md)
 
 
 
