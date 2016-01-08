@@ -10,8 +10,6 @@ The only reason to use it is: nothing to learn & easy to use.(And it can run on 
 first of all:
 >pip install torequests -U
 
-The latest version is V 0.1.0
-
 ## tPool:
 
 >### The args:
@@ -76,6 +74,28 @@ ss=list(pp.map(func, argvs,autocheck=1))
 
 Autocheck means return the real response instead of Tomorrow Class.
 As it's async, you can use print func as logging. 
+
+## threads:
+no changing for original Tomorrow's threads
+
+#####Normal usage:
+
+```python
+from torequests import threads
+
+newfunc = threads(10)(rawfunc)
+
+# or Decorator
+
+@threads(10)
+def rawfunc():
+	pass
+
+
+```
+
+========================
+
 
 
 [More readme](README1.md)
