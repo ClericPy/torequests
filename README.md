@@ -81,6 +81,14 @@ no changing for original Tomorrow's threads
 #####Normal usage:
 
 ```python
+
+# transform it async by function
+from torequests import async
+async_function = async(old_function) # pool size is 30 for default, or set a new one
+# or async_function = async(old_function,40) or async_function = async(old_function, n=40)
+
+
+# original usage
 from torequests import threads
 
 newfunc = threads(10)(rawfunc)
@@ -94,8 +102,46 @@ def rawfunc():
 
 ```
 
+##### demo:
+
+```python
+import time
+import requests
+import sys
+from torequests import threads, async
+s = requests.Session()
+counting = 0
+
+# @threads(10) # the Decorator style
+def download(url):
+    global counting
+    for _ in range(5):
+        try:
+            aa = s.get(url)
+            counting += 1
+            sys.stderr.write('%s  \r' % counting) 
+            break
+        except:
+            pass
+    return aa
+urls = ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*1000
+if __name__ == "__main__":
+    start = time.time()
+    dd = async(download)  # no difference to threads(30)(download)
+    responses = [dd(url) for url in urls]
+    html = [response.text for response in responses]
+    end = time.time()
+    print("Time: %f seconds" % (end - start))
+
+# (time cost) Time: 2.321494 seconds
+
+```
+
 ========================
 
+
+
+========================
 
 
 [More readme](README1.md)

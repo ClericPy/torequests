@@ -17,7 +17,7 @@ class Tomorrow():
         return result.__getattribute__(name)
 
 
-def async(n, base_type, timeout1=None):
+def async1(n, base_type, timeout1=None):
     def decorator(f):
         if isinstance(n, int):
             pool = base_type(n)
@@ -40,7 +40,11 @@ def async(n, base_type, timeout1=None):
 
 
 def threads(n, timeout1=None):
-    return async(n, ThreadPoolExecutor, timeout1)
+    return async1(n, ThreadPoolExecutor, timeout1)
+
+
+def async(func, n=30):
+    return threads(n=n)(func)
 
 
 class tPool():
