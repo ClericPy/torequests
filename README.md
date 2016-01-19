@@ -12,7 +12,9 @@ first of all:
 
 ## tPool:
 
->### The args:
+>make requests async(and retry/log)
+
+### The args:
 num means Pool size; session is requests.Session; retry is the times when exception raised; retrylog is one bool object and determined whether show the log when retry occured; logging args will show what you want see when finished successfully; delay will run after some seconds, so it only fit float or int.
 
 ========================
@@ -62,6 +64,8 @@ as you see, only the requests.get is async.
 
 ## pPool:
 
+> tomorrow style multiprocessing.dummy.Pool
+
 Using tomorrow to generate an async Pool like gevent.pool.Pool or multiprocessing.dummy.Pool, no need for close.
 
 ```python
@@ -76,6 +80,9 @@ Autocheck means return the real response instead of Tomorrow Class.
 As it's async, you can use print func as logging. 
 
 ## threads:
+
+>make any functions asynchronous
+
 no changing for original Tomorrow's threads
 
 #####Normal usage:
