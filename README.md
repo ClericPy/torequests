@@ -1,6 +1,6 @@
 # torequests
 
-#### Using tomorrow to make requests async, but not fit python2.x any more( by intention ).
+#### Using [tomorrow](https://github.com/madisonmay/Tomorrow) to make requests async, but not fit python2.x any more( by intention ).
 
 The only reason to use it is: nothing to learn & easy to use.(And it can run on windows.....)
 
@@ -22,7 +22,7 @@ num means Pool size; session is requests.Session; retry is the times when except
 from torequests import tPool
 import requests
 s = requests.Session()
-trequests = tPool(30, session = s)
+trequests = tPool(30, session = s) # you may use it without session either.
 list1 = [trequests.get(url, timeout=1, retry=1, retrylog=1, logging='finished') for url in ['http://127.0.0.1:8080/']*5]
 list2 = [i.content if i.__bool__() else 'fail' for i in list1]
 print(list2)
@@ -82,10 +82,11 @@ no changing for original Tomorrow's threads
 
 ```python
 
-# transform it async by function
+# transform a function asynchronous
 from torequests import async
-async_function = async(old_function) # pool size is 30 for default, or set a new one
-# or async_function = async(old_function,40) or async_function = async(old_function, n=40)
+async_function = async(old_function) 
+# pool size is 30 for default, or set a new one like
+# async_function = async(old_function,40) # or async_function = async(old_function, n=40)
 
 
 # original usage
@@ -93,7 +94,7 @@ from torequests import threads
 
 newfunc = threads(10)(rawfunc)
 
-# or Decorator
+# or Decorator, but it influenced raw func.
 
 @threads(10)
 def rawfunc():
