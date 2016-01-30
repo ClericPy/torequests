@@ -12,7 +12,7 @@ Then, <torequests.Tomorrow object at 0x03922F70> can be transform to the real va
 
 # Tutorial
 
-first of all:(python2.x need to install futures and copy the torequests.py file by yourself.)
+first of all:
 >pip install torequests -U
 
 ## tPool:
