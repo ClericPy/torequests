@@ -1,13 +1,18 @@
 # torequests
 
-#### Using [tomorrow](https://github.com/madisonmay/Tomorrow) to make requests async, but not fit python2.x any more( by intention ).
+#### Using [tomorrow](https://github.com/madisonmay/Tomorrow) to make requests async.
 
 The only reason to use it is: nothing to learn & easy to use.(And it can run on windows.....)
 
+```
+By the way, if you want to get the true value instead of "Tomorrow" class, 
+sometimes you can use __rmul__(1) method.
+Then, <torequests.Tomorrow object at 0x03922F70> can be transform to the real value.
+```
 
 # Tutorial
 
-first of all:
+first of all:(python2.x need to install futures and copy the torequests.py file by yourself.)
 >pip install torequests -U
 
 ## tPool:
