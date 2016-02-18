@@ -7,12 +7,31 @@ The only reason to use it is: nothing to learn & easy to use.(And it can run on 
 ```
 By the way, if you want to get the true value instead of "Tomorrow" class, 
 sometimes you can use __rmul__(1) method.
-Then, <torequests.Tomorrow object at 0x03922F70> can be transform to the real value.
+Then, <torequests.Tomorrow object at 0x03922F70> can be transformed to the real value.
 ```
+
+# Quick Start
+
+```python
+from torequests import tPool
+import time
+
+start_time = time.time()
+trequests = tPool(30)  # you may use it without session either.
+list1 = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*500]
+list2 = [len(i.content) if i.__bool__() else 'fail' for i in list1]
+end_time = time.time()
+print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
+
+```
+>result:
+[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
+timeused:1.5210599899291992 s
+
 
 # Tutorial
 
-first of all:(python2.x need to install futures and copy the torequests.py file by yourself.)
+first of all:
 >pip install torequests -U
 
 ## tPool:

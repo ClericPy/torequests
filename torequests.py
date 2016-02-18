@@ -106,7 +106,7 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return
+            return False
         return get1(url, **kws)
 
     def post(self, url, retry=0, retrylog=False, logging=None, delay=0, **kws):
@@ -128,7 +128,7 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return
+            return False
         return post1(url, **kws)
 
     def delete(self, url, retry=0, retrylog=False, logging=None, delay=0, **kws):
@@ -150,7 +150,7 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return
+            return False
         return delete1(url, **kws)
 
     def put(self, url, retry=0, retrylog=False, logging=None, delay=0, **kws):
@@ -172,7 +172,7 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return
+            return False
         return put1(url, **kws)
 
     def head(self, url, retry=0, retrylog=False, logging=None, delay=0, **kws):
@@ -194,7 +194,7 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return
+            return False
         return head1(url, **kws)
 
 
