@@ -87,7 +87,7 @@ as you see, only the requests.get is async.
         self.num = num
         self.session = session
 
-    def get(self, url, retry=0, retrylog=False, logging=None, delay=0, **kws):
+    def get(self, url, retry=0, retrylog=False, logging=None, delay=0, fail_return=False, **kws):
         @threads(self.num)
         def get1(url, **kws):
             for _ in range(retry+1):
@@ -106,10 +106,10 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return False
+            return fail_return
         return get1(url, **kws)
 
-    def post(self, url, retry=0, retrylog=False, logging=None, delay=0, **kws):
+    def post(self, url, retry=0, retrylog=False, logging=None, delay=0, fail_return=False, **kws):
         @threads(self.num)
         def post1(url, **kws):
             for _ in range(retry+1):
@@ -128,10 +128,10 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return False
+            return fail_return
         return post1(url, **kws)
 
-    def delete(self, url, retry=0, retrylog=False, logging=None, delay=0, **kws):
+    def delete(self, url, retry=0, retrylog=False, logging=None, delay=0, fail_return=False, **kws):
         @threads(self.num)
         def delete1(url, **kws):
             for _ in range(retry+1):
@@ -150,10 +150,10 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return False
+            return fail_return
         return delete1(url, **kws)
 
-    def put(self, url, retry=0, retrylog=False, logging=None, delay=0, **kws):
+    def put(self, url, retry=0, retrylog=False, logging=None, delay=0, fail_return=False, **kws):
         @threads(self.num)
         def put1(url, **kws):
             for _ in range(retry+1):
@@ -172,10 +172,10 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return False
+            return fail_return
         return put1(url, **kws)
 
-    def head(self, url, retry=0, retrylog=False, logging=None, delay=0, **kws):
+    def head(self, url, retry=0, retrylog=False, logging=None, delay=0, fail_return=False, **kws):
         @threads(self.num)
         def head1(url, **kws):
             for _ in range(retry+1):
@@ -194,7 +194,7 @@ as you see, only the requests.get is async.
                     if retrylog:
                         print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
                     continue
-            return False
+            return fail_return
         return head1(url, **kws)
 
 
