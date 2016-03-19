@@ -275,7 +275,30 @@ newfunc = threads(10)(rawfunc)
 def rawfunc():
     pass
 ```
-> 函数执行时候非阻塞，会直接跳过去，直到你调用它的返回值 —— `funtion().x`.
+> 函数执行时候非阻塞，会直接跳过去，直到你调用它的返回值 —— `funtion().x`. 如下傻瓜式用法：
+
+```python
+from torequests import async
+import time
+
+
+def function():
+    time.sleep(3)
+    return 'function 执行完毕'
+
+a_func = async(function)
+
+result1 = a_func()
+print('现在是异步的，所以它只是个Tomorrow对象：', result1)
+print('虽然a_func在执行，但我可以print出来，所以确实是异步了')
+print('现在会阻塞住三秒，等待返回结果：')
+[(time.sleep(1), print(3-i)) for i in range(3)]
+print(result1.x)
+
+print('然后实验一次错误用法，这里我将直接使用函数的值，比如print它：print(a_func().x)')
+print(a_func().x)
+print('所以被阻塞住了，等待了3秒。')
+```
 
 ##### demo:
 
