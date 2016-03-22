@@ -1,7 +1,7 @@
+# python2 need pip install futures
 import requests
 from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing.dummy import Pool as multiPool
 import time
 
 
