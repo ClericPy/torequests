@@ -23,7 +23,7 @@ list1 = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_127
 list2 = [i.x for i in list1]
 list3 = [len(i.content) if i else 'fail' for i in list2]
 end_time = time.time()
-print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
+print(list3[:10], '\ntimeused:%s s' % (end_time-start_time))
 
 ```
 
@@ -55,7 +55,7 @@ trequests = tPool(30, session=s)  # you may use it without session either.
 list1 = [trequests.get(url, timeout=1, retry=1, retrylog=1, fail_return=False, logging='finished') for url in ['http://127.0.0.1:8080/']*5]
 list2 = [i.x for i in list1]
 list3 = [i.content if i else 'fail' for i in list2]
-print(list2)
+print(list3)
 ```
 
 -------
@@ -181,7 +181,7 @@ list1 = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_127
 list2 = [i.x for i in list1]
 list3 = [len(i.content) if i else 'fail' for i in list2]
 end_time = time.time()
-print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
+print(list3[:10], '\ntimeused:%s s' % (end_time-start_time))
 
 ```
 
@@ -213,7 +213,7 @@ trequests = tPool(30, session=s)  # Session的好处是性能比每次都重新�
 list1 = [trequests.get(url, timeout=1, retry=1, retrylog=1, fail_return=False, logging='finished') for url in ['http://127.0.0.1:8080/']*5]
 list2 = [i.x for i in list1]
 list3 = [len(i.content) if i else 'fail' for i in list2]
-print(list2)
+print(list3)
 ```
 
 -------
