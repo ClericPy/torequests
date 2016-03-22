@@ -21,7 +21,7 @@ trequests = tPool(30)  # you may use it without session either.
 list1 = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*500]
 # If failed, i.x may return False object by default, or you can reset the fail_return arg.Special intention: **DO NOT USE i.x TWICE!!!**
 list2 = [i.x for i in list1]
-list2 = [len(i.content) if i else 'fail' for i in list1]
+list3 = [len(i.content) if i else 'fail' for i in list2]
 end_time = time.time()
 print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
 
@@ -54,7 +54,7 @@ s = requests.Session()
 trequests = tPool(30, session=s)  # you may use it without session either.
 list1 = [trequests.get(url, timeout=1, retry=1, retrylog=1, fail_return=False, logging='finished') for url in ['http://127.0.0.1:8080/']*5]
 list2 = [i.x for i in list1]
-list2 = [i.content if i else 'fail' for i in list1]
+list3 = [i.content if i else 'fail' for i in list2]
 print(list2)
 ```
 
@@ -179,7 +179,7 @@ trequests = tPool(30)  # you may use it without session either.
 list1 = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*500]
 # 如果函数执行失败（或超过重试次数）, i.x 默认会返回False对象, 除非你自定义去修改 fail_return 参数.注意！！！i.x绝对不要调用2次，因为在for循环里，调用一次后i就不是Tomorrow对象了，也就没有了.x属性。
 list2 = [i.x for i in list1]
-list2 = [len(i.content) if i else 'fail' for i in list1]
+list3 = [len(i.content) if i else 'fail' for i in list2]
 end_time = time.time()
 print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
 
@@ -212,7 +212,7 @@ s = requests.Session()
 trequests = tPool(30, session=s)  # Session的好处是性能比每次都重新发送请求快，并且能保留Cookies等（但我基本从来没用过这参数）.
 list1 = [trequests.get(url, timeout=1, retry=1, retrylog=1, fail_return=False, logging='finished') for url in ['http://127.0.0.1:8080/']*5]
 list2 = [i.x for i in list1]
-list2 = [len(i.content) if i else 'fail' for i in list1]
+list3 = [len(i.content) if i else 'fail' for i in list2]
 print(list2)
 ```
 
