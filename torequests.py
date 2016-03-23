@@ -43,7 +43,7 @@ def async1(n, base_type, timeout1=None):
     return decorator
 
 
-def threads(n, timeout1=None):
+def threads(n=30, timeout1=None):
     return async1(n, ThreadPoolExecutor, timeout1)
 
 
@@ -53,7 +53,7 @@ def async(func, n=30):
 
 class tPool():
 
-    def __init__(self, num, session=None):
+    def __init__(self, num=30, session=None):
         self.num = num
         self.session = session
 
