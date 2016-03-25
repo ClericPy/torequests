@@ -119,7 +119,21 @@ newfunc = threads(10)(rawfunc)
 def rawfunc():
     pass
 ```
-> when you need the value returned by funtions, use `funtion().x`.
+> when you need the real value returned from funtions, use `funtion().x`.
+
+#### good & bad usage
+```python
+from torequests import async
+
+# GOOD. Only generate one thread-pool here.
+async_pool = async(lambda x: x())
+funcs = [async_pool(function) for function in functions]
+results = [i.x for i in funcs]
+
+# BAD. This way may open too many thread-pool here.
+funcs = [async(function)() for function in functions]
+results = [i.x for i in funcs]
+```
 
 ##### demo:
 
@@ -298,6 +312,19 @@ print(result1.x)
 print('然后实验一次错误用法，这里我将直接使用函数的值，比如print它：print(a_func().x)')
 print(a_func().x)
 print('所以被阻塞住了，等待了3秒。')
+```
+#### 注：每个函数异步后是一个 Tomorrow 线程池，如果需要同时得到多个函数的返回结果，则有两种好与坏的用法：
+```python
+from torequests import async
+
+# GOOD. Only generate one thread-pool here.
+async_pool = async(lambda x: x())
+funcs = [async_pool(function) for function in functions]
+results = [i.x for i in funcs]
+
+# BAD. This way may open too many thread-pool here.
+funcs = [async(function)() for function in functions]
+results = [i.x for i in funcs]
 ```
 
 ##### demo:
