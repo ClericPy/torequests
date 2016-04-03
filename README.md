@@ -489,3 +489,7 @@ This is still running even gotcha a TimeoutError! 2
 # Usage #4, filter for TimeoutErrors
 [1] time passed : 4.002671718597412
 ```
+
+# 很明显的，因为是线程，所以没有什么好办法像os.kill让进程自杀一样来终止掉超时的线程，
+# 所以，万万不要写那种不会自己停止的程序。
+# 等有时间用 ProcessPoolExecutor 写一个进程版的，再让超时的进程强制结束吧。
