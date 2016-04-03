@@ -4,12 +4,134 @@
 
 The only reason to use is: nothing to learn & easy to use.(And it fits Windows.....Python 2/3 compatible)
 
-[中文](#cn)
-
-> To get the **Real Value**, use the **.x** property, but it will block the threads, so you can push the threads first but not use `.x` until really need the value.
-> In other words, **`.x` should not be used until you need it**.
-
 # Quick Start
+#####example.py
+```python
+from torequests import async, threads, tPool
+import time
+
+
+# Usage #0, limit the Pool size as 2.
+print(
+    '# Usage #0, limit the Pool size as 2, this will cost 2s * 2 instead of 2s, for it can only run 2 tasks per time.')
+
+
+def function_pool_2(n):
+    time.sleep(2)
+    return n
+
+start_time = time.time()
+async_func = async(function_pool_2, 2)
+# Or as a generator: (async_func(i) for i in range(4)), this will cost 4s.
+push_funcs = [async_func(i) for i in range(4)]
+results = [i.x for i in push_funcs]
+print(results, 'time passed :', time.time()-start_time)
+
+
+# Usage #1, one function with many args for multi-missions
+print(
+    '# Usage #1, one function with many args for multi-missions, this will cost 2s.')
+
+
+def function(n):
+    time.sleep(2)
+    return n
+
+start_time = time.time()
+async_func = async(function)
+# Or as a generator: (async_func(i) for i in range(10)), this will cost 2s.
+push_funcs = [async_func(i) for i in range(10)]
+results = [i.x for i in push_funcs]
+print(results, 'time passed :', time.time()-start_time)
+
+
+# Usage #2, multi-functions with different args
+print('# Usage #2, multi-functions with different args, this will cost 2s.')
+
+
+def func1(n):
+    time.sleep(2)
+    return n
+
+
+def func2(n):
+    time.sleep(2)
+    return n
+
+
+def func3(n):
+    time.sleep(2)
+    return n
+start_time = time.time()
+async_func = async(lambda x, i: x(i))
+push_funcs = [async_func(func, i)
+              for func, i in zip([func1, func2, func3], range(3))]
+results = [i.x for i in push_funcs]
+print(results, 'time passed :', time.time()-start_time)
+
+
+# Usage #3, usage of timeout_return
+print(
+    '# Usage #3, usage of timeout_return. This will block for 3s, but gotcha value in 1s.')
+
+
+def function_timeout(n):
+    time.sleep(n)
+    print('This is still running even gotcha a TimeoutError!', n)
+    return n
+
+start_time = time.time()
+async_func = async(
+    function_timeout, timeout=1, timeout_return='timeout lalala')
+push_funcs = [async_func(i) for i in range(3)]
+results = push_funcs[1].x
+# Even though it will get value in 1 second, the functions will not be end
+# until all the push_funcs finished.
+print(results, 'time passed :', time.time()-start_time)
+time.sleep(2)  # wait for the functions above...
+
+# Usage #4, filter for TimeoutErrors
+print('# Usage #4, filter for TimeoutErrors')
+
+
+def function_timeout_filter(n):
+    time.sleep(n)
+    return n
+
+start_time = time.time()
+async_func = async(function_timeout_filter, timeout=1, timeout_return='')
+# This will cost 4 seconds obviously, because of function_timeout_filter(4).
+push_funcs = [async_func(i) for i in range(5)]
+results = [i.x for i in push_funcs]
+filter_results = [i for i in results if i]
+print(filter_results, 'time passed :', time.time()-start_time)
+
+
+```
+#####result:
+```python
+# Usage #0, limit the Pool size as 2, this will cost 2s * 2 instead of 2s, for it can only run 2 tasks per time.
+[0, 1, 2, 3] time passed : 4.0016865730285645
+# Usage #1, one function with many args for multi-missions, this will cost 2s.
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] time passed : 2.003317356109619
+# Usage #2, multi-functions with different args, this will cost 2s.
+[0, 1, 2] time passed : 2.0016467571258545
+# Usage #3, usage of timeout_return. This will block for 3s, but gotcha value in 1s.
+This is still running even gotcha a TimeoutError! 0
+This is still running even gotcha a TimeoutError! 1
+1 time passed : 1.002580165863037
+This is still running even gotcha a TimeoutError! 2
+# Usage #4, filter for TimeoutErrors
+[1] time passed : 4.002671718597412
+```
+
+
+
+
+
+------
+
+# Introduction [ [中文简介](#cn) ]
 
 ```python
 from torequests import tPool
@@ -30,6 +152,9 @@ print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
 timeused:0.929659366607666 s
 
 # Tutorial
+
+> To get the **Returned Value**, use the **.x** property, but it will block the threads, so you can push the threads first but not use `.x` until really need the value.
+> In other words, **`.x` should not be used until you need it**. The usage of **(async_func(i) for i in range(10)) or [async_func(i) for i in range(10)]** will cost time which equals to the most-cost-time function, because it's a sequence.
 
 **first of all:**
 
@@ -65,10 +190,10 @@ result:
 http://127.0.0.1:8080/ finished
 http://127.0.0.1:8080/ finished
 http://127.0.0.1:8080/ finished
-retry http://127.0.0.1:8080/ for the 1 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
-retry http://127.0.0.1:8080/ for the 1 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+retry http://127.0.0.1:8080/ for the 1 time, for the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+retry http://127.0.0.1:8080/ for the 1 time, for the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
 http://127.0.0.1:8080/ finished
-retry http://127.0.0.1:8080/ for the 2 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+retry http://127.0.0.1:8080/ for the 2 time, for the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
 [b'success', b'success', b'success', b'success', 'fail']
 
 ```
@@ -235,17 +360,17 @@ result:
 http://127.0.0.1:8080/ finished
 http://127.0.0.1:8080/ finished
 http://127.0.0.1:8080/ finished
-retry http://127.0.0.1:8080/ for the 1 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
-retry http://127.0.0.1:8080/ for the 1 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+retry http://127.0.0.1:8080/ for the 1 time, for the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+retry http://127.0.0.1:8080/ for the 1 time, for the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
 http://127.0.0.1:8080/ finished
-retry http://127.0.0.1:8080/ for the 2 time, as the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
+retry http://127.0.0.1:8080/ for the 2 time, for the Exception: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=1)
 [b'success', b'success', b'success', b'success', 'fail']
 
 ```
 
 -------
 >PS:
-http://127.0.0.1:8080/ 是我架的一个临时服务器，一般就是用来随机性地出错:
+http://127.0.0.1:8080/ 是我架的一个临时服务器，用来随机性地出错来测试重试功能:
 
 ```python
 @app.get('/')
@@ -260,13 +385,13 @@ def function():
 
 -------
 
-小贴士：由于这里的requests变成异步了，所以可以用 print 来查看进度。
+TIPS：由于这里的requests变成异步了，所以可以用 print 来查看进度。
 注意：这里的异步只在请求的时候异步（因为这种I/O操作最费时），而取值的时候则不是，比如： 
 ```[trequests.get(url, timeout=1, retry=1, retrylog=1, fail_return=False, logging='finished').x for url in ['http://127.0.0.1:8080/']*5]```并不能异步来提高性能，换句话说，它变成串行执行了（所以平时我经常拿单个的代替原生的 requests …）。
 
 ## 2. threads & async:
  
->这两个就是 Tomorrow 的神奇之处了，用法和原生的没什么区别。简而言之就是把普通函数变成异步函数，你**把它撒出去它就是异步的非阻塞状态，直到你要取它的返回值**。
+>这两个就是 Tomorrow 的神奇之处(把一个指定函数转成ThreadPoolExecutor对象)，用法和原生的没什么区别。简而言之就是把普通函数变成异步函数，你**把它撒出去它就是异步的非阻塞状态，直到你要取它的返回值**。
 
 #####Normal usage:
 

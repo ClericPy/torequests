@@ -1,61 +1,58 @@
-# python2 need pip install futures
+# python2 requires: pip install futures
 import requests
 from functools import wraps
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import time
 
 
 class Tomorrow():
 
-    def __init__(self, future, timeout1):
+    def __init__(self, future, timeout, timeout_return):
         self._future = future
-        self._timeout1 = timeout1
-        self._wait = self._future.result
+        self._timeout = timeout
+        self._timeout_return = timeout_return
 
     def __getattr__(self, name):
-        result = self._future.result(self._timeout1)
+        result = self._future.result(self._timeout)
         return result.__getattribute__(name)
 
     @property
     def x(self):
-        return self._wait()
+        try:
+            return self._future.result(self._timeout)
+        except TimeoutError:
+            return self._timeout_return
 
 
-def async1(n, base_type, timeout1=None):
+def async1(n, base_type, timeout=None, timeout_return='TimeoutError'):
     def decorator(f):
         if isinstance(n, int):
             pool = base_type(n)
         elif isinstance(n, base_type):
             pool = n
         else:
-            raise TypeError(
-                "Invalid type: %s"
-                % type(base_type)
-            )
+            raise TypeError("Invalid type: %s" % type(base_type))
 
         @wraps(f)
         def wrapped(*args, **kwargs):
-            return Tomorrow(
-                pool.submit(f, *args, **kwargs),
-                timeout1=timeout1
-            )
+            return Tomorrow(pool.submit(f, *args, **kwargs), timeout=timeout, timeout_return=timeout_return)
         return wrapped
     return decorator
 
 
-def threads(n=30, timeout1=None):
-    return async1(n, ThreadPoolExecutor, timeout1)
+def threads(n=30, timeout=None, timeout_return='TimeoutError'):
+    return async1(n, ThreadPoolExecutor, timeout)
 
 
-def async(func, n=30):
-    return threads(n=n)(func)
+def async(function, n=30, timeout=None, timeout_return='TimeoutError'):
+    return async1(n, base_type=ThreadPoolExecutor, timeout=timeout, timeout_return=timeout_return)(function)
 
 
 class tPool():
 
     def __init__(self, num=30, session=None):
         self.num = num
-        self.session = session
+        self.session = session if session else requests
 
     def get(self, url, retry=0, retrylog=False, logging=None, delay=0, fail_return=False, **kws):
         @threads(self.num)
@@ -63,18 +60,14 @@ class tPool():
             for _ in range(retry+1):
                 try:
                     time.sleep(delay)
-                    if self.session:
-                        ss = self.session.get(url, **kws)
-                        if logging:
-                            print(url, logging)
-                        return ss
-                    ss = requests.get(url, **kws)
+                    ss = self.session.get(url, **kws)
                     if logging:
                         print(url, logging)
                     return ss
                 except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
+                        print('Retry %s for the %s time,Exception:' %
+                              (url, _+1), e)
                     continue
             return fail_return
         return get1(url, **kws)
@@ -85,18 +78,14 @@ class tPool():
             for _ in range(retry+1):
                 try:
                     time.sleep(delay)
-                    if self.session:
-                        ss = self.session.post(url, **kws)
-                        if logging:
-                            print(url, logging)
-                        return ss
-                    ss = requests.post(url, **kws)
+                    ss = self.session.post(url, **kws)
                     if logging:
                         print(url, logging)
                     return ss
                 except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
+                        print('Retry %s for the %s time,Exception:' %
+                              (url, _+1), e)
                     continue
             return fail_return
         return post1(url, **kws)
@@ -107,18 +96,14 @@ class tPool():
             for _ in range(retry+1):
                 try:
                     time.sleep(delay)
-                    if self.session:
-                        ss = self.session.delete(url, **kws)
-                        if logging:
-                            print(url, logging)
-                        return ss
-                    ss = requests.delete(url, **kws)
+                    ss = self.session.delete(url, **kws)
                     if logging:
                         print(url, logging)
                     return ss
                 except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
+                        print('Retry %s for the %s time,Exception:' %
+                              (url, _+1), e)
                     continue
             return fail_return
         return delete1(url, **kws)
@@ -129,18 +114,14 @@ class tPool():
             for _ in range(retry+1):
                 try:
                     time.sleep(delay)
-                    if self.session:
-                        ss = self.session.put(url, **kws)
-                        if logging:
-                            print(url, logging)
-                        return ss
-                    ss = requests.put(url, **kws)
+                    ss = self.session.put(url, **kws)
                     if logging:
                         print(url, logging)
                     return ss
                 except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
+                        print('Retry %s for the %s time,Exception:' %
+                              (url, _+1), e)
                     continue
             return fail_return
         return put1(url, **kws)
@@ -151,18 +132,14 @@ class tPool():
             for _ in range(retry+1):
                 try:
                     time.sleep(delay)
-                    if self.session:
-                        ss = self.session.head(url, **kws)
-                        if logging:
-                            print(url, logging)
-                        return ss
-                    ss = requests.head(url, **kws)
+                    ss = self.session.head(url, **kws)
                     if logging:
                         print(url, logging)
                     return ss
                 except Exception as e:
                     if retrylog:
-                        print('retry %s for the %s time, as the Exception:' % (url, _+1), e)
+                        print('Retry %s for the %s time,Exception:' %
+                              (url, _+1), e)
                     continue
             return fail_return
         return head1(url, **kws)
