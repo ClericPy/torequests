@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='torequests',
-    version='2.0.0',
+    version='2.0.1',
     keywords=('requests tomorrow async multi-thread concurrent.futures asynchronous'),
     description='Asynchronous requests. Using concurrent.futures to make requests async(like Tomorrow), and some functions to make async-coding easy. read more :https://github.com/ClericPy/torequests ',
     license='MIT License',

@@ -1,51 +1,65 @@
 # python2 requires: pip install futures
-import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+from concurrent.futures._base import Future
+from concurrent.futures.thread import _WorkItem
 from functools import wraps
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import time
+import requests
 
 
-class Tomorrow():
+class Async(ThreadPoolExecutor):
 
-    def __init__(self, future, timeout, timeout_return):
-        self._future = future
+    def __init__(self, num, timeout, timeout_return):
+        super(Async, self).__init__(num)
+        self.timeout = timeout
+        self.timeout_return = timeout_return
+
+    def async_func(self):
+        def decorator(f):
+            @wraps(f)
+            def wrapped(*args, **kwargs):
+                return self.submit(f, *args, **kwargs)
+            return wrapped
+        return decorator
+
+    def submit(self, fn, *args, **kwargs):
+        with self._shutdown_lock:
+            if self._shutdown:
+                raise RuntimeError('cannot schedule new futures after shutdown')
+            f = NewFuture(self.timeout, self.timeout_return)
+            w = _WorkItem(f, fn, args, kwargs)
+            self._work_queue.put(w)
+            self._adjust_thread_count()
+            return f
+
+
+class NewFuture(Future):
+
+    """add .x (property) and timeout/timeout_return args for original Future"""
+
+    def __init__(self, timeout=None, timeout_return='TimeoutError'):
+        super(NewFuture, self).__init__()
         self._timeout = timeout
         self._timeout_return = timeout_return
 
     def __getattr__(self, name):
-        result = self._future.result(self._timeout)
+        result = self.result(self._timeout)
         return result.__getattribute__(name)
 
     @property
     def x(self):
         try:
-            return self._future.result(self._timeout)
+            return self.result(self._timeout)
         except TimeoutError:
             return self._timeout_return
 
 
-def async1(n, base_type, timeout=None, timeout_return='TimeoutError'):
-    def decorator(f):
-        if isinstance(n, int):
-            pool = base_type(n)
-        elif isinstance(n, base_type):
-            pool = n
-        else:
-            raise TypeError("Invalid type: %s" % type(base_type))
-
-        @wraps(f)
-        def wrapped(*args, **kwargs):
-            return Tomorrow(pool.submit(f, *args, **kwargs), timeout=timeout, timeout_return=timeout_return)
-        return wrapped
-    return decorator
+def async(f, n=30, timeout=None, timeout_return='TimeoutError'):
+    return Async(n, timeout, timeout_return).async_func()(f)
 
 
 def threads(n=30, timeout=None, timeout_return='TimeoutError'):
-    return async1(n, ThreadPoolExecutor, timeout)
-
-
-def async(function, n=30, timeout=None, timeout_return='TimeoutError'):
-    return async1(n, base_type=ThreadPoolExecutor, timeout=timeout, timeout_return=timeout_return)(function)
+    return Async(n, timeout, timeout_return).async_func()
 
 
 class tPool():
