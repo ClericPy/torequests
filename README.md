@@ -1,9 +1,32 @@
 # torequests
 
-#### Using [tomorrow](https://github.com/madisonmay/Tomorrow) to make requests asynchronous.
+## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding smooth & EASY to understand. Another reason to use is: nothing to learn & easy to use.(And it fits Windows.....Python 2/3 compatible)
 
-The only reason to use is: nothing to learn & easy to use.(And it fits Windows.....Python 2/3 compatible)
+## Give one way to use async functions easily & make asynchronous requests by tPool.
 
+> Give up Tomorrow library,but use original **concurrent.futures** by default. For the NewFuture is child class of Future, it can use as_completed function to get future object sequence in finish-time sorting.
+
+## Changelog:
+#### 2016-04-06 02:14:32 : Add **as_completed** function to get results in finish-time sorting, but it's just the original function at present, so you needed to give timeout arg and timeout_return arg loses efficacy. For example:
+```python
+import torequests
+from time import sleep
+def return_after_5_secs(num):
+    sleep(num)
+    return "Return of {}".format(num)
+ss = torequests.async(return_after_5_secs)
+aa = [ss(i) for i in (4, 2, 3, 1,1.1,1.5)]  # or use a generator
+for i in torequests.as_completed(aa, timeout=2):
+    print(i.x)
+
+# Return of 1
+# Return of 1.1
+# Return of 1.5
+# Return of 2
+# Traceback (most recent call last):
+#     for i in torequests.as_completed(aa, timeout=2):
+# concurrent.futures._base.TimeoutError: 2 (of 6) futures unfinished
+```
 
 ------
 
@@ -13,19 +36,17 @@ The only reason to use is: nothing to learn & easy to use.(And it fits Windows..
 from torequests import tPool
 import time
 
-
 start_time = time.time()
 trequests = tPool(30)  # you may use it without session either.
 list1 = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*500]
 # If failed, i.x may return False object by default, or you can reset the fail_return arg.
-list2 = [i.x if i.x else 'fail' for i in list1]
+list2 = [i.x.status_code if i.x.status_code else 'fail' for i in list1]
 end_time = time.time()
 print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
-
 ```
 
->result:[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
-timeused:0.929659366607666 s
+>result:[200, 200, 200, 200, 200, 200, 200, 200, 200, 200] 
+timeused:1.418180227279663 s
 
 # Tutorial
 
@@ -53,7 +74,7 @@ import requests
 s = requests.Session()
 trequests = tPool(30, session=s)  # you may use it without session either.
 list1 = [trequests.get(url, timeout=1, retry=1, retrylog=1, fail_return=False, logging='finished') for url in ['http://127.0.0.1:8080/']*5]
-list2 = [i.x if i.x else 'fail' for i in list1]
+list2 = [i.x.text if i.x else 'fail' for i in list1]
 print(list2)
 ```
 
@@ -96,7 +117,7 @@ As it's async, you can use print func as logging.
 
 ## 2. threads & async:
 
->make functions asynchronous, no changing for original Tomorrow's threads.
+>make functions asynchronous,very similar to original Tomorrow's threads.
 
 #####Normal usage:
 
@@ -174,11 +195,11 @@ if __name__ == "__main__":
 
 ---------
 <h2 id="cn">中文介绍</h2>
-#### 借助 [tomorrow](https://github.com/madisonmay/Tomorrow) 使 [requests](https://github.com/kennethreitz/requests) 变得异步，并且加入更多功能（重试/默认错误返回值/log等）.
+#### 类似于tomorrow的修饰器方式,使 [requests](https://github.com/kennethreitz/requests) 变得异步，并且加入更多功能（重试/默认错误返回值/log等）.
 
 这个的唯一用处估计是比较无脑，并且还可以支持Windows吧。python2/3兼容。
 
->如果想返回 **真正的值（而不是Tomorrow对象）**, 通过使用 **.x** 属性即可, 但要注意的一点是，虽然函数执行是异步的，但通过.x得到返回值却会block住整个进程。所以简单的办法就是，一上来把所有函数都异步出去，用到谁再**点**谁。（我比较习惯用列表解析把函数全放进去，然后要用到谁了取出来.x，其他的还在继续跑，不耽误）。注：切忌一次异步出去七八万项，这每个都是个独立的线程，会悲剧的，先分段然后再执行比较妥当。
+>如果想返回 **真正的值（而不是NewFuture对象）**, 通过使用 **.x** 属性即可, 但要注意的一点是，虽然函数执行是异步的，但通过.x得到返回值却会block住整个进程。所以简单的办法就是，一上来把所有函数都异步出去，用到谁再**点**谁。（我比较习惯用列表解析把函数全放进去，然后要用到谁了取出来.x，其他的还在继续跑，不耽误）。注：切忌一次异步出去七八万项，这每个都是个独立的线程，会悲剧的，先分段然后再执行比较妥当。
 
 # 快速开始
 
@@ -191,14 +212,14 @@ start_time = time.time()
 trequests = tPool(30)  # you may use it without session either.
 list1 = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*500]
 # 如果函数执行失败（或超过重试次数）, i.x 默认会返回False对象, 除非你自定义去修改 fail_return 参数.
-list2 = [i.x if i.x else 'fail' for i in list1]
+list2 = [len(i.x.content) if i.x else 'fail' for i in list1]
 end_time = time.time()
 print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
 
 ```
 
 >result:[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
-timeused:0.929659366607666 s
+timeused:1.488060712814331 s
 
 # 简单使用
 
@@ -267,7 +288,7 @@ TIPS：由于这里的requests变成异步了，所以可以用 print 来查看�
 
 ## 2. threads & async:
  
->这两个就是 Tomorrow 的神奇之处(把一个指定函数转成ThreadPoolExecutor对象)，用法和原生的没什么区别。简而言之就是把普通函数变成异步函数，你**把它撒出去它就是异步的非阻塞状态，直到你要取它的返回值**。
+>这两个就是 Tomorrow 的神奇之处(把一个指定函数转成ThreadPoolExecutor)，用法和原生的没什么区别。简而言之就是把普通函数变成异步函数，你**把它撒出去它就是异步的非阻塞状态，直到你要取它的返回值 —— NewFuture.x**。
 
 #####Normal usage:
 
@@ -304,7 +325,7 @@ def function():
 a_func = async(function)
 
 result1 = a_func()
-print('现在是异步的，所以它只是个Tomorrow对象：', result1)
+print('现在是异步的，所以它只是个 NewFuture 对象：', result1)
 print('虽然a_func在执行，但我可以print出来，所以确实是异步了')
 print('现在会阻塞住三秒，等待返回结果：')
 [(time.sleep(1), print(3-i)) for i in range(3)]
@@ -314,7 +335,7 @@ print('然后实验一次错误用法，这里我将直接使用函数的值，�
 print(a_func().x)
 print('所以被阻塞住了，等待了3秒。')
 ```
-#### 注：每个函数异步后是一个 Tomorrow 线程池，如果需要同时得到多个函数的返回结果，则有两种好与坏的用法：
+#### 注：每个函数异步后是一个线程池，如果需要同时得到多个函数的返回结果，则有两种好与坏的用法：
 ```python
 from torequests import async
 
@@ -387,7 +408,7 @@ def function_pool_2(n):
 
 start_time = time.time()
 async_func = async(function_pool_2, 2)
-# Or as a generator: (async_func(i) for i in range(4)), this will cost 4s.
+# This will cost 4s.
 push_funcs = [async_func(i) for i in range(4)]
 results = [i.x for i in push_funcs]
 print(results, 'time passed :', time.time()-start_time)
@@ -404,7 +425,7 @@ def function(n):
 
 start_time = time.time()
 async_func = async(function)
-# Or as a generator: (async_func(i) for i in range(10)), this will cost 2s.
+# This will cost 2s.
 push_funcs = [async_func(i) for i in range(10)]
 results = [i.x for i in push_funcs]
 print(results, 'time passed :', time.time()-start_time)

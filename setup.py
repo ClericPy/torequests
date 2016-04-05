@@ -4,9 +4,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='torequests',
-    version='1.1.0',
-    keywords=('requests tomorrow async multi-thread multiprocessing.dummy Pool'),
-    description='Requests + Tomorrow. Using tomorrow to make requests async, also can use requests with multiprocessing.dummy for many urls. read more :https://github.com/ClericPy/torequests ',
+    version='2.0.0',
+    keywords=('requests tomorrow async multi-thread concurrent.futures asynchronous'),
+    description='Asynchronous requests. Using concurrent.futures to make requests async(like Tomorrow), and some functions to make async-coding easy. read more :https://github.com/ClericPy/torequests ',
     license='MIT License',
     install_requires=['requests','futures'],
     py_modules=['torequests'],
