@@ -1,6 +1,12 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+torequests.egg-info/
 *.py[cod]
+PKG-INFO
+requires.txt
+dependency_links.txt
+SOURCES.txt
+top_level.txt
 
 # C extensions
 *.so

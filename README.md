@@ -1,4 +1,4 @@
-# torequests
+# torequests  - v2.1.2
 
 ## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding smooth & EASY to understand. Another reason to use is: nothing to learn & easy to use.(And it fits Windows.....Python 2/3 compatible)
 
@@ -7,25 +7,24 @@
 > Give up Tomorrow library,but use original **concurrent.futures** by default. For the NewFuture is child class of Future, it can use as_completed function to get future object sequence in finish-time sorting.
 
 ## Changelog:
-#### 2016-04-06 02:14:32 : Add **as_completed** function to get results in finish-time sorting, but it's just the original function at present, so you needed to give timeout arg and timeout_return arg loses efficacy. For example:
+#### 2016-04-07 00:58:42: Add get_by_time function to play the **concurrent.futures.as_completed** role. This will return a generator which contains the results(i.x) one by one as completed order before time out, or timeout=None( default args ) for waiting till all finished.
 ```python
-import torequests
-from time import sleep
-def return_after_5_secs(num):
-    sleep(num)
-    return "Return of {}".format(num)
-ss = torequests.async(return_after_5_secs)
-aa = [ss(i) for i in (4, 2, 3, 1,1.1,1.5)]  # or use a generator
-for i in torequests.as_completed(aa, timeout=2):
-    print(i.x)
+from torequests import async, get_by_time
+import time
 
-# Return of 1
-# Return of 1.1
-# Return of 1.5
-# Return of 2
-# Traceback (most recent call last):
-#     for i in torequests.as_completed(aa, timeout=2):
-# concurrent.futures._base.TimeoutError: 2 (of 6) futures unfinished
+def func(n):
+    time.sleep(n)
+    return n
+a_func = async(func)
+futures = [a_func(i) for i in range(5)]
+get_in_2s = get_by_time(futures, timeout=2)
+for i in get_in_2s:
+    print(i)
+# Result:
+# 0
+# 1
+# 2
+# 2 (of 5) futures unfinished
 ```
 
 ------

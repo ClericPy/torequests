@@ -62,6 +62,15 @@ def threads(n=30, timeout=None, timeout_return='TimeoutError'):
     return Async(n, timeout, timeout_return).async_func()
 
 
+def get_by_time(fs, timeout=None):
+    '''Return a generator'''
+    try:
+        for i in as_completed(fs, timeout=timeout):
+            yield i.x
+    except Exception as e:
+        yield e
+
+
 class tPool():
 
     def __init__(self, num=30, session=None):
