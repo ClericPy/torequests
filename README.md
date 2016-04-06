@@ -7,7 +7,9 @@
 > Give up Tomorrow library,but use original **concurrent.futures** by default. For the NewFuture is child class of Future, it can use as_completed function to get future object sequence in finish-time sorting.
 
 ## Changelog:
-#### 2016-04-07 00:58:42: Add get_by_time function to play the **concurrent.futures.as_completed** role. This will return a generator which contains the results(i.x) one by one as completed order before time out, or timeout=None( default args ) for waiting till all finished.
+
+>2016-04-07 00:58:42. Add **get_by_time** function to play the **concurrent.futures.as_completed** role. This will return a generator which contains the results(i.x) one by one as completed order before time out, or timeout=None( default args ) for waiting till all finished.
+
 ```python
 from torequests import async, get_by_time
 import time
