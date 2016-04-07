@@ -8,7 +8,7 @@
 
 ## Changelog:
 
->2016-04-07 00:58:42. Add **get_by_time** function to play the **concurrent.futures.as_completed** role. This will return a generator which contains the results(i.x) one by one as completed order before time out, or timeout=None( default args ) for waiting till all finished.
+>2016-04-07 00:58:42. Add **get_by_time** function to play the **concurrent.futures.as_completed** role. This will return a generator which contains the results(i.x) one by one as completed order before time out, or timeout=None( default args ) for waiting till all finished. For example:
 
 ```python
 from torequests import async, get_by_time
@@ -18,7 +18,7 @@ def func(n):
     time.sleep(n)
     return n
 a_func = async(func)
-futures = [a_func(i) for i in range(5)]
+futures = [a_func(i) for i in [5,4,3,2,1]]
 get_in_2s = get_by_time(futures, timeout=2)
 for i in get_in_2s:
     print(i)
