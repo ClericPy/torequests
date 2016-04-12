@@ -7,10 +7,10 @@ import time
 import requests
 
 
-class Async(ThreadPoolExecutor):
+class AsyncPool(ThreadPoolExecutor):
 
     def __init__(self, num, timeout, timeout_return):
-        super(Async, self).__init__(num)
+        super(AsyncPool, self).__init__(num)
         self.timeout = timeout
         self.timeout_return = timeout_return
 
@@ -54,12 +54,15 @@ class NewFuture(Future):
             return self._timeout_return
 
 
-def async(f, n=30, timeout=None, timeout_return='TimeoutError'):
-    return Async(n, timeout, timeout_return).async_func()(f)
+def Async(f, n=30, timeout=None, timeout_return='TimeoutError'):
+    '''Here "Async" is not a class object, upper "A" only be used to differ from keyword "async" since python3.5+.'''
+    return AsyncPool(n, timeout, timeout_return).async_func()(f)
+
+# async = Async  # This has be abandoned even before Python3.7 released.
 
 
 def threads(n=30, timeout=None, timeout_return='TimeoutError'):
-    return Async(n, timeout, timeout_return).async_func()
+    return AsyncPool(n, timeout, timeout_return).async_func()
 
 
 def get_by_time(fs, timeout=None):

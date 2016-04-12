@@ -1,10 +1,9 @@
-from torequests import async, threads, tPool
+from torequests import async, threads, tPool, Async
 import time
 
 
 # Usage #0, limit the Pool size as 2.
-print(
-    '# Usage #0, limit the Pool size as 2, this will cost 2s * 2 instead of 2s, for it can only run 2 tasks per time.')
+print('# Usage #0, limit the Pool size as 2, this will cost 2s * 2 instead of 2s, for it can only run 2 tasks per time.')
 
 
 def function_pool_2(n):
@@ -12,7 +11,7 @@ def function_pool_2(n):
     return n
 
 start_time = time.time()
-async_func = async(function_pool_2, 2)
+async_func = Async(function_pool_2, 2)
 # Or as a generator: (async_func(i) for i in range(4)), this will cost 4s.
 push_funcs = [async_func(i) for i in range(4)]
 results = [i.x for i in push_funcs]
@@ -20,8 +19,7 @@ print(results, 'time passed :', time.time()-start_time)
 
 
 # Usage #1, one function with many args for multi-missions
-print(
-    '# Usage #1, one function with many args for multi-missions, this will cost 2s.')
+print('# Usage #1, one function with many args for multi-missions, this will cost 2s.')
 
 
 def function(n):
@@ -29,7 +27,7 @@ def function(n):
     return n
 
 start_time = time.time()
-async_func = async(function)
+async_func = Async(function)
 # Or as a generator: (async_func(i) for i in range(10)), this will cost 2s.
 push_funcs = [async_func(i) for i in range(10)]
 results = [i.x for i in push_funcs]
@@ -54,7 +52,7 @@ def func3(n):
     time.sleep(2)
     return n
 start_time = time.time()
-async_func = async(lambda x, i: x(i))
+async_func = Async(lambda x, i: x(i))
 push_funcs = [async_func(func, i)
               for func, i in zip([func1, func2, func3], range(3))]
 results = [i.x for i in push_funcs]
@@ -62,8 +60,7 @@ print(results, 'time passed :', time.time()-start_time)
 
 
 # Usage #3, usage of timeout_return
-print(
-    '# Usage #3, usage of timeout_return. This will block for 3s, but gotcha value in 1s.')
+print('# Usage #3, usage of timeout_return. This will block for 3s, but gotcha value in 1s.')
 
 
 def function_timeout(n):
@@ -72,7 +69,7 @@ def function_timeout(n):
     return n
 
 start_time = time.time()
-async_func = async(
+async_func = Async(
     function_timeout, timeout=1, timeout_return='timeout lalala')
 push_funcs = [async_func(i) for i in range(3)]
 results = push_funcs[1].x
@@ -90,7 +87,7 @@ def function_timeout_filter(n):
     return n
 
 start_time = time.time()
-async_func = async(function_timeout_filter, timeout=1, timeout_return='')
+async_func = Async(function_timeout_filter, timeout=1, timeout_return='')
 # This will cost 4 seconds obviously, because of function_timeout_filter(4).
 push_funcs = [async_func(i) for i in range(5)]
 results = [i.x for i in push_funcs]
