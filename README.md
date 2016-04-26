@@ -7,6 +7,11 @@
 > Give up Tomorrow library,but use original **concurrent.futures** by default. For the NewFuture is child class of Future, it can use as_completed function to get future object sequence in finish-time sorting.
 
 ## Changelog:
+>2016年4月26日 21:53:18.Import Session for tPool. (in case of import requests.Session redundantly.)
+```python
+# from requests import Session
+from torequests import Session
+```
 >2016-04-13 01:16:54. **Particular attention**, async function has been renamed as Async, it's not a class object but a function, though it indeed starts with an upper "A".This is to differ from the keyword **"async"** since python3.5+, for 'async' will be a keyword in python 3.7. So all the test code here is using **Async** instead of **async**, but async function is still be available(not suggested) for a while before python3.7 released.
 
 ```python
@@ -230,7 +235,7 @@ timeused:1.488060712814331 s
 
 # 简单使用
 
-**当然是先** pip** 安装了:**
+当然是先 **pip** 安装:
 
 >*pip install torequests -U*
 

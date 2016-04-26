@@ -5,6 +5,7 @@ from concurrent.futures.thread import _WorkItem
 from functools import wraps
 import time
 import requests
+from requests import Session
 
 
 class AsyncPool(ThreadPoolExecutor):
