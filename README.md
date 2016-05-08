@@ -4,10 +4,10 @@
 
 ## Give one way to use async functions easily & make asynchronous requests by tPool.
 
-> Give up Tomorrow library,but use original **concurrent.futures** by default. For the NewFuture is child class of Future, it can use as_completed function to get future object sequence in finish-time sorting.
+> Abandon Tomorrow library, but use original **concurrent.futures** by default. Because NewFuture class is a child class of Future, it can use as_completed function to get future object sequence in finish-time sorting.
 
 ## Changelog:
->2016年4月26日 21:53:18.Import Session for tPool. (in case of import requests.Session redundantly.)
+>2016-4-26 21:53:18.Import Session for tPool. (in case of import requests.Session redundantly.)
 ```python
 # from requests import Session
 from torequests import Session

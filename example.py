@@ -1,4 +1,4 @@
-from torequests import async, threads, tPool, Async
+from torequests import threads, tPool, Async
 import time
 
 
