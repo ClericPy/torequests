@@ -7,17 +7,56 @@
 > Abandon Tomorrow library, but use original **concurrent.futures** by default. Because NewFuture class is a child class of Future, it can use as_completed function to get future object sequence in finish-time sorting.
 
 ## Changelog:
+
+>2017-02-20 01:47:19. 
+
+1. Use Session for tPool, for fixing a **not close connection** bug, 
+and make it faster than creating a new connection each requests. Then tPool can be closed
+explicitly by tPool instance.close, this run session.close and ThreadPoolExecutor._shutdown
+together.
+
+2. Add context usage for tPool as **with** statement, for making sure release connection pool
+and shutdown the thread pool. **AsyncPool** renamed as **Pool**.
+
+```python
+with tPool() as trequests:
+    print(trequests.get('http://qq.com').headers)
+    # {'Cache-Control': 'max-age=60', 'Date': 'Sun, 19 Feb 2017 18:11:06 GMT', 'Content-Encoding': 'gzip', 'X-Cache': 'HIT from tianjin.qq.com', 'Server': 'squid/3.5.20', 'Content-Type': 'text/html; charset=GB2312', 'Connection': 'keep-alive', 'Vary': 'Accept-Encoding, Accept-Encoding, Accept-Encoding', 'Expires': 'Sun, 19 Feb 2017 18:12:06 GMT', 'Transfer-Encoding': 'chunked'}
+# OR
+tt = tPool()
+tt.get('http://baidu.com')
+tt.close()
+# AND
+import time
+pp = Pool()
+ss = pp.map(lambda x:time.sleep(1),range(10))
+print(*ss)
+pp.close() # non-essential, will shutdown Pool.
+```
+3. **timeout_return** arg can be set with a function for now, such as `lambda a,b,**c: (a,b,c)`
+
+```python
+trequests = tPool()
+print(trequests.get('http://qq.com',timeout=.001,fail_return=lambda a,b,**c: (a,b,c)).x)
+# ('http://qq.com', ConnectTimeout(MaxRetryError("HTTPConnectionPool(host='qq.com', port=80): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<requests.packages.urllib3.connection.HTTPConnection object at 0x03D5DEF0>, 'Connection to qq.com timed out. (connect timeout=0.001)'))",),), {'timeout': 0.001})
+```
+
+------
+
 >2016-4-26 21:53:18.Import Session for tPool. (in case of import requests.Session redundantly.)
 ```python
 # from requests import Session
 from torequests import Session
 ```
+
+------
+
 >2016-04-13 01:16:54. **Particular attention**, async function has been renamed as Async, it's not a class object but a function, though it indeed starts with an upper "A".This is to differ from the keyword **"async"** since python3.5+, for 'async' will be a keyword in python 3.7. So all the test code here is using **Async** instead of **async**, but async function is still be available(not suggested) for a while before python3.7 released.
 
 ```python
 from torequests import Async
 ```
-
+------
 
 >2016-04-07 00:58:42. Add **get_by_time** function to play the **concurrent.futures.as_completed** role. This will return a generator which contains the results(i.x) one by one as completed order before time out, or timeout=None( default args ) for waiting till all finished. For example:
 

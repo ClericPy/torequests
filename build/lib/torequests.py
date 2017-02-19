@@ -26,6 +26,9 @@ class Pool(ThreadPoolExecutor):
             return self.submit(f, *args, **kwargs)
         return wrapped
 
+    def close(self,wait=True):
+        self.shutdown(wait=wait)
+
     def submit(self, func, *args, **kwargs):
         with self._shutdown_lock:
             if self._shutdown:
@@ -81,9 +84,6 @@ def Async(f, n=None, timeout=None, timeout_return=None):
             WARN: Future thread will not stop running until function finished or pid killed.
         timeout_return=None: Call Future.x after timeout, if timeout_return is 
             not true, return 'TimeoutError: %s, %s' % (self._args, self._kwargs) if timeout_return has __call__ attr, return timeout_return(*args, **kwargs) otherwise, return timeout_return itself.
-
-        Read more from model __doc__.
-
 '''
     return Pool(n, timeout, timeout_return).async_func(f)
 
@@ -94,14 +94,12 @@ def threads(n=None, timeout=None, timeout_return=None):
         n=None: (os.cpu_count() or 1) * 5, The maximum number of threads that can be used to execute the given calls.
         timeout=None: Future.x will wait for `timeout` seconds for the function's result,  or return timeout_return(*args, **kwargs). WARN: Future thread will not stop running until function finished or pid killed.
         timeout_return=None: Call Future.x after timeout, if timeout_return is not true, return 'TimeoutError: %s, %s' % (self._args, self._kwargs) if timeout_return has __call__ attr, return timeout_return(*args, **kwargs) otherwise, return timeout_return itself.
-
-        Read more from model __doc__.
 '''
     return Pool(n, timeout, timeout_return).async_func
 
 
 def get_by_time(new_futures, timeout=None):
-    '''Return a generator'''
+    '''Return as a generator'''
     try:
         for i in as_completed(new_futures, timeout=timeout):
             yield i.x
@@ -136,10 +134,14 @@ class tPool():
                     print('%s done, %s' % (url, kwargs))
                 return resp
             except Exception as e:
+                error = e
                 if retrylog:
                     print('Retry %s for the %s time, Exception: %s . kwargs= %s' %
                               (url, _+1, e, kwargs))
                 continue
+
+        if hasattr(fail_return, '__call__'):
+            return fail_return(url, error,**kwargs)
         return fail_return
 
     def get(self, url, **kwargs):
@@ -149,10 +151,10 @@ class tPool():
             retrylog: show error while catching exception after retrying.
             delay: time.sleep(delay) before request
             fail_return: return after retry arg `retry` times but fail
-                , it may be a function(url, **args) or other.
+                , it may be a function(url, **args) or other. For example:
+                fail_return=lambda a,b,**c: (a,b,c)
 
         '''
-        print(1)
         return self.pool.submit(self.request, url, 'get', **kwargs)
 
     def post(self, url, **kwargs):
@@ -162,7 +164,8 @@ class tPool():
             retrylog: show error while catching exception after retrying.
             delay: time.sleep(delay) before request
             fail_return: return after retry arg `retry` times but fail
-                , it may be a function(url, **args) or other.
+                , it may be a function(url, **args) or other. For example:
+                fail_return=lambda a,b,**c: (a,b,c)
 
         '''
         return self.pool.submit(self.request, url, 'post', **kwargs)
