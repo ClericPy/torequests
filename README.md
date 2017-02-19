@@ -1,4 +1,4 @@
-# torequests  - v2.2.1
+# torequests  - v3.0.1
 
 ## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding EASY & smooth, nothing to learn.(It fits Windows, Python 2/3 compatible)
 
@@ -10,12 +10,12 @@
 
 >2017-02-20 01:47:19. 
 
-1. Use Session for tPool, for fixing a **not close connection** bug, 
+> Use Session for tPool, for fixing a **not close connection** bug, 
 and make it faster than creating a new connection each requests. Then tPool can be closed
 explicitly by tPool instance.close, this run session.close and ThreadPoolExecutor._shutdown
 together.
 
-2. Add context usage for tPool as **with** statement, for making sure release connection pool
+> Add context usage for tPool as **with** statement, for making sure release connection pool
 and shutdown the thread pool. **AsyncPool** renamed as **Pool**.
 
 ```python
@@ -31,9 +31,10 @@ import time
 pp = Pool()
 ss = pp.map(lambda x:time.sleep(1),range(10))
 print(*ss)
-pp.close() # non-essential, will shutdown Pool.
+pp.close() # non-essential, will shutdown Pool automatic.
 ```
-3. **timeout_return** arg can be set with a function for now, such as `lambda a,b,**c: (a,b,c)`
+
+> **timeout_return** arg can be set with a function for now, such as `lambda a,b,**c: (a,b,c)`
 
 ```python
 trequests = tPool()
