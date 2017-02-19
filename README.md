@@ -32,6 +32,12 @@ pp = Pool()
 ss = pp.map(lambda x:time.sleep(1),range(10))
 print(*ss)
 pp.close() # non-essential, will shutdown Pool automatic.
+# OR
+pp = Pool()
+a = pp.submit(lambda: time.clock())
+b = pp.submit(lambda x: time.clock(), 3)
+c = pp.submit(lambda *args: time.clock(),1,2,3)
+print([a.x,b.x,c.x])
 ```
 
 > **timeout_return** arg can be set with a function for now, such as `lambda a,b,**c: (a,b,c)`
