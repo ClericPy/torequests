@@ -1,4 +1,4 @@
-# torequests  - v3.0.2
+# torequests  - v3.0.3
 
 ## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding EASY & smooth, nothing to learn.(It fits Windows, Python 2/3 compatible)
 

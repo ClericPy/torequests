@@ -5,7 +5,6 @@ from concurrent.futures.thread import _WorkItem
 from functools import wraps
 import time
 from requests import Session
-from contextlib import closing
 
 
 class Pool(ThreadPoolExecutor):
@@ -132,11 +131,10 @@ class tPool():
         for _ in range(retry+1):
             try:
                 time.sleep(delay)
-                with closing(self.session.request(mode, url, **kwargs)) as resp:
-                    # closing for situation of stream = True...
-                    if logging:
-                        print('%s done, %s' % (url, kwargs))
-                    return resp
+                resp = self.session.request(mode, url, **kwargs)
+                if logging:
+                    print('%s done, %s' % (url, kwargs))
+                return resp
             except Exception as e:
                 error = e
                 if retrylog:
