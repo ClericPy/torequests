@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: torequests
-Version: 3.0.1
+Version: 3.0.2
 Summary: Asynchronous requests. Using concurrent.futures to make requests async(like Tomorrow), and some functions to make async-coding easy. read more :https://github.com/ClericPy/torequests 
 Home-page: https://github.com/ClericPy/torequests
 Author: ClericPy

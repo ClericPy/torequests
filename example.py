@@ -93,3 +93,12 @@ push_funcs = [async_func(i) for i in range(5)]
 results = [i.x for i in push_funcs]
 filter_results = [i for i in results if i]
 print(filter_results, 'time passed :', time.time()-start_time)
+
+# Usage #5, standard tPool usage
+
+trequests = tPool()
+
+futures = [trequests.get(url) for url in ['http://www.qq.com']*10]
+results = [i.status_code for i in futures if i.x]
+print(results)
+# [200, 200, 200, 200, 200, 200, 200, 200, 200, 200]

@@ -4,8 +4,8 @@ from concurrent.futures._base import Future
 from concurrent.futures.thread import _WorkItem
 from functools import wraps
 import time
-import requests
 from requests import Session
+from contextlib import closing
 
 
 class Pool(ThreadPoolExecutor):
@@ -30,6 +30,7 @@ class Pool(ThreadPoolExecutor):
         self.shutdown(wait=wait)
 
     def submit(self, func, *args, **kwargs):
+        '''self.submit(function,arg1,arg2,arg3=3)'''
         with self._shutdown_lock:
             if self._shutdown:
                 raise RuntimeError(
@@ -90,7 +91,6 @@ def Async(f, n=None, timeout=None, timeout_return=None):
 
 def threads(n=None, timeout=None, timeout_return=None):
     '''Args:
-        f : Async the function object, f.
         n=None: (os.cpu_count() or 1) * 5, The maximum number of threads that can be used to execute the given calls.
         timeout=None: Future.x will wait for `timeout` seconds for the function's result,  or return timeout_return(*args, **kwargs). WARN: Future thread will not stop running until function finished or pid killed.
         timeout_return=None: Call Future.x after timeout, if timeout_return is not true, return 'TimeoutError: %s, %s' % (self._args, self._kwargs) if timeout_return has __call__ attr, return timeout_return(*args, **kwargs) otherwise, return timeout_return itself.
@@ -112,7 +112,7 @@ class tPool():
     def __init__(self, n=None, session=None, timeout=None, timeout_return=None):
         self.pool = Pool(n, timeout, timeout_return)
         self.n = n
-        self.session = session if session else requests.Session()
+        self.session = session if session else Session()
 
     def close(self, wait=True):
         self.session.close()
@@ -124,15 +124,19 @@ class tPool():
     def __exit__(self, *args):
         self.close()
 
+    def __del__(self):
+        self.close()
+
     def request(self, url, mode, retry=0, retrylog=False, logging=False,
                 delay=0, fail_return=False, **kwargs):
         for _ in range(retry+1):
             try:
                 time.sleep(delay)
-                resp = self.session.request(mode, url, **kwargs)
-                if logging:
-                    print('%s done, %s' % (url, kwargs))
-                return resp
+                with closing(self.session.request(mode, url, **kwargs)) as resp:
+                    # closing for situation of stream = True...
+                    if logging:
+                        print('%s done, %s' % (url, kwargs))
+                    return resp
             except Exception as e:
                 error = e
                 if retrylog:
