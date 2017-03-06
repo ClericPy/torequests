@@ -4,6 +4,7 @@ from concurrent.futures._base import Future
 from concurrent.futures.thread import _WorkItem
 from functools import wraps
 import time
+from requests.adapters import HTTPAdapter
 from requests import Session
 
 
@@ -110,8 +111,11 @@ class tPool():
 
     def __init__(self, n=None, session=None, timeout=None, timeout_return=None):
         self.pool = Pool(n, timeout, timeout_return)
-        self.n = n
         self.session = session if session else Session()
+        pool_size = n or 10
+        custom_adapter = HTTPAdapter(pool_connections = pool_size, pool_maxsize = pool_size)
+        self.session.mount('http://', custom_adapter)
+        self.session.mount('https://', custom_adapter)
 
     def close(self, wait=True):
         self.session.close()
