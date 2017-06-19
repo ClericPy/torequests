@@ -13,7 +13,7 @@ class Pool(ThreadPoolExecutor):
     '''timeout_return while .x called and timeout.'''
 
     def __init__(self, n=None, timeout=None, timeout_return=None):
-        if n is None and (not isinstance(range,type)):
+        if n is None and (not isinstance(range, type)):
             # python2 n!=None
             n = 20
         super(Pool, self).__init__(n)
@@ -26,7 +26,7 @@ class Pool(ThreadPoolExecutor):
             return self.submit(f, *args, **kwargs)
         return wrapped
 
-    def close(self,wait=True):
+    def close(self, wait=True):
         self.shutdown(wait=wait)
 
     def submit(self, func, *args, **kwargs):
@@ -113,7 +113,8 @@ class tPool():
         self.pool = Pool(n, timeout, timeout_return)
         self.session = session if session else Session()
         pool_size = n or 10
-        custom_adapter = HTTPAdapter(pool_connections = pool_size, pool_maxsize = pool_size)
+        custom_adapter = HTTPAdapter(
+            pool_connections=pool_size, pool_maxsize=pool_size)
         self.session.mount('http://', custom_adapter)
         self.session.mount('https://', custom_adapter)
 
@@ -132,7 +133,7 @@ class tPool():
 
     def request(self, url, mode, retry=0, retrylog=False, logging=False,
                 delay=0, fail_return=False, **kwargs):
-        for _ in range(retry+1):
+        for _ in range(retry + 1):
             try:
                 time.sleep(delay)
                 resp = self.session.request(mode, url, **kwargs)
@@ -143,11 +144,11 @@ class tPool():
                 error = e
                 if retrylog:
                     print('Retry %s for the %s time, Exception: %s . kwargs= %s' %
-                              (url, _+1, e, kwargs))
+                          (url, _ + 1, e, kwargs))
                 continue
 
         if hasattr(fail_return, '__call__'):
-            return fail_return(url, error,**kwargs)
+            return fail_return(url, error, **kwargs)
         return fail_return
 
     def get(self, url, **kwargs):
@@ -164,16 +165,6 @@ class tPool():
         return self.pool.submit(self.request, url, 'get', **kwargs)
 
     def post(self, url, **kwargs):
-        '''retry=0, retrylog=False, logging=None, delay=0, fail_return=False
-            retry: retry time for exception
-            logging: set logging=True will show url and kwargs when successful.
-            retrylog: show error while catching exception after retrying.
-            delay: time.sleep(delay) before request
-            fail_return: return after retry arg `retry` times but fail
-                , it may be a function(url, **args) or other. For example:
-                fail_return=lambda a,b,**c: (a,b,c)
-
-        '''
         return self.pool.submit(self.request, url, 'post', **kwargs)
 
     def delete(self, url, **kwargs):
