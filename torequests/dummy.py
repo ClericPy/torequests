@@ -144,6 +144,7 @@ class Requests(Loop):
                 raise RequestsError(error, url, kwargs)
 
     def close(self):
+        # no need for closing loop here
         self.session.close()
 
     def __del__(self):

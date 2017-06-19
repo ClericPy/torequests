@@ -1,8 +1,8 @@
-# torequests  - v3.1.0
+# torequests  - v4.0.0
 
-## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding EASY & smooth, nothing to learn.(It fits Windows, Python 2/3 compatible)
+## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding EASY & smooth, nothing to learn.(It fits Windows, Python 2/3 compatible) -- Rookie fast asyncio assistant
 
-## Give one way to use async functions easily & make asynchronous requests by tPool.
+## Give one way to use async functions easily & make asynchronous requests.
 
 
 
