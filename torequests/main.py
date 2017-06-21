@@ -1,11 +1,14 @@
 # python2 requires: pip install futures
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError, as_completed
 from concurrent.futures._base import Future
 from concurrent.futures.thread import _WorkItem
 from functools import wraps
-import time
-from requests.adapters import HTTPAdapter
+
 from requests import Session
+from requests.adapters import HTTPAdapter
+
+from .log import main_logger
 
 
 class Pool(ThreadPoolExecutor):
@@ -131,20 +134,17 @@ class tPool():
     def __del__(self):
         self.close()
 
-    def request(self, url, mode, retry=0, retrylog=False, logging=False,
-                delay=0, fail_return=False, **kwargs):
+    def request(self, url, mode, retry=0, delay=0, fail_return=False, **kwargs):
         for _ in range(retry + 1):
             try:
                 time.sleep(delay)
                 resp = self.session.request(mode, url, **kwargs)
-                if logging:
-                    print('%s done, %s' % (url, kwargs))
+                main_logger.debug('%s done, %s' % (url, kwargs))
                 return resp
             except Exception as e:
                 error = e
-                if retrylog:
-                    print('Retry %s for the %s time, Exception: %s . kwargs= %s' %
-                          (url, _ + 1, e, kwargs))
+                main_logger.error('Retry %s for the %s time, Exception: %s . kwargs= %s' %
+                                  (url, _ + 1, e, kwargs))
                 continue
 
         if hasattr(fail_return, '__call__'):
@@ -152,10 +152,8 @@ class tPool():
         return fail_return
 
     def get(self, url, **kwargs):
-        '''retry=0, retrylog=False, logging=None, delay=0, fail_return=False
+        '''retry=0, delay=0, fail_return=False
             retry: retry time for exception
-            logging: set logging=True will show url and kwargs when successful.
-            retrylog: show error while catching exception after retrying.
             delay: time.sleep(delay) before request
             fail_return: return after retry arg `retry` times but fail
                 , it may be a function(url, **args) or other. For example:
