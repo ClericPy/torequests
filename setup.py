@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='torequests',
-    version='4.0.0',
+    version='4.0.1',
     keywords=('requests tomorrow async multi-thread aiohttp asyncio uvloop futures asynchronous'),
     description='Asynchronous requests. Using concurrent.futures to make requests asynchronous, and some functions to make async-coding easy. Besides, add aiohttp+uvloop to enjoy python3.5+ coroutine. Read more: https://github.com/ClericPy/torequests.',
     license='MIT License',

@@ -1,28 +1,31 @@
 # python3.5+ # pip install uvloop aiohttp.
 
 import asyncio
-import logging
+import json
 import time
 from functools import wraps
 
 import aiohttp
+from aiohttp.client_reqrep import ClientResponse
 
-log_level = logging.INFO
-logging.basicConfig(level=log_level,
-                    format='%(levelname)-6s: %(asctime)s [%(lineno)s] %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+from .log import dummy_logger
+
+ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
+ClientResponse.json = lambda self, encoding=None: json.loads(
+    self.content.decode(encoding or self.encoding))
 
 try:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
-    logging.debug('Not found uvloop, using default_event_loop.')
+    dummy_logger.debug('Not found uvloop, using default_event_loop.')
 
 
 class NewTask(asyncio.tasks.Task):
     _PENDING = 'PENDING'
     _CANCELLED = 'CANCELLED'
     _FINISHED = 'FINISHED'
+    _RESPONSE_ARGS = ('encoding', 'content')
 
     def __init__(self, coro, *, loop=None):
         assert asyncio.coroutines.iscoroutine(coro), repr(coro)
@@ -36,6 +39,12 @@ class NewTask(asyncio.tasks.Task):
 
     def __getattr__(self, name):
         return self.x.__getattribute__(name)
+
+    def __setattr__(self, name, value):
+        if name in self._RESPONSE_ARGS:
+            self.x.__setattr__(name, value)
+        else:
+            object.__setattr__(self, name, value)
 
 
 class RequestsError(IOError):
@@ -63,7 +72,8 @@ class Loop():
                 raise NotImplementedError("Cannot use aioutils in "
                                           "asynchroneous environment")
         except NotImplementedError:
-            logging.warn("%s is_running, init a new loop" % self.loop)
+            dummy_logger.debug(
+                "%s is_running, rebuilding a new loop" % self.loop)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
         self.tasks = []
@@ -109,7 +119,14 @@ class Requests(Loop):
     def __init__(self, n=100, loop=None, **kwargs):
         super().__init__(loop=loop, **kwargs)
         self.sem = asyncio.Semaphore(n)
-        self.session = aiohttp.ClientSession(loop=self.loop)
+        session = kwargs.get('session')
+        connector = kwargs.get('connector')
+        if session:
+            session._loop = self.loop
+            self.session = session
+        else:
+            self.session = aiohttp.ClientSession(
+                loop=self.loop, connector=connector)
         self._initial_request()
 
     def _initial_request(self):
@@ -118,28 +135,29 @@ class Requests(Loop):
                              method, self._mock_request_method(method))
 
     def _mock_request_method(self, method):
-        def _new_req(url, callback=None, **kwargs):
+        def _new_request(url, callback=None, **kwargs):
             '''support args: retry, callback'''
             return self.submit(self._request(method, url, **kwargs),
                                callback=callback)
-        return _new_req
+        return _new_request
 
     async def _request(self, method, url, retry=0, **kwargs):
         with await self.sem:
             for retries in range(retry + 1):
                 try:
-                    async with self.session.request(method, url, **kwargs) as response:
-                        response.content = await response.read()
-                        encoding = kwargs.get(
-                            'encoding') or response._get_encoding()
-                        response.text = response.content.decode(encoding)
-                        return response
+                    async with self.session.request(method, url, **kwargs) as resp:
+                        resp.status_code = resp.status
+                        resp.content = await resp.read()
+                        resp.encoding = kwargs.get(
+                            'encoding') or resp._get_encoding()
+                        # resp.text = resp.content.decode(resp.encoding)
+                        return resp
                 except Exception as err:
                     error = err
                     continue
             else:
-                logging.error(
-                    'Retry=%s up, but failed again:\n%s, kwargs: %s.\n%s' %
+                dummy_logger.error(
+                    'Retry=%s depleted, failed again:\n%s, kwargs: %s.\n%s' %
                     (retry, url, kwargs, error))
                 raise RequestsError(error, url, kwargs)
 
