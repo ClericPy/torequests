@@ -47,27 +47,11 @@ class NewTask(asyncio.tasks.Task):
             object.__setattr__(self, name, value)
 
 
-class RequestsError(IOError):
-    __slots__ = ('url', 'kwargs', 'info', 'error')
-
-    def __init__(self, error, url=None, kwargs=None):
-        self.url = url
-        self.error = error
-        self.kwargs = kwargs or {}
-        self.info = dict(url=url, kwargs=self.kwargs, error=error)
-
-    def __str__(self):
-        return '<RequestsError: %s>' % self.info
-
-    def __repr__(self):
-        return '<RequestsError: %s>' % self.error
-
-
 class Loop():
 
-    def __init__(self, loop=None, **kwargs):
+    def __init__(self, loop=None):
         try:
-            self.loop = loop or asyncio.get_event_loop(**kwargs)
+            self.loop = loop or asyncio.get_event_loop()
             if self.loop.is_running():
                 raise NotImplementedError("Cannot use aioutils in "
                                           "asynchroneous environment")
@@ -112,27 +96,26 @@ class Loop():
 
 
 class Requests(Loop):
-    '''sometimes the performance is limited by too large "n" .'''
-
+    '''
+        The kwargs is the same as kwargs of aiohttp.ClientSession.
+        Sometimes the performance is limited by too large "n" .
+    '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
-    def __init__(self, n=100, loop=None, **kwargs):
-        super().__init__(loop=loop, **kwargs)
+    def __init__(self, n=100, session=None, **kwargs):
+        loop = kwargs.get('loop')
+        super().__init__(loop=loop)
         self.sem = asyncio.Semaphore(n)
-        session = kwargs.get('session')
-        connector = kwargs.get('connector')
         if session:
             session._loop = self.loop
             self.session = session
         else:
-            self.session = aiohttp.ClientSession(
-                loop=self.loop, connector=connector)
+            self.session = aiohttp.ClientSession(loop=self.loop, **kwargs)
         self._initial_request()
 
     def _initial_request(self):
         for method in self.METH:
-            self.__setattr__('%s' %
-                             method, self._mock_request_method(method))
+            self.__setattr__('%s' % method, self._mock_request_method(method))
 
     def _mock_request_method(self, method):
         def _new_request(url, callback=None, **kwargs):
@@ -150,19 +133,20 @@ class Requests(Loop):
                         resp.content = await resp.read()
                         resp.encoding = kwargs.get(
                             'encoding') or resp._get_encoding()
-                        # resp.text = resp.content.decode(resp.encoding)
                         return resp
                 except Exception as err:
                     error = err
                     continue
             else:
                 dummy_logger.error(
-                    'Retry=%s depleted, failed again:\n%s, kwargs: %s.\n%s' %
-                    (retry, url, kwargs, error))
-                raise RequestsError(error, url, kwargs)
+                    'retry=%s used up and failed again: %s, kwargs: %s. %s' %
+                    (retry, url, kwargs, type(error)))
+                error.info = dict(url=url, kwargs=kwargs)
+                raise error
 
     def close(self):
-        # no need for closing loop here
+        '''Should be closed[explicit] while using external session or connector,
+        instead of close by __del__.'''
         self.session.close()
 
     def __del__(self):
