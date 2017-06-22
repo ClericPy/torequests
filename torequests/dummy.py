@@ -134,7 +134,7 @@ class Requests(Loop):
                         resp.content = await resp.read()
                         resp.encoding = kwargs.get(
                             'encoding') or resp._get_encoding()
-                        asyncio.sleep(self.time_interval)
+                        await asyncio.sleep(self.time_interval)
                         return resp
                 except Exception as err:
                     error = err
