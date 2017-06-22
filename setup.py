@@ -1,11 +1,15 @@
-﻿#! coding:utf-8
+#! coding:utf-8
 from setuptools import setup, find_packages
-# python setup.py bdist_wheel
-# twine upload dist/*
+'''
+linux:
+python setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload dist/*
+win32:
+python setup.py bdist_wheel&python2 setup.py bdist_wheel&twine upload dist/*
+'''
 
 setup(
     name='torequests',
-    version='4.0.1',
+    version='4.0.2',
     keywords=('requests tomorrow async multi-thread aiohttp asyncio uvloop futures asynchronous'),
     description='Asynchronous requests. Using concurrent.futures to make requests asynchronous, and some functions to make async-coding easy. Besides, add aiohttp+uvloop to enjoy python3.5+ coroutine. Read more: https://github.com/ClericPy/torequests.',
     license='MIT License',

@@ -52,3 +52,6 @@ docs/_build/
 
 # vscode conf
 .vscode/*
+
+# test py
+temp.py
