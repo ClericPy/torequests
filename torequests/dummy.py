@@ -102,10 +102,11 @@ class Requests(Loop):
     '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
-    def __init__(self, n=100, session=None, **kwargs):
+    def __init__(self, n=100, session=None, time_interval=0, **kwargs):
         loop = kwargs.get('loop')
         super().__init__(loop=loop)
         self.sem = asyncio.Semaphore(n)
+        self.time_interval = time_interval
         if session:
             session._loop = self.loop
             self.session = session
@@ -133,6 +134,7 @@ class Requests(Loop):
                         resp.content = await resp.read()
                         resp.encoding = kwargs.get(
                             'encoding') or resp._get_encoding()
+                        asyncio.sleep(self.time_interval)
                         return resp
                 except Exception as err:
                     error = err
