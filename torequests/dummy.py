@@ -64,7 +64,9 @@ class Loop():
 
     def submit(self, coro, callback=None):
         task = NewTask(coro, loop=self.loop)
-        task.add_done_callback(callback) if callback else 0
+        callback = callback if hasattr(callback, '__iter__') else [callback]
+        for fn in callback:
+            task.add_done_callback(fn)
         self.tasks.append(task)
         return task
 
@@ -120,12 +122,12 @@ class Requests(Loop):
 
     def _mock_request_method(self, method):
         def _new_request(url, callback=None, **kwargs):
-            '''support args: retry, callback'''
+            '''support args: retry, callback, return_error'''
             return self.submit(self._request(method, url, **kwargs),
                                callback=callback)
         return _new_request
 
-    async def _request(self, method, url, retry=0, **kwargs):
+    async def _request(self, method, url, retry=0, return_error=False, **kwargs):
         with await self.sem:
             for retries in range(retry + 1):
                 try:
@@ -134,7 +136,8 @@ class Requests(Loop):
                         resp.content = await resp.read()
                         resp.encoding = kwargs.get(
                             'encoding') or resp._get_encoding()
-                        await asyncio.sleep(self.time_interval)
+                        if self.time_interval:
+                            await asyncio.sleep(self.time_interval)
                         return resp
                 except Exception as err:
                     error = err
@@ -144,6 +147,8 @@ class Requests(Loop):
                     'retry=%s used up and failed again: %s, kwargs: %s. %s' %
                     (retry, url, kwargs, type(error)))
                 error.info = dict(url=url, kwargs=kwargs)
+                if return_error:
+                    return error
                 raise error
 
     def close(self):

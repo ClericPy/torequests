@@ -1,10 +1,8 @@
-# torequests  - v4.0.2
+# torequests  - v4.0.4
 
-## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding EASY & smooth, nothing to learn.(It fits Windows, Python 2/3 compatible) -- Rookie fast asyncio assistant
+## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding EASY & smooth. (It fits Windows, Python 2/3 compatible) -- Rookie fast asyncio assistant
 
 ## Give one way to use async functions easily & make asynchronous requests.
-
-
 
 
 # USAGE / DOC / TEST / DEMO TO BE DONE
