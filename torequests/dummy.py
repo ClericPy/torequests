@@ -64,9 +64,10 @@ class Loop():
 
     def submit(self, coro, callback=None):
         task = NewTask(coro, loop=self.loop)
-        callback = callback if hasattr(callback, '__iter__') else [callback]
-        for fn in callback:
-            task.add_done_callback(fn)
+        if callback:
+            callback = callback if hasattr(callback, '__iter__') else [callback]
+            for fn in callback:
+                task.add_done_callback(fn)
         self.tasks.append(task)
         return task
 

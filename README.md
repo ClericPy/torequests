@@ -1,4 +1,4 @@
-# torequests  - v4.0.4
+# torequests  - v4.0.5
 
 ## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding EASY & smooth. (It fits Windows, Python 2/3 compatible) -- Rookie fast asyncio assistant
 
