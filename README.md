@@ -1,18 +1,18 @@
-# Requests / aiohttp wrapper for asynchronous programming rookie, shorten code quantity. 
+# torequests  - v4.0.6
 
-## torequests  - v4.0.6
+> requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
 ### Features
 
-Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-coding brief & smooth. (compatible for win32, python 2/3).
+Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-coding brief & smooth, compatible for win32, python 2/3.
 
-* convert funtions into async-mode with thread pool 
+* convert funtions into async-mode with concurrent.futures
 * convert requests module too...
 * simplify aiohttp and make it requests-like
 
 ### Getting started
 
-#### convert functions asynchronous - threads, Async
+#### Async, threads - make functions asynchronous
 
 ```python
 from torequests import threads, Async
@@ -39,7 +39,7 @@ print(future.x, ', %s s passed' % (int(time.time() - start)))
 # <NewFuture at 0x34b1d30 state=running> , 0 s passed
 # test1 ok , 1 s passed
 ```
-#### thread pool for requests - tPool
+#### tPool - thread pool for requests
 ```python
 from torequests import tPool
 import time
@@ -57,7 +57,7 @@ print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
 # 5000 requests time cost:10.918817281723022 s
 ```
 
-#### aiohttp-wrapper (win32, without uvloop)
+#### Requests - aiohttp-wrapper
 > uvloop cost about 3.8s per 5000 requests.
 ```python
 from torequests.dummy import Requests
@@ -72,6 +72,7 @@ list2 = [i.x.text if i.x else 'fail' for i in list1]
 end_time = time.time()
 print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
 # output:
+# win32, without uvloop; 
 # ['ok 0', 'ok 1', 'ok 2', 'ok 3', 'ok 4'] 
 # 5000 requests time cost:5.776089191436768 s
 ```
@@ -99,7 +100,7 @@ app.run(server='gevent', port=5000)
 > To be continued...
 
 ### License
-> do I need?
+> do I need one?
 
 ### Benchmarks
 > What's this......
