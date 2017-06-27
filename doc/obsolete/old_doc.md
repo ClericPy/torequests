@@ -1,3 +1,8 @@
+# torequests  - v3.0.1
+
+## Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow). To make async-coding EASY & smooth, nothing to learn.(It fits Windows, Python 2/3 compatible)
+
+## Give one way to use async functions easily & make asynchronous requests by tPool.
 
 > Abandon Tomorrow library, but use original **concurrent.futures** by default. Because NewFuture class is a child class of Future, it can use as_completed function to get future object sequence in finish-time sorting.
 
@@ -247,12 +252,12 @@ if __name__ == "__main__":
 ```
 
 ---------
-<h2 id="cn">中文介绝</h2>
-#### 类似于tomorrow的修饰器方弝,使 [requests](https://github.com/kennethreitz/requests) 坘得异步，并且加入更多功能（針试/默认错误返回值/log等）.
+<h2 id="cn">中文介绍</h2>
+#### 类似于tomorrow的修饰器方式,使 [requests](https://github.com/kennethreitz/requests) 变得异步，并且加入更多功能（重试/默认错误返回值/log等）.
 
-这个的唯一用处估计是比较无脑，并且还坯以支挝Windows坧。python2/3兼容。
+这个的唯一用处估计是比较无脑，并且还可以支持Windows吧。python2/3兼容。
 
->如果想返回 **真正的值（而丝是NewFuture对象）**, 通过使用 **.x** 属性坳坯, 但覝注愝的一点是，虽然函数执行是异步的，但通过.x得到返回值坴会block佝整个进程。所以简坕的办法就是，一上来把所有函数都异步出去，用到谝冝**点**谝。（我比较习惯用列表解枝把函数全放进去，然坎覝用到谝了坖出来.x，其他的还在继续跑，丝耽误）。注：切忌一次异步出去七八万项，这毝个都是个独立的线程，会悲剧的，先分段然坎冝执行比较妥当。
+>如果想返回 **真正的值（而不是NewFuture对象）**, 通过使用 **.x** 属性即可, 但要注意的一点是，虽然函数执行是异步的，但通过.x得到返回值却会block住整个进程。所以简单的办法就是，一上来把所有函数都异步出去，用到谁再**点**谁。（我比较习惯用列表解析把函数全放进去，然后要用到谁了取出来.x，其他的还在继续跑，不耽误）。注：切忌一次异步出去七八万项，这每个都是个独立的线程，会悲剧的，先分段然后再执行比较妥当。
 
 # 快速开始
 
@@ -264,7 +269,7 @@ import time
 start_time = time.time()
 trequests = tPool(30)  # you may use it without session either.
 list1 = [trequests.get(url) for url in ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*500]
-# 如果函数执行失败（或超过針试次数）, i.x 默认会返回False对象, 除非你自定义去修改 fail_return 坂数.
+# 如果函数执行失败（或超过重试次数）, i.x 默认会返回False对象, 除非你自定义去修改 fail_return 参数.
 list2 = [len(i.x.content) if i.x else 'fail' for i in list1]
 end_time = time.time()
 print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
@@ -274,18 +279,18 @@ print(list2[:10], '\ntimeused:%s s' % (end_time-start_time))
 >result:[51, 51, 51, 51, 51, 51, 51, 51, 51, 51] 
 timeused:1.488060712814331 s
 
-# 简坕使用
+# 简单使用
 
 当然是先 **pip** 安装:
 
 >*pip install torequests -U*
 
 ## 1. tPool:
-*让原生的 requests 坘的异步，并且支挝針试等功能。*
+*让原生的 requests 变的异步，并且支持重试等功能。*
 
 ### The args:
 
-num 坂数是指线程池大尝（坌时执行多少任务）; session 其实就是 requests.Session(); retry 坂数指的是出错針试的次数; retrylog 是指当針试坑生时是坦打坰出来; logging 坂数就是完戝时候打坰出来; delay 坂数很少使用，一般就是给个隝机时间让它等待然坎冝执行（貌似没什么坵用）.
+num 参数是指线程池大小（同时执行多少任务）; session 其实就是 requests.Session(); retry 参数指的是出错重试的次数; retrylog 是指当重试发生时是否打印出来; logging 参数就是完成时候打印出来; delay 参数很少使用，一般就是给个随机时间让它等待然后再执行（貌似没什么卵用）.
 
 -------
 #####用法:
@@ -295,7 +300,7 @@ from torequests import tPool
 import requests
 
 s = requests.Session()
-trequests = tPool(30, session=s)  # Session的好处是性能比毝次都針新坑逝请求快，并且能保留Cookies等（但我基本从来没用过这坂数）.
+trequests = tPool(30, session=s)  # Session的好处是性能比每次都重新发送请求快，并且能保留Cookies等（但我基本从来没用过这参数）.
 list1 = [trequests.get(url, timeout=1, retry=1, retrylog=1, fail_return=False, logging='finished') for url in ['http://127.0.0.1:8080/']*5]
 list2 = [i.x if i.x else 'fail' for i in list1]
 print(list2)
@@ -320,7 +325,7 @@ retry http://127.0.0.1:8080/ for the 2 time, for the Exception: HTTPConnectionPo
 
 -------
 >PS:
-http://127.0.0.1:8080/ 是我架的一个临时朝务器，用来隝机性地出错来测试針试功能:
+http://127.0.0.1:8080/ 是我架的一个临时服务器，用来随机性地出错来测试重试功能:
 
 ```python
 @app.get('/')
@@ -335,19 +340,19 @@ def function():
 
 -------
 
-TIPS：由于这里的requests坘戝异步了，所以坯以用 print 来查看进度。
-注愝：这里的异步坪在请求的时候异步（因为这秝I/O擝作最费时），而坖值的时候则丝是，比如： 
-```[trequests.get(url, timeout=1, retry=1, retrylog=1, fail_return=False, logging='finished').x for url in ['http://127.0.0.1:8080/']*5]```并丝能异步来杝高性能，杢坥话说，它坘戝串行执行了（所以平时我绝常拿坕个的代替原生的 requests …）。
+TIPS：由于这里的requests变成异步了，所以可以用 print 来查看进度。
+注意：这里的异步只在请求的时候异步（因为这种I/O操作最费时），而取值的时候则不是，比如： 
+```[trequests.get(url, timeout=1, retry=1, retrylog=1, fail_return=False, logging='finished').x for url in ['http://127.0.0.1:8080/']*5]```并不能异步来提高性能，换句话说，它变成串行执行了（所以平时我经常拿单个的代替原生的 requests …）。
 
 ## 2. threads & Async:
  
->这两个就是 Tomorrow 的神奇之处(把一个指定函数转戝ThreadPoolExecutor)，用法和原生的没什么区别。简而言之就是把普通函数坘戝异步函数，你**把它撒出去它就是异步的非阻塞状思，直到你覝坖它的返回值 —— NewFuture.x**。
+>这两个就是 Tomorrow 的神奇之处(把一个指定函数转成ThreadPoolExecutor)，用法和原生的没什么区别。简而言之就是把普通函数变成异步函数，你**把它撒出去它就是异步的非阻塞状态，直到你要取它的返回值 —— NewFuture.x**。
 
 #####Normal usage:
 
 ```python
 from torequests import Async
-async_function = Async(old_function) # 线程池大尝默认30，也坯以设置个40 async_function = Async(old_function,40)
+async_function = Async(old_function) # 线程池大小默认30，也可以设置个40 async_function = Async(old_function,40)
 # 这一步非阻塞.
 func_list = [async_function(i) for i in argvs] # or func_list = map(async_function, argvs)
 # 下一步开始阻塞.
@@ -356,15 +361,15 @@ results = [i.x for i in func_list]
 
 # 原生用法
 from torequests import threads
-# 这个用法用的是新函数，丝会影哝到原来的函数
+# 这个用法用的是新函数，不会影响到原来的函数
 newfunc = threads(10)(rawfunc)
 
-# 也坯以用修饰器，但是会对原函数造戝影哝。
+# 也可以用修饰器，但是会对原函数造成影响。
 @threads(10)
 def rawfunc():
     pass
 ```
-> 函数执行时候非阻塞，会直接跳过去，直到你调用它的返回值 —— `funtion().x`. 如下傻瓜弝用法：
+> 函数执行时候非阻塞，会直接跳过去，直到你调用它的返回值 —— `funtion().x`. 如下傻瓜式用法：
 
 ```python
 from torequests import Async
@@ -378,17 +383,17 @@ def function():
 a_func = Async(function)
 
 result1 = a_func()
-print('现在是异步的，所以它坪是个 NewFuture 对象：', result1)
-print('虽然a_func在执行，但我坯以print出来，所以确实是异步了')
-print('现在会阻塞佝三秒，等待返回结果：')
+print('现在是异步的，所以它只是个 NewFuture 对象：', result1)
+print('虽然a_func在执行，但我可以print出来，所以确实是异步了')
+print('现在会阻塞住三秒，等待返回结果：')
 [(time.sleep(1), print(3-i)) for i in range(3)]
 print(result1.x)
 
-print('然坎实验一次错误用法，这里我将直接使用函数的值，比如print它：print(a_func().x)')
+print('然后实验一次错误用法，这里我将直接使用函数的值，比如print它：print(a_func().x)')
 print(a_func().x)
-print('所以被阻塞佝了，等待了3秒。')
+print('所以被阻塞住了，等待了3秒。')
 ```
-#### 注：毝个函数异步坎是一个线程池，如果需覝坌时得到多个函数的返回结果，则有两秝好与坝的用法：
+#### 注：每个函数异步后是一个线程池，如果需要同时得到多个函数的返回结果，则有两种好与坏的用法：
 ```python
 from torequests import Async
 
@@ -411,7 +416,7 @@ import sys
 from torequests import threads, Async
 s = requests.Session()
 counting = 0
-# @threads(10) # 这里坯以用原生的修饰器方法
+# @threads(10) # 这里可以用原生的修饰器方法
 def download(url):
     global counting
     for _ in range(5):
@@ -428,7 +433,7 @@ urls = ['http://p.3.cn/prices/mgets?skuIds=J_1273600']*1000
 
 if __name__ == "__main__":
     start = time.time()
-    dd = Async(download)  # 其实就是 threads(30)(download)，但这样孝更好看，虽然坯能和python3.5关键话針坝
+    dd = Async(download)  # 其实就是 threads(30)(download)，但这样子更好看，虽然可能和python3.5关键词重名
     responses = [dd(url) for url in urls]
     html = [response.x.text for response in responses]
     end = time.time()
@@ -564,6 +569,6 @@ This is still running even gotcha a TimeoutError! 2
 [1] time passed : 4.002671718597412
 ```
 
-# 很明显的，因为是线程，所以没有什么好办法僝os.kill让进程自杀一样来终止掉超时的线程，
-# 所以，万万丝覝写那秝丝会自己坜止的程庝。
-# 等有时间用 ProcessPoolExecutor 写一个进程版的，冝让超时的进程强制结束坧。
+    # 很明显的，因为是线程，所以没有什么好办法像os.kill让进程自杀一样来终止掉超时的线程，
+    # 所以，万万不要写那种不会自己停止的程序。
+    # 等有时间用 ProcessPoolExecutor 写一个进程版的，再让超时的进程强制结束吧。
