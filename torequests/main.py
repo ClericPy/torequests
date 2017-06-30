@@ -1,3 +1,4 @@
+#! coding:utf-8
 # python2 requires: pip install futures
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError, as_completed
@@ -89,7 +90,7 @@ def Async(f, n=None, timeout=None, timeout_return=None):
         timeout_return=None: Call Future.x after timeout, if timeout_return is 
             not true, return 'TimeoutError: %s, %s' % (self._args, self._kwargs) if timeout_return has __call__ attr, return timeout_return(*args, **kwargs) otherwise, return timeout_return itself.
 '''
-    return Pool(n, timeout, timeout_return).async_func(f)
+    return threads(n=n, timeout=timeout, timeout_return=timeout_return)(f)
 
 
 def threads(n=None, timeout=None, timeout_return=None):

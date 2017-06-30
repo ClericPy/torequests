@@ -10,15 +10,28 @@ from aiohttp.client_reqrep import ClientResponse
 
 from .log import dummy_logger
 
-ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
-ClientResponse.json = lambda self, encoding=None: json.loads(
-    self.content.decode(encoding or self.encoding))
-
 try:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
     dummy_logger.debug('Not found uvloop, using default_event_loop.')
+
+ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
+ClientResponse.ok = property(lambda self: self.status in range(200, 300))
+ClientResponse.json = lambda self, encoding=None: json.loads(
+    self.content.decode(encoding or self.encoding))
+
+
+class RequestsException(Exception):
+    '''self.error for reviewing the source exception.'''
+
+    def __init__(self, error):
+        self.__dict__ = error.__dict__
+        self.error = error
+        self.ok = False
+
+    def __bool__(self):
+        return False
 
 
 class NewTask(asyncio.tasks.Task):
@@ -149,17 +162,22 @@ class Requests(Loop):
                             'encoding') or resp._get_encoding()
                         if self.time_interval:
                             await asyncio.sleep(self.time_interval)
+                        # resp.__bool__ = lambda x: True
                         return resp
                 except Exception as err:
                     error = err
                     continue
             else:
+                kwargs['retry'] = retry
+                kwargs['return_error'] = return_error
+                error_info = dict(url=url, kwargs=kwargs,
+                                  type=type(error), error_msg=str(error))
+                error.args = (error_info,)
                 dummy_logger.error(
-                    'retry=%s used up and failed again: %s, kwargs: %s. %s' %
-                    (retry, url, kwargs, type(error)))
-                error.info = dict(url=url, kwargs=kwargs)
+                    'Retry=%s but failed: %s.' %
+                    (retry, error_info))
                 if return_error:
-                    return error
+                    return RequestsException(error)
                 raise error
 
     def close(self):
