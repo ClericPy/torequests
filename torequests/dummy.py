@@ -109,16 +109,16 @@ class Loop():
         return self.run()
 
     @property
-    def todo(self):
+    def todo_tasks(self):
         self.tasks = [
             task for task in self.tasks if task._state == NewTask._PENDING]
         return self.tasks
 
     def run(self):
-        self.loop.run_until_complete(asyncio.gather(*self.todo))
+        self.loop.run_until_complete(asyncio.gather(*self.todo_tasks))
 
     async def done(self):
-        await asyncio.gather(*self.todo)
+        await asyncio.gather(*self.todo_tasks)
 
 
 class Requests(Loop):
@@ -146,12 +146,12 @@ class Requests(Loop):
 
     def _mock_request_method(self, method):
         def _new_request(url, callback=None, **kwargs):
-            '''support args: retry, callback, return_error'''
+            '''support args: retry, callback, catch_exception'''
             return self.submit(self._request(method, url, **kwargs),
                                callback=callback)
         return _new_request
 
-    async def _request(self, method, url, retry=0, return_error=False, **kwargs):
+    async def _request(self, method, url, retry=0, catch_exception=False, **kwargs):
         with await self.sem:
             for retries in range(retry + 1):
                 try:
@@ -169,14 +169,14 @@ class Requests(Loop):
                     continue
             else:
                 kwargs['retry'] = retry
-                kwargs['return_error'] = return_error
+                kwargs['catch_exception'] = catch_exception
                 error_info = dict(url=url, kwargs=kwargs,
                                   type=type(error), error_msg=str(error))
                 error.args = (error_info,)
                 dummy_logger.error(
                     'Retry=%s but failed: %s.' %
                     (retry, error_info))
-                if return_error:
+                if catch_exception:
                     return RequestsException(error)
                 raise error
 

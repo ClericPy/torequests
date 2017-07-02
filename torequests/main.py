@@ -54,12 +54,12 @@ class NewFuture(Future):
     WARNING: Future thread will not stop running until function finished or pid killed.
     """
 
-    def __init__(self, timeout=None, timeout_return=None, args=(), kwargs={}):
+    def __init__(self, timeout=None, timeout_return=None, args=None, kwargs=None):
         super(NewFuture, self).__init__()
         self._timeout = timeout
         self._timeout_return = timeout_return
-        self._args = args
-        self._kwargs = kwargs
+        self._args = args or ()
+        self._kwargs = kwargs or {}
 
     def __getattr__(self, name):
         result = self.result(self._timeout)
