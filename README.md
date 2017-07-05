@@ -1,6 +1,8 @@
-# torequests  - v4.0.6
+# torequests  - v4.1.0
 
-> requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
+Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
+
+> warn: v4.1.0 is not backwardly compatible with old version in about some args and function name.
 
 ### Features
 
@@ -58,7 +60,7 @@ print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
 ```
 
 #### Requests - aiohttp-wrapper
-> uvloop cost about 3.8s per 5000 requests.
+> uvloop cost about 3.8s per 5000 requests; win32 5.78s per 5000 requests.
 ```python
 from torequests.dummy import Requests
 import time
