@@ -32,13 +32,11 @@ class Pool(gevent.pool.Pool):
             callback = kwds.pop('callback', None)
             args = args or ()
             kwds = kwds or {}
+            kwds.update(**{'timeout':self._timeout,'catch_exception':self._catch_exception})
             if self.full():
-                return NewGreenlet.spawn(self.apply_cb, func, args, kwds,
-                                         callback, timeout=self._timeout,
-                                         catch_exception=self._catch_exception)
-            greenlet = self.spawn(func, *args, **kwds,
-                                  timeout=self._timeout,
-                                  catch_exception=self._catch_exception)
+                return NewGreenlet.spawn(self.apply_cb, func, args, kwds, callback)
+            greenlet = self.apply_async(func, args, kwds,
+                                  callback=callback)
             if callback is not None:
                 greenlet.link(gevent.pool.pass_value(callback))
             return greenlet
@@ -51,18 +49,20 @@ class NewGreenlet(Greenlet):
         self._catch_exception = kwargs.pop('catch_exception', None)
         super(NewGreenlet, self).__init__(run, *args, **kwargs)
 
-    # TODO  NOT WORK
-    def __getattr__(self, name):
-        result = self.get()
-        return result.__getattribute__(name)
+    # # TODO  NOT WORK
+    # def __getattr__(self, name):
+    #     result = self.get()
+    #     return result.__getattribute__(name)
 
     @property
     def x(self):
         try:
-            self.join(timeout=self._timeout)
+            # self.join(timeout=self._timeout)
+            self.get(timeout=self._timeout)
             return self.value
         except Exception as err:
             # TODO not work, not raise anything
+            print(err,111)
             if not self._catch_exception:
                 raise err
             return err
@@ -73,4 +73,4 @@ def Async(function, n, timeout=None, catch_exception=False):
 
 
 def threads(n=None, timeout=None, catch_exception=False):
-    return Pool(n, timeout, catch_exception=catch_exception).async_func
+    return Pool(n, timeout, catch_exception).async_func

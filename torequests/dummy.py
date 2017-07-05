@@ -9,6 +9,7 @@ import aiohttp
 from aiohttp.client_reqrep import ClientResponse
 
 from .log import dummy_logger
+from .utils import RequestsException
 
 try:
     import uvloop
@@ -19,19 +20,7 @@ except ImportError:
 ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
 ClientResponse.ok = property(lambda self: self.status in range(200, 300))
 ClientResponse.json = lambda self, encoding=None: json.loads(
-    self.content.decode(encoding or self.encoding))
-
-
-class RequestsException(Exception):
-    '''self.error for reviewing the source exception.'''
-
-    def __init__(self, error):
-        self.__dict__ = error.__dict__
-        self.error = error
-        self.ok = False
-
-    def __bool__(self):
-        return False
+                      self.content.decode(encoding or self.encoding))
 
 
 class NewTask(asyncio.tasks.Task):
@@ -41,16 +30,16 @@ class NewTask(asyncio.tasks.Task):
     _RESPONSE_ARGS = ('encoding', 'content')
     callback_result = None
 
-    def __init__(self, coro, return_callback=False, *, loop=None):
+    def __init__(self, coro, *, loop=None):
         assert asyncio.coroutines.iscoroutine(coro), repr(coro)
         super().__init__(coro, loop=loop)
 
     @staticmethod
-    def wrap_callback(f):
-        @wraps(f)
-        def wrapped(fut):
-            fut.callback_result = f(fut)
-            return fut.callback_result
+    def wrap_callback(function):
+        @wraps(function)
+        def wrapped(future):
+            future.callback_result = function(future)
+            return future.callback_result
         return wrapped
 
     @property
@@ -162,7 +151,6 @@ class Requests(Loop):
                             'encoding') or resp._get_encoding()
                         if self.time_interval:
                             await asyncio.sleep(self.time_interval)
-                        # resp.__bool__ = lambda x: True
                         return resp
                 except Exception as err:
                     error = err

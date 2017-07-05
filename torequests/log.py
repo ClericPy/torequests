@@ -2,7 +2,6 @@ import logging
 
 dummy_logger = logging.getLogger('torequests.dummy')
 main_logger = logging.getLogger('torequests.main')
-gevent_logger = logging.getLogger('torequests.gevent')
 
 
 def init_logger(name='unnamed', handler_path_levels=None,
