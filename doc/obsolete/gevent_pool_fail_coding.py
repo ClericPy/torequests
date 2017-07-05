@@ -57,12 +57,11 @@ class NewGreenlet(Greenlet):
     @property
     def x(self):
         try:
-            # self.join(timeout=self._timeout)
-            self.get(timeout=self._timeout)
+            self.join(timeout=self._timeout)
+            # self.get(timeout=self._timeout)
             return self.value
         except Exception as err:
             # TODO not work, not raise anything
-            print(err,111)
             if not self._catch_exception:
                 raise err
             return err

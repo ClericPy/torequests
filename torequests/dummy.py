@@ -20,7 +20,7 @@ except ImportError:
 ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
 ClientResponse.ok = property(lambda self: self.status in range(200, 300))
 ClientResponse.json = lambda self, encoding=None: json.loads(
-                      self.content.decode(encoding or self.encoding))
+    self.content.decode(encoding or self.encoding))
 
 
 class NewTask(asyncio.tasks.Task):
@@ -117,11 +117,12 @@ class Requests(Loop):
     '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
-    def __init__(self, n=100, session=None, time_interval=0, **kwargs):
+    def __init__(self, n=100, session=None, time_interval=0, catch_exception=False, **kwargs):
         loop = kwargs.get('loop')
         super().__init__(loop=loop)
         self.sem = asyncio.Semaphore(n)
         self.time_interval = time_interval
+        self.catch_exception = catch_exception
         if session:
             session._loop = self.loop
             self.session = session
@@ -135,12 +136,12 @@ class Requests(Loop):
 
     def _mock_request_method(self, method):
         def _new_request(url, callback=None, **kwargs):
-            '''support args: retry, callback, catch_exception'''
+            '''support args: retry, callback'''
             return self.submit(self._request(method, url, **kwargs),
                                callback=callback)
         return _new_request
 
-    async def _request(self, method, url, retry=0, catch_exception=False, **kwargs):
+    async def _request(self, method, url, retry=0, **kwargs):
         with await self.sem:
             for retries in range(retry + 1):
                 try:
@@ -149,22 +150,22 @@ class Requests(Loop):
                         resp.content = await resp.read()
                         resp.encoding = kwargs.get(
                             'encoding') or resp._get_encoding()
-                        if self.time_interval:
-                            await asyncio.sleep(self.time_interval)
                         return resp
                 except Exception as err:
                     error = err
                     continue
+                finally:
+                    if self.time_interval:
+                        time.sleep(self.time_interval)
             else:
                 kwargs['retry'] = retry
-                kwargs['catch_exception'] = catch_exception
                 error_info = dict(url=url, kwargs=kwargs,
                                   type=type(error), error_msg=str(error))
                 error.args = (error_info,)
                 dummy_logger.error(
-                    'Retry=%s but failed: %s.' %
+                    'Retry %s & failed: %s.' %
                     (retry, error_info))
-                if catch_exception:
+                if self.catch_exception:
                     return RequestsException(error)
                 raise error
 
