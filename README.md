@@ -2,19 +2,23 @@
 
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
-> warn: v4.1.0 is not backwardly compatible with old version in about some args and function name.
+*warn: v4.1.0 is not backwardly compatible with old version in about some args and function name.*
+
+### To install:
+
+> pip install torequests -U
 
 ### Features
 
-Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-coding brief & smooth, compatible for win32, python 2/3.
+Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-coding brief & smooth, compatible for win32 / python 2&3.
 
-* convert funtions into async-mode with concurrent.futures
-* convert requests module too...
-* simplify aiohttp and make it requests-like
+* convert any funtions into async-mode with concurrent.futures
+* wrap requests module in future...
+* simplify aiohttp, make it `requests-like`.
 
 ### Getting started
 
-#### Async, threads - make functions asynchronous
+#### 1. Async, threads - make functions asynchronous
 
 ```python
 from torequests import threads, Async
@@ -41,7 +45,7 @@ print(future.x, ', %s s passed' % (int(time.time() - start)))
 # <NewFuture at 0x34b1d30 state=running> , 0 s passed
 # test1 ok , 1 s passed
 ```
-#### tPool - thread pool for requests
+#### 2. tPool - thread pool for async-requests
 ```python
 from torequests import tPool
 import time
@@ -59,7 +63,7 @@ print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
 # 5000 requests time cost:10.918817281723022 s
 ```
 
-#### Requests - aiohttp-wrapper
+#### 3. Requests - aiohttp-wrapper
 > uvloop cost about 3.8s per 5000 requests; win32 5.78s per 5000 requests.
 ```python
 from torequests.dummy import Requests
@@ -93,16 +97,18 @@ app.run(server='gevent', port=5000)
 ```
 
 ### Requirement
-> pip install torequests -U
+
 - requests
-- future(python2.x only)
-- aiohttp(python3.5+ only)
+- future ( python2.x needed )
+- aiohttp ( python3.5+ needed )
+  - uvloop ( non-Win32 )
+
 
 ### Documentation
 > To be continued...
 
 ### License
-> do I need one?
+> [MIT license](LICENSE)
 
 ### Benchmarks
-> What's this......
+> to be continued

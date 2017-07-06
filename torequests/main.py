@@ -1,7 +1,7 @@
 #! coding:utf-8
 # python2 requires: pip install futures
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures._base import Future
 from concurrent.futures.thread import _WorkItem
 from functools import wraps
@@ -14,6 +14,9 @@ from .utils import RequestsException
 
 
 class Pool(ThreadPoolExecutor):
+    '''
+    add async_func(function decorator) for submitting called-function into Pool obj.
+    '''
 
     def __init__(self, n=None, timeout=None):
         if n is None and (not isinstance(range, type)):
@@ -22,10 +25,10 @@ class Pool(ThreadPoolExecutor):
         super(Pool, self).__init__(n)
         self._timeout = timeout
 
-    def async_func(self, f):
-        @wraps(f)
+    def async_func(self, function):
+        @wraps(function)
         def wrapped(*args, **kwargs):
-            return self.submit(f, *args, **kwargs)
+            return self.submit(function, *args, **kwargs)
         return wrapped
 
     def close(self, wait=True):
@@ -53,7 +56,7 @@ class Pool(ThreadPoolExecutor):
 
 class NewFuture(Future):
 
-    """add .x (property) and timeout args for original Future
+    """add .x (property) and timeout args for original Future class
     WARNING: Future thread will not stop running until function finished or pid killed.
     """
 
@@ -96,7 +99,7 @@ def get_results_generator(future_list, timeout=None, sort_by_completed=False):
         for future in future_list:
             yield future.x
 
-class tPool():
+class tPool(object):
 
     def __init__(self, n=None, session=None, timeout=None, time_interval=0,
                  catch_exception=False):
