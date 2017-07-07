@@ -60,7 +60,7 @@ class NewTask(asyncio.tasks.Task):
 
 class Loop():
 
-    def __init__(self, loop=None):
+    def __init__(self, n=100, loop=None, default_callback=None):
         try:
             self.loop = loop or asyncio.get_event_loop()
             if self.loop.is_running():
@@ -72,9 +72,25 @@ class Loop():
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
         self.tasks = []
+        self.default_callback = default_callback
+        self.sem = asyncio.Semaphore(n)
+        
+    def wrap_sem(self, coro_func):
+        @wraps(coro_func)
+        async def new_coro_func(*args, **kwargs):
+            with await self.sem:
+                result = await coro_func(*args, **kwargs)
+                return result
+        return new_coro_func
+
+    def apply(self, f, args=None, kwargs=None):
+        args = args or ()
+        kwargs = kwargs or {}
+        return self.submitter(f)(*args, **kwargs)
 
     def submit(self, coro, callback=None):
         task = NewTask(coro, loop=self.loop)
+        callback = callback or self.default_callback
         if callback:
             if not isinstance(callback, (list, tuple)):
                 callback = [callback]
@@ -84,6 +100,7 @@ class Loop():
         return task
 
     def submitter(self, f):
+        f = self.wrap_sem(f)
         @wraps(f)
         def wrapped(*args, **kwargs):
             return self.submit(f(*args, **kwargs))
@@ -110,6 +127,13 @@ class Loop():
         await asyncio.gather(*self.todo_tasks)
 
 
+def Async(f, n=100, default_callback=None):
+    return threads(n, default_callback)(f)
+
+def threads(n=100, default_callback=None):
+    return Loop(n, default_callback).submitter
+
+
 class Requests(Loop):
     '''
         The kwargs is the same as kwargs of aiohttp.ClientSession.
@@ -117,12 +141,13 @@ class Requests(Loop):
     '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
-    def __init__(self, n=100, session=None, time_interval=0, catch_exception=False, **kwargs):
-        loop = kwargs.get('loop')
-        super().__init__(loop=loop)
-        self.sem = asyncio.Semaphore(n)
+    def __init__(self, n=100, session=None, time_interval=0, catch_exception=True,
+                 default_callback=None, **kwargs):
+        loop = kwargs.pop('loop', None)
+        super().__init__(n=n, loop=loop)
         self.time_interval = time_interval
         self.catch_exception = catch_exception
+        self.default_callback = default_callback
         if session:
             session._loop = self.loop
             self.session = session
@@ -137,37 +162,37 @@ class Requests(Loop):
     def _mock_request_method(self, method):
         def _new_request(url, callback=None, **kwargs):
             '''support args: retry, callback'''
-            return self.submit(self._request(method, url, **kwargs),
-                               callback=callback)
+            request = self.wrap_sem(self._request)
+            return self.submit(request(method, url, **kwargs),
+                               callback=callback or self.default_callback)
         return _new_request
 
     async def _request(self, method, url, retry=0, **kwargs):
-        with await self.sem:
-            for retries in range(retry + 1):
-                try:
-                    async with self.session.request(method, url, **kwargs) as resp:
-                        resp.status_code = resp.status
-                        resp.content = await resp.read()
-                        resp.encoding = kwargs.get(
-                            'encoding') or resp._get_encoding()
-                        return resp
-                except Exception as err:
-                    error = err
-                    continue
-                finally:
-                    if self.time_interval:
-                        time.sleep(self.time_interval)
-            else:
-                kwargs['retry'] = retry
-                error_info = dict(url=url, kwargs=kwargs,
-                                  type=type(error), error_msg=str(error))
-                error.args = (error_info,)
-                dummy_logger.error(
-                    'Retry %s & failed: %s.' %
-                    (retry, error_info))
-                if self.catch_exception:
-                    return RequestsException(error)
-                raise error
+        for retries in range(retry + 1):
+            try:
+                async with self.session.request(method, url, **kwargs) as resp:
+                    resp.status_code = resp.status
+                    resp.content = await resp.read()
+                    resp.encoding = kwargs.get(
+                        'encoding') or resp._get_encoding()
+                    return resp
+            except Exception as err:
+                error = err
+                continue
+            finally:
+                if self.time_interval:
+                    time.sleep(self.time_interval)
+        else:
+            kwargs['retry'] = retry
+            error_info = dict(url=url, kwargs=kwargs,
+                                type=type(error), error_msg=str(error))
+            error.args = (error_info,)
+            dummy_logger.error(
+                'Retry %s & failed: %s.' %
+                (retry, error_info))
+            if self.catch_exception:
+                return RequestsException(error)
+            raise error
 
     def close(self):
         '''Should be closed[explicit] while using external session or connector,

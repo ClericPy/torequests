@@ -73,7 +73,7 @@ __init__(self, n=None, session=None, timeout=None, time_interval=0, catch_except
     - time_interval: seconds waiting for request interval between 2 request
                     n + time_interval will be used for frequency control
     - catch_exception: when raise an error, 
-                    if True, return RequestsException obj (__bool__ is always False)
+                    if True (by default), return RequestsException obj (__bool__ is always False)
                     if False, raise the origin Exception
                     the RequestsException obj or origin Exception will contains all request-arg in args attribute.
 
