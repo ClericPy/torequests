@@ -1,4 +1,6 @@
-
+#! coding:utf-8
+# compatible for win32 / python 2 & 3
+# TODO clean_url; frequency_tester; frequency_checker; string_converter; regex_mappers
 
 class RequestsException(Exception):
     '''This class mainly used for __bool__, 

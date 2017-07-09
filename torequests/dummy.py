@@ -17,6 +17,7 @@ try:
 except ImportError:
     dummy_logger.debug('Not found uvloop, using default_event_loop.')
 
+# conver ClientResponse attribute into Requests-like
 ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
 ClientResponse.ok = property(lambda self: self.status in range(200, 300))
 ClientResponse.json = lambda self, encoding=None: json.loads(
@@ -66,15 +67,14 @@ class Loop():
             if self.loop.is_running():
                 raise NotImplementedError("Cannot use aioutils in "
                                           "asynchroneous environment")
-        except NotImplementedError:
-            dummy_logger.debug(
-                "%s is_running, rebuilding a new loop" % self.loop)
+        except Exception as e:
+            dummy_logger.debug("Rebuilding a new loop for exception: %s" % e)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
         self.tasks = []
         self.default_callback = default_callback
         self.sem = asyncio.Semaphore(n)
-        
+
     def wrap_sem(self, coro_func):
         @wraps(coro_func)
         async def new_coro_func(*args, **kwargs):
@@ -83,10 +83,10 @@ class Loop():
                 return result
         return new_coro_func
 
-    def apply(self, f, args=None, kwargs=None):
+    def apply(self, function, args=None, kwargs=None):
         args = args or ()
         kwargs = kwargs or {}
-        return self.submitter(f)(*args, **kwargs)
+        return self.submitter(function)(*args, **kwargs)
 
     def submit(self, coro, callback=None):
         task = NewTask(coro, loop=self.loop)
@@ -123,16 +123,23 @@ class Loop():
     def run(self):
         self.loop.run_until_complete(asyncio.gather(*self.todo_tasks))
 
+    def run_forever(self):
+        self.loop.run_forever()
+
     async def done(self):
         await asyncio.gather(*self.todo_tasks)
 
 
-def Async(f, n=100, default_callback=None):
-    return threads(n, default_callback)(f)
+def Async(func, n=100, default_callback=None):
+    return threads(n, default_callback)(func)
+
 
 def threads(n=100, default_callback=None):
     return Loop(n, default_callback).submitter
 
+
+def get_results_generator(*args):
+    raise NotImplementedError('Not finished')
 
 class Requests(Loop):
     '''
@@ -181,11 +188,11 @@ class Requests(Loop):
                 continue
             finally:
                 if self.time_interval:
-                    time.sleep(self.time_interval)
+                    await asyncio.sleep(self.time_interval)
         else:
             kwargs['retry'] = retry
             error_info = dict(url=url, kwargs=kwargs,
-                                type=type(error), error_msg=str(error))
+                              type=type(error), error_msg=str(error))
             error.args = (error_info,)
             dummy_logger.error(
                 'Retry %s & failed: %s.' %
@@ -197,7 +204,10 @@ class Requests(Loop):
     def close(self):
         '''Should be closed[explicit] while using external session or connector,
         instead of close by __del__.'''
-        self.session.close()
+        try:
+            self.session.close()
+        except:
+            pass
 
     def __del__(self):
         self.close()
