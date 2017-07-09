@@ -101,6 +101,7 @@ class Loop():
 
     def submitter(self, f):
         f = self.wrap_sem(f)
+
         @wraps(f)
         def wrapped(*args, **kwargs):
             return self.submit(f(*args, **kwargs))
@@ -126,6 +127,18 @@ class Loop():
     def run_forever(self):
         self.loop.run_forever()
 
+    def async_run_forever(self):
+        from threading import Timer
+        Timer(0, self.loop.run_forever).start()
+
+    def stop(self):
+        '''stop self.loop directly, often be used with run_forever'''
+        try:
+            self.loop.stop()
+        except Exception as e:
+            dummy_logger.error('can not stop loop for: %s' % e)
+            pass
+
     async def done(self):
         await asyncio.gather(*self.todo_tasks)
 
@@ -140,6 +153,7 @@ def threads(n=100, default_callback=None):
 
 def get_results_generator(*args):
     raise NotImplementedError('Not finished')
+
 
 class Requests(Loop):
     '''
@@ -206,7 +220,8 @@ class Requests(Loop):
         instead of close by __del__.'''
         try:
             self.session.close()
-        except:
+        except Exception as e:
+            dummy_logger.error('can not close session for: %s' % e)
             pass
 
     def __del__(self):
