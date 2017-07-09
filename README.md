@@ -1,4 +1,4 @@
-# torequests  - v4.2.0
+# torequests  - v4.2.1
 
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
@@ -105,7 +105,7 @@ app.run(server='gevent', port=5000)
 
 
 ### Documentation
-> To be continued...
+> [Document & Usage](doc/document.md)
 
 ### License
 > [MIT license](LICENSE)
