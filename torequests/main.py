@@ -9,8 +9,7 @@ from functools import wraps
 from requests import Session
 from requests.adapters import HTTPAdapter
 
-from .log import main_logger
-from .utils import RequestsException
+from .utils import RequestsException, main_logger
 
 
 class Pool(ThreadPoolExecutor):

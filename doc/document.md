@@ -1,15 +1,6 @@
-
-
-# USAGE / EXAMPLES / QUICKSTART
-
-## TODO
-
-----------------
-
-
 # torequests.main
 
-> compatible for python 2 & 3
+> compatible for python 2 or 3
 
 
 ## Pool 
@@ -52,9 +43,12 @@ x(self)
     - return self.result(self._timeout) of raise TimeoutError
         this version will not catch TimeoutError an return None
 ```
+
 ## Async / threads
 
 > to convert a function asynchronous 
+
+Warning: do not use Async/threads with functions which will never stop, this will make main threads unable to quit.
 
 ```python
 Async(f, n=None, timeout=None)
@@ -69,6 +63,27 @@ get_results_generator(future_list, timeout=None, sort_by_completed=False)
     - future_list as the input, return a generator order by sort_by_completed or not:
         sort_by_completed=False: return as the origin sequence
         sort_by_completed=True: return as the completed sequence
+```
+
+### Example
+
+```python
+@threads(30)
+def test_threads(interval):
+    time.sleep(interval)
+    return interval
+
+def test(interval):
+    time.sleep(interval)
+    return interval
+
+test_async = Async(test, 30) # equal to test_threads
+lots_futures = [test_async(i) for i in range(5)]
+start_time = time.time()
+future_results = [f.x for f in lots_futures]
+print(time.time()-start_time, future_results)
+# 4.000300645828247 [0, 1, 2, 3, 4]
+# usage: do not call new_future.x before really using it, this will block the main thread.
 ```
 
 ## tPool
@@ -99,18 +114,48 @@ request(self, url, mode, retry=0, **kwargs)
     - timeout + tPool's `catch_exception`, will save time and avoid crashing from Exceptions
 ```
 
+### Examples
+
+> python2 / 3
+
+```python
+start = time.time()
+trequests = tPool()
+test_url = 'http://baidu.com'
+futures = [trequests.get(test_url, retry=0) for i in range(20)]
+responses = [i.x for i in futures]
+cost = round(time.time() - start, 2)
+print(cost, 'seconds.', responses[0].content)
+# 0.17 seconds. b'<html>\n<meta http-equiv="refresh" content="0;url=http://www.baidu.com/">\n</html>\n'
+
+# OR use callback for future
+start = time.time()
+trequests = tPool()
+test_url = 'http://baidu.com'
+futures = [trequests.get(test_url, retry=0, callback=lambda future:len(future.x.content)) for i in range(5)]
+responses = [i.x for i in futures]
+cost = round(time.time() - start, 2)
+print(cost, 'seconds.', futures[0].callback_result)
+# 0.09 seconds. 81
+
+# Here you can omit .x for short, while call future's attribute/methods
+trequests = tPool()
+r = trequests.get('http://baidu.com')
+print(r.content)
+# b'<html>\n<meta http-equiv="refresh" content="0;url=http://www.baidu.com/">\n</html>\n'
+
+```
+
 
 #### More doc from [Requests: HTTP for Humans](http://docs.python-requests.org/en/master/)
-
 
 
 -------------------
 
 
-
 # torequests.dummy
 
-> for python3.5+ only
+> python3.5+ only
 
 ## NewTask
 

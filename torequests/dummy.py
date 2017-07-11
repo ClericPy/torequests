@@ -8,8 +8,7 @@ from functools import wraps
 import aiohttp
 from aiohttp.client_reqrep import ClientResponse
 
-from .log import dummy_logger
-from .utils import RequestsException
+from .utils import RequestsException, dummy_logger
 
 try:
     import uvloop
@@ -208,7 +207,7 @@ class Requests(Loop):
             error_info = dict(url=url, kwargs=kwargs,
                               type=type(error), error_msg=str(error))
             error.args = (error_info,)
-            dummy_logger.error(
+            dummy_logger.debug(
                 'Retry %s & failed: %s.' %
                 (retry, error_info))
             if self.catch_exception:
