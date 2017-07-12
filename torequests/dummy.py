@@ -28,19 +28,28 @@ class NewTask(asyncio.tasks.Task):
     _CANCELLED = 'CANCELLED'
     _FINISHED = 'FINISHED'
     _RESPONSE_ARGS = ('encoding', 'content')
-    callback_result = None
 
     def __init__(self, coro, *, loop=None):
         assert asyncio.coroutines.iscoroutine(coro), repr(coro)
         super().__init__(coro, loop=loop)
+        self._callback_result = None
 
     @staticmethod
     def wrap_callback(function):
         @wraps(function)
         def wrapped(future):
-            future.callback_result = function(future)
-            return future.callback_result
+            future._callback_result = function(future)
+            return future._callback_result
         return wrapped
+
+    @property
+    def callback_result(self):
+        if self._state == self._PENDING:
+            self._loop.run_until_complete(self)
+        if self._done_callbacks:
+            return self._callback_result
+        else:
+            return self.x
 
     @property
     def x(self):
@@ -49,7 +58,10 @@ class NewTask(asyncio.tasks.Task):
         return self.result()
 
     def __getattr__(self, name):
-        return self.x.__getattribute__(name)
+        try:
+            object.__getattribute__(self, name)
+        except AttributeError:
+            return self.x.__getattribute__(name)
 
     def __setattr__(self, name, value):
         if name in self._RESPONSE_ARGS:

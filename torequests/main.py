@@ -38,8 +38,8 @@ class Pool(ThreadPoolExecutor):
     def wrap_callback(function):
         @wraps(function)
         def wrapped(future):
-            future.callback_result = function(future)
-            return future.callback_result
+            future._callback_result = function(future)
+            return future._callback_result
         return wrapped
 
     def submit(self, func, *args, **kwargs):
@@ -73,10 +73,22 @@ class NewFuture(Future):
         self._timeout = timeout
         self._args = args or ()
         self._kwargs = kwargs or {}
+        self._callback_result = None
 
     def __getattr__(self, name):
-        return self.result(self._timeout).__getattribute__(name)
+        try:
+            object.__getattribute__(self, name)
+        except AttributeError:
+            return self.x.__getattribute__(name)
 
+    @property
+    def callback_result(self):
+        if self._state == 'PENDING':
+            self.x
+        if self._done_callbacks:
+            return self._callback_result
+        else:
+            return self.x
 
     @property
     def x(self):

@@ -24,6 +24,28 @@ submit(self, func, *args, **kwargs)
             callback's returned value will be set to future's attribute: callback_result.
 ```
 
+### Example
+
+> Use only one Pool for many functions instead of threads(create new pool each function).
+
+```python
+
+pool = Pool(3)
+@pool.async_func
+def test(x):
+    time.sleep(x)
+    print(x)
+    return x
+futures = [test(i) for i in range(5, 1, -1)]
+results = [i.x for i in futures]
+print(results)
+# 3
+# 4
+# 5
+# 2
+# [5, 4, 3, 2]
+```
+
 ## NewFuture
 
 > subclass of concurrent.futures.Future
