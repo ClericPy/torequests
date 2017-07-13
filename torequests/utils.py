@@ -3,6 +3,7 @@
 # TODO clean_url; frequency_tester; frequency_checker; string_converter; regex_mappers
 
 import logging
+from requests.utils import urlparse
 
 dummy_logger = logging.getLogger('torequests.dummy')
 main_logger = logging.getLogger('torequests.main')

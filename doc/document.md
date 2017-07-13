@@ -266,11 +266,12 @@ Async(func, n=None, timeout=None)
 
 ```python
 __init__(self, n=100, session=None, time_interval=0, catch_exception=True,
-                 default_callback=None, **kwargs)
+                 default_callback=None, frequency=None, **kwargs)
     - n, the maximum concurrent number of Pool obj
     - session: aiohttp.ClientSession, or None
     - time_interval: seconds waiting for request interval between 2 requests;
                     n + time_interval params will be used for the frequency control.
+    - frequency: {url_host: (Semaphore obj, internal)} # this will achieve a frequency_limitation for each host
     - catch_exception: when raise an error, 
                     if be set with True (by default), return RequestsException obj (__bool__ is always False);
                     else if False, raise the origin Exception;

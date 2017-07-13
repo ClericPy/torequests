@@ -8,7 +8,7 @@ from functools import wraps
 import aiohttp
 from aiohttp.client_reqrep import ClientResponse
 
-from .utils import RequestsException, dummy_logger
+from .utils import RequestsException, dummy_logger, urlparse
 
 try:
     import uvloop
@@ -86,10 +86,12 @@ class Loop():
         self.default_callback = default_callback
         self.sem = asyncio.Semaphore(n)
 
-    def wrap_sem(self, coro_func):
+    def wrap_sem(self, coro_func, sem=None):
+        sem = sem or self.sem
+
         @wraps(coro_func)
         async def new_coro_func(*args, **kwargs):
-            with await self.sem:
+            with await sem:
                 result = await coro_func(*args, **kwargs)
                 return result
         return new_coro_func
@@ -170,16 +172,20 @@ class Requests(Loop):
     '''
         The kwargs is the same as kwargs of aiohttp.ClientSession.
         Sometimes the performance is limited by too large "n" .
+        frequency: {url_host: (Semaphore obj, internal)}
+        
     '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
     def __init__(self, n=100, session=None, time_interval=0, catch_exception=True,
-                 default_callback=None, **kwargs):
+                 default_callback=None, frequency=None, **kwargs):
         loop = kwargs.pop('loop', None)
         super().__init__(n=n, loop=loop)
         self.time_interval = time_interval
         self.catch_exception = catch_exception
         self.default_callback = default_callback
+        self.default_frequency = (self.sem, self.time_interval)
+        self.frequency = frequency or {}
         if session:
             session._loop = self.loop
             self.session = session
@@ -194,26 +200,36 @@ class Requests(Loop):
     def _mock_request_method(self, method):
         def _new_request(url, callback=None, **kwargs):
             '''support args: retry, callback'''
-            request = self.wrap_sem(self._request)
-            return self.submit(request(method, url, **kwargs),
+            return self.submit(self._request(method, url, **kwargs),
                                callback=callback or self.default_callback)
         return _new_request
 
+    def set_frequency(self, host, n=None, interval=None):
+        self.frequency[host] = (asyncio.Semaphore(n) if n else self.sem,
+                                           interval or self.time_interval)
+
+    def update_frequency(self, host_frequency_dict):
+        self.frequency.update(**host_frequency_dict)
+
     async def _request(self, method, url, retry=0, **kwargs):
+        netloc = urlparse(url).netloc
+        sem, interval = self.frequency.get(
+            netloc, self.default_frequency)
         for retries in range(retry + 1):
-            try:
-                async with self.session.request(method, url, **kwargs) as resp:
-                    resp.status_code = resp.status
-                    resp.content = await resp.read()
-                    resp.encoding = kwargs.get(
-                        'encoding') or resp._get_encoding()
-                    return resp
-            except Exception as err:
-                error = err
-                continue
-            finally:
-                if self.time_interval:
-                    await asyncio.sleep(self.time_interval)
+            with await sem:
+                try:
+                    async with self.session.request(method, url, **kwargs) as resp:
+                        resp.status_code = resp.status
+                        resp.content = await resp.read()
+                        resp.encoding = kwargs.get(
+                            'encoding') or resp._get_encoding()
+                        return resp
+                except Exception as err:
+                    error = err
+                    continue
+                finally:
+                    if interval:
+                        await asyncio.sleep(interval)
         else:
             kwargs['retry'] = retry
             error_info = dict(url=url, kwargs=kwargs,
