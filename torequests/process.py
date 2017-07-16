@@ -22,6 +22,7 @@ class ProcessPool(Pool):
     def async_func(self, function):
         @wraps(function)
         def wrapped(*args, **kwargs):
+            wrapped._pool = self
             return self._apply(function, args, kwargs)
         return wrapped
 
@@ -75,10 +76,8 @@ class NewApplyResult(ApplyResult):
             return FailureException(err)
 
 
-def Daemon(f, n=None, timeout=None):
-    pool = ProcessPool(n, timeout)
-    f.pool = pool
-    return pool.async_func(f)
+def Process(f, n=None, timeout=None):
+    return ProcessPool(n, timeout).async_func(f)
 
 # block coding for _ForkingPickler.dump PicklingError: it's not the same object as
 # def processes(n=None, timeout=None):
