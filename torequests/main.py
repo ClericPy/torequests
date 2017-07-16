@@ -9,7 +9,7 @@ from functools import wraps
 from requests import Session
 from requests.adapters import HTTPAdapter
 
-from .utils import RequestsException, main_logger
+from .utils import FailureException, main_logger
 
 
 class Pool(ThreadPoolExecutor):
@@ -163,11 +163,11 @@ class tPool(object):
         error_info = dict(url=url, kwargs=kwargs,
                           type=type(error), error_msg=str(error))
         error.args = (error_info,)
-        main_logger.error(
+        main_logger.debug(
             'Retry %s & failed: %s.' %
             (retry, error_info))
         if self.catch_exception:
-            return RequestsException(error)
+            return FailureException(error)
         raise error
 
     def get(self, url, callback=None, **kwargs):

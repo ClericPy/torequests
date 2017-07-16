@@ -120,9 +120,9 @@ __init__(self, n=None, session=None, timeout=None, time_interval=0, catch_except
     - time_interval: seconds waiting for request interval between 2 requests;
                     n + time_interval params will be used for the frequency control.
     - catch_exception: when raise an error, 
-                    if be set with True (by default), return RequestsException obj (__bool__ is always False)
+                    if be set with True (by default), return FailureException obj (__bool__ is always False)
                     else if False, raise the origin Exception
-                    the RequestsException obj or origin Exception will contains all request-arg in args attribute.
+                    the FailureException obj or origin Exception will contains all request-arg in args attribute.
 
 close(self, wait=True)
     - close the session and pool
@@ -273,9 +273,9 @@ __init__(self, n=100, session=None, time_interval=0, catch_exception=True,
                     n + time_interval params will be used for the frequency control.
     - frequency: {url_host: (Semaphore obj, internal)} # this will achieve a frequency_limitation for each host
     - catch_exception: when raise an error, 
-                    if be set with True (by default), return RequestsException obj (__bool__ is always False);
+                    if be set with True (by default), return FailureException obj (__bool__ is always False);
                     else if False, raise the origin Exception;
-                    the RequestsException obj or origin Exception will contains all request-arg in args attribute.
+                    the FailureException obj or origin Exception will contains all request-arg in args attribute.
 
 _initial_request(self)
     - to pack origin aiohttp request method(get/post/...) in Loop
