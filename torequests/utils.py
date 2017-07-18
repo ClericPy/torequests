@@ -1,8 +1,10 @@
 #! coding:utf-8
 # compatible for win32 / python 2 & 3
-# TODO clean_url; frequency_tester; frequency_checker; string_converter; regex_mappers
+# TODO clean_url; frequency_tester; frequency_checker; string_converter;
+# regex_mappers
 
 import logging
+import re
 from requests.utils import urlparse
 
 dummy_logger = logging.getLogger('torequests.dummy')
@@ -62,3 +64,60 @@ class FailureException(Exception):
 
     def __str__(self):
         return repr(self)
+
+
+class String(object):
+    '''Tool kits for string converter'''
+    pass
+
+
+class Time(object):
+    '''Tool kits for time converter'''
+    pass
+
+
+class Frequency(object):
+    '''guess the anti-crawling frequency'''
+    pass
+
+
+class RegexMapper(object):
+    '''dict-like for regex mapper: input string, output obj.
+    support persistence rules;
+    flags: set multi flags combined with '|', FLAG1 | FLAG2 | FLAG3
+    '''
+
+    def __init__(self, name=None, file_path=None, match_mode='search', flags=None):
+        # init regex from string to compiled regex
+        self.match_mode = match_mode
+        self.rules = []  # list of (str, obj)
+        self.rules_compile = []
+        pass
+
+    def init_regex(self):
+        pass
+
+    def find(self, string):
+        'return only one matching obj'
+        pass
+
+    def findall(self, string):
+        'return all matching obj'
+        pass
+
+    def regex_walker(self):
+        'return generator'
+        pass
+
+    def save(self, file_path):
+        pass
+
+    def load(self, file_path):
+        pass
+
+    def __getitem__(self, key):
+        pass
+
+    def __setitem__(self, key, value):
+        pass
+
