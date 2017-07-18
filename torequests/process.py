@@ -1,12 +1,16 @@
 #! coding:utf-8
 # python2 requires: pip install futures
-import time
 import os
-from multiprocessing.pool import Pool, ApplyResult
-from multiprocessing.context import TimeoutError
+import sys
+import time
 from functools import wraps
-from .utils import FailureException
+from multiprocessing import TimeoutError
+from multiprocessing.pool import ApplyResult, Pool
+
 from .main import Async
+from .utils import FailureException
+
+PY2 = sys.version_info.major == 2
 
 
 class ProcessPool(Pool):
@@ -55,8 +59,11 @@ class NewApplyResult(ApplyResult):
     WARNING: Future process will be killed if timeout.
     """
 
-    def __init__(self, cache, callback, error_callback, timeout=None, args=None, kwargs=None):
-        super(NewApplyResult, self).__init__(cache, callback, error_callback)
+    def __init__(self, cache, callback, error_callback=None, timeout=None, args=None, kwargs=None):
+        if PY2:
+            super(NewApplyResult, self).__init__(cache, callback)
+        else:
+            super(NewApplyResult, self).__init__(cache, callback, error_callback)
         self._timeout = timeout
         self._args = args or ()
         self._kwargs = kwargs or {}
