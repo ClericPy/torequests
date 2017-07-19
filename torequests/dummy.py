@@ -46,7 +46,7 @@ class NewTask(asyncio.tasks.Task):
     def callback_result(self):
         if self._state == self._PENDING:
             self._loop.run_until_complete(self)
-        if self._done_callbacks:
+        if self._callbacks:
             return self._callback_result
         else:
             return self.x
