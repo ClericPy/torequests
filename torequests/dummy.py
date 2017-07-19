@@ -33,11 +33,13 @@ class NewTask(asyncio.tasks.Task):
         assert asyncio.coroutines.iscoroutine(coro), repr(coro)
         super().__init__(coro, loop=loop)
         self._callback_result = None
+        self._callback_history = []
 
     @staticmethod
     def wrap_callback(function):
         @wraps(function)
         def wrapped(future):
+            future._callback_history.append(function)
             future._callback_result = function(future)
             return future._callback_result
         return wrapped
@@ -46,7 +48,7 @@ class NewTask(asyncio.tasks.Task):
     def callback_result(self):
         if self._state == self._PENDING:
             self._loop.run_until_complete(self)
-        if self._callbacks:
+        if self._callback_history:
             return self._callback_result
         else:
             return self.x
@@ -201,7 +203,7 @@ class Requests(Loop):
         def _new_request(url, callback=None, **kwargs):
             '''support args: retry, callback'''
             return self.submit(self._request(method, url, **kwargs),
-                               callback=callback or self.default_callback)
+                               callback=(callback or self.default_callback))
         return _new_request
 
     def set_frequency(self, host, n=None, interval=None):
