@@ -2,10 +2,14 @@
 # compatible for win32 / python 2 & 3
 # TODO clean_url; frequency_tester; frequency_checker; string_converter;
 # regex_mappers
-
+import argparse
+import json
 import logging
 import re
-from requests.utils import urlparse
+import shlex
+
+from requests.compat import (OrderedDict, cookielib, quote, quote_plus,
+                             unquote, unquote_plus, urlparse, urlunparse)
 
 dummy_logger = logging.getLogger('torequests.dummy')
 main_logger = logging.getLogger('torequests.main')
@@ -66,6 +70,62 @@ class FailureException(Exception):
         return repr(self)
 
 
+class Curl(object):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('curl')
+    parser.add_argument('url')
+    parser.add_argument('-I', '--head', action='store_true')
+    parser.add_argument('-X', '--method', default='get')
+    parser.add_argument('-A', '--user-agent')
+    parser.add_argument('-u', '--user')  # <user[:password]>
+    parser.add_argument('-x', '--proxy')  # proxy.com:port
+    parser.add_argument('-d', '--data')
+    parser.add_argument('--data-binary')
+    parser.add_argument('--connect-timeout', type=float)
+    parser.add_argument('-H', '--header', action='append',
+                        default=[])  # key: value
+    parser.add_argument('--compressed', action='store_true')
+
+    @staticmethod
+    def parse(cmd, encode='utf-8'):
+        '''requests.request(**Curl.parse(curl_bash))'''
+        args = Curl.parser.parse_args(shlex.split(cmd.strip()))
+        requests_args = {}
+        headers = {}
+        requests_args['url'] = args.url
+        for header in args.header:
+            key, value = header.split(":", 1)
+            headers[key] = value.strip()
+        if args.user_agent:
+            headers['User-Agent'] = args.user_agent
+        if headers:
+            requests_args['headers'] = headers
+        if args.head:
+            args.method = 'head'
+        if args.user:
+            requests_args['auth'] = tuple(
+                u for u in args.user.split(':', 1) + [''])[:2]
+        # if args.proxy:
+            # pass
+        data = args.data or args.data_binary
+        if data:
+            args.method = 'post'
+            if headers.get('Content-Type') == 'application/x-www-form-urlencoded':
+                data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
+                             for i in data.split('&')])
+                requests_args['data'] = data
+            elif headers.get('Content-Type') in ('application/json'):
+                requests_args['json'] = json.loads(data)
+            else:
+                data = data.encode(encode)
+                requests_args['data'] = data
+        requests_args['method'] = args.method.lower()
+        return requests_args
+
+
+curlparse = Curl.parse
+
+
 class String(object):
     '''Tool kits for string converter'''
     pass
@@ -97,7 +157,11 @@ class RegexMapper(object):
     def init_regex(self):
         pass
 
-    def find(self, string):
+    def get(self, string, default=None):
+        'return only one matching obj'
+        return self.find(string, default)
+
+    def find(self, string, default=None):
         'return only one matching obj'
         pass
 
@@ -120,4 +184,3 @@ class RegexMapper(object):
 
     def __setitem__(self, key, value):
         pass
-
