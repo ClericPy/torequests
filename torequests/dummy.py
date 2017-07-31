@@ -113,8 +113,7 @@ class Loop():
             if not isinstance(callback, (list, tuple)):
                 callback = [callback]
             for fn in callback:
-                future.add_done_callback(self.wrap_callback(fn))
-
+                future.add_done_callback(future.wrap_callback(fn))
         def callback_func():
             try:
                 asyncio.futures._chain_future(NewTask(coro, loop=loop), future)

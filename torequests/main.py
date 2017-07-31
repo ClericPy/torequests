@@ -37,14 +37,6 @@ class Pool(ThreadPoolExecutor):
     def __del__(self):
         self.close()
 
-    @staticmethod
-    def wrap_callback(function):
-        @wraps(function)
-        def wrapped(future):
-            future._callback_result = function(future)
-            return future._callback_result
-        return wrapped
-
     def submit(self, func, *args, **kwargs):
         '''self.submit(function,arg1,arg2,arg3=3)'''
 
@@ -58,7 +50,7 @@ class Pool(ThreadPoolExecutor):
                 if not isinstance(callback, (list, tuple)):
                     callback = [callback]
                 for fn in callback:
-                    future.add_done_callback(self.wrap_callback(fn))
+                    future.add_done_callback(future.wrap_callback(fn))
             w = _WorkItem(future, func, args, kwargs)
             self._work_queue.put(w)
             self._adjust_thread_count()
@@ -83,6 +75,14 @@ class NewFuture(Future):
             object.__getattribute__(self, name)
         except AttributeError:
             return self.x.__getattribute__(name)
+
+    @staticmethod
+    def wrap_callback(function):
+        @wraps(function)
+        def wrapped(future):
+            future._callback_result = function(future)
+            return future._callback_result
+        return wrapped
 
     @property
     def callback_result(self):
