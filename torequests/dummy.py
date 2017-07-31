@@ -3,6 +3,7 @@
 import asyncio
 import json
 import time
+import threading
 from functools import wraps
 
 import aiohttp
@@ -113,6 +114,7 @@ class Loop():
                 callback = [callback]
             for fn in callback:
                 future.add_done_callback(self.wrap_callback(fn))
+
         def callback_func():
             try:
                 asyncio.futures._chain_future(NewTask(coro, loop=loop), future)
@@ -144,6 +146,7 @@ class Loop():
 
     def submitter(self, f):
         f = self.wrap_sem(f)
+
         @wraps(f)
         def wrapped(*args, **kwargs):
             return self.submit(f(*args, **kwargs))
@@ -170,8 +173,7 @@ class Loop():
         self.loop.run_forever()
 
     def async_run_forever(self):
-        from threading import Timer
-        Timer(0, self.loop.run_forever).start()
+        threading.Thread(target=self.loop.run_forever).start()
         self.async_running = True
 
     def close(self):

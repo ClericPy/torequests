@@ -2,7 +2,7 @@ import asyncio
 import time
 from torequests import Pool, NewFuture
 from torequests.dummy import Loop, NewTask
-
+from threading import Timer
 now = lambda: time.time()
  
 aaaa = (lambda : (time.sleep(1),11231))
@@ -31,13 +31,14 @@ loop.async_run_forever()
 # aa = do_some_work(2)
 # dd = loop.submit(aa)
 dd = [loop.submit(do_some_work(i)) for i in range(3)]
-print(dd[1].x)
+# print(dd[1].x)
 
 # print('Task ret: ', task.result())
 print('TIME: ', now() - start)
-time.sleep(5)
-print('to stop')
+# time.sleep(5)
+Timer(3,lambda: print(loop.stop(),111222)).start()
+# print('to stop')
 
-loop.stop()
-print('stoped')
-# loop.loop.close()
+# loop.stop()
+# print('stoped')
+# # loop.loop.close()
