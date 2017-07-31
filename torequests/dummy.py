@@ -9,6 +9,7 @@ import aiohttp
 from aiohttp.client_reqrep import ClientResponse
 
 from .utils import FailureException, dummy_logger, urlparse
+from . import NewFuture
 
 try:
     import uvloop
@@ -87,6 +88,7 @@ class Loop():
         self.tasks = []
         self.default_callback = default_callback
         self.sem = asyncio.Semaphore(n)
+        self.async_running = False
 
     def wrap_sem(self, coro_func, sem=None):
         sem = sem or self.sem
@@ -98,25 +100,50 @@ class Loop():
                 return result
         return new_coro_func
 
+    def run_in_executor(self, executor=None, func=None, *args):
+        return self.loop.run_in_executor(executor, func, *args)
+
+    def run_coroutine_threadsafe(self, coro, loop=None, callback=None):
+        if not asyncio.iscoroutine(coro):
+            raise TypeError('A coroutine object is required')
+        loop = loop or self.loop
+        future = NewFuture()
+        if callback:
+            if not isinstance(callback, (list, tuple)):
+                callback = [callback]
+            for fn in callback:
+                future.add_done_callback(self.wrap_callback(fn))
+        def callback_func():
+            try:
+                asyncio.futures._chain_future(NewTask(coro, loop=loop), future)
+            except Exception as exc:
+                if future.set_running_or_notify_cancel():
+                    future.set_exception(exc)
+                raise
+        loop.call_soon_threadsafe(callback_func)
+        return future
+
     def apply(self, function, args=None, kwargs=None):
         args = args or ()
         kwargs = kwargs or {}
         return self.submitter(function)(*args, **kwargs)
 
     def submit(self, coro, callback=None):
-        task = NewTask(coro, loop=self.loop)
         callback = callback or self.default_callback
-        if callback:
-            if not isinstance(callback, (list, tuple)):
-                callback = [callback]
-            for fn in callback:
-                task.add_done_callback(task.wrap_callback(fn))
-        self.tasks.append(task)
-        return task
+        if self.async_running:
+            return self.run_coroutine_threadsafe(coro, callback=callback)
+        else:
+            task = NewTask(coro, loop=self.loop)
+            if callback:
+                if not isinstance(callback, (list, tuple)):
+                    callback = [callback]
+                for fn in callback:
+                    task.add_done_callback(task.wrap_callback(fn))
+            self.tasks.append(task)
+            return task
 
     def submitter(self, f):
         f = self.wrap_sem(f)
-
         @wraps(f)
         def wrapped(*args, **kwargs):
             return self.submit(f(*args, **kwargs))
@@ -145,6 +172,17 @@ class Loop():
     def async_run_forever(self):
         from threading import Timer
         Timer(0, self.loop.run_forever).start()
+        self.async_running = True
+
+    def close(self):
+        self.loop.close()
+
+    def __del__(self):
+        try:
+            self.stop()
+            self.close()
+        except Exception as e:
+            dummy_logger.error('Close loop fail: %s' % e)
 
     def stop(self):
         '''stop self.loop directly, often be used with run_forever'''
@@ -152,7 +190,6 @@ class Loop():
             self.loop.stop()
         except Exception as e:
             dummy_logger.error('can not stop loop for: %s' % e)
-            pass
 
     async def done(self):
         await asyncio.gather(*self.todo_tasks)
@@ -175,7 +212,7 @@ class Requests(Loop):
         The kwargs is the same as kwargs of aiohttp.ClientSession.
         Sometimes the performance is limited by too large "n" .
         frequency: {url_host: (Semaphore obj, internal)}
-        
+
     '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
@@ -208,7 +245,7 @@ class Requests(Loop):
 
     def set_frequency(self, host, n=None, interval=None):
         self.frequency[host] = (asyncio.Semaphore(n) if n else self.sem,
-                                           interval or self.time_interval)
+                                interval or self.time_interval)
 
     def update_frequency(self, host_frequency_dict):
         self.frequency.update(**host_frequency_dict)

@@ -34,6 +34,9 @@ class Pool(ThreadPoolExecutor):
     def close(self, wait=True):
         self.shutdown(wait=wait)
 
+    def __del__(self):
+        self.close()
+
     @staticmethod
     def wrap_callback(function):
         @wraps(function)
