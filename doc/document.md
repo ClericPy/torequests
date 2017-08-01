@@ -242,8 +242,21 @@ run(self)
 run_forever(self)
     - loop.run_forever()
 
-async def done(self)
-    -  be used in coroutine context like `await loop.done`.
+async_run_forever(self, daemon=True)
+    - set a thread for running the loop.run_forever asynchronous.
+    - if daemon=True, the single thread for loop.run_forever will be setDaemon=True.
+
+run_in_executor(self, executor=None, func=None, *args)
+    - run sync function in thread, it's a coro, so can be used with await in coro too, executor often be set as None.
+
+run_coroutine_threadsafe(self, coro, loop=None, callback=None)
+    - be used while loop.run_forever() run in other threads: self.async_running=True.
+
+all_tasks(self):
+    - return asyncio.Task.all_tasks(loop=self.loop)
+
+async def pendings(self)
+    -  be used in coroutine context like `await loop.pendings`.
 ```
 
 ## Async / threads

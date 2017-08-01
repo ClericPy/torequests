@@ -171,8 +171,10 @@ class Loop():
     def run_forever(self):
         self.loop.run_forever()
 
-    def async_run_forever(self):
-        threading.Thread(target=self.loop.run_forever).start()
+    def async_run_forever(self, daemon=True):
+        thread = threading.Thread(target=self.loop.run_forever)
+        thread.setDaemon(daemon)
+        thread.start()
         self.async_running = True
 
     def close(self):
@@ -192,8 +194,13 @@ class Loop():
         except Exception as e:
             dummy_logger.error('can not stop loop for: %s' % e)
 
-    async def done(self):
+    def all_tasks(self):
+        return asyncio.Task.all_tasks(loop=self.loop)
+
+    async def pendings(self):
         await asyncio.gather(*self.todo_tasks)
+
+    
 
 
 def Async(func, n=100, default_callback=None):
