@@ -34,9 +34,6 @@ class Pool(ThreadPoolExecutor):
     def close(self, wait=True):
         self.shutdown(wait=wait)
 
-    def __del__(self):
-        self.close()
-
     def submit(self, func, *args, **kwargs):
         '''self.submit(function,arg1,arg2,arg3=3)'''
 
@@ -83,6 +80,10 @@ class NewFuture(Future):
             future._callback_result = function(future)
             return future._callback_result
         return wrapped
+
+    @property
+    def cx(self):
+        return self.callback_result
 
     @property
     def callback_result(self):

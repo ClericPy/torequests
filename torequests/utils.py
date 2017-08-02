@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import shlex
+import time
 
 from requests.compat import (OrderedDict, cookielib, quote, quote_plus,
                              unquote, unquote_plus, urlparse, urlunparse)
@@ -126,6 +127,39 @@ class Curl(object):
 curlparse = Curl.parse
 
 
+class Null(object):
+
+    def __init__(self, *args, **kwargs):
+        return
+
+    def __call__(self, *args, **kwargs):
+        return self
+
+    def __getattr__(self, mname):
+        return self
+
+    def __setattr__(self, name, value):
+        return self
+
+    def __getitem__(self, key):
+        return self
+
+    def __delattr__(self, name):
+        return self
+
+    def __repr__(self):
+        return ""
+
+    def __str__(self):
+        return ""
+
+    def __bool__(self):
+        return False
+
+
+null = Null()
+
+
 class String(object):
     '''Tool kits for string converter'''
     pass
@@ -139,6 +173,76 @@ class Time(object):
 class Frequency(object):
     '''guess the anti-crawling frequency'''
     pass
+
+
+def itertools_chain(*iterables):
+    '''From itertools import chain.'''
+    for it in iterables:
+        for element in it:
+            yield element
+
+
+def slice_into_pieces(seq, n):
+    '''wrap seq to list, return generation'''
+    seq_list = list(seq)
+    length = len(seq_list)
+    if length % n == 0:
+        size = length // n
+    else:
+        size = length // n + 1
+    for it in slice_by_size(seq, size):
+        yield it
+
+
+def slice_by_size(seq, size):
+    '''return as a generation of chunks'''
+    filling = null
+    for it in zip(*(itertools_chain(seq, [filling] * size),) * size):
+        if filling in it:
+            it = tuple(i for i in it if i is not filling)
+        if it:
+            yield it
+
+
+class Time:
+    DEFAULT_TIMEZONE = 8
+
+
+def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
+    '''
+    %z not work.
+    Translate timestamp into human readable: %Y-%m-%d %H:%M:%S.
+    tzone: time compensation, by "+ time.timezone + tzone * 3600";
+           eastern eight(+8) time zone by default(can be set with Time.DEFAULT_TIMEZONE).
+    fail: while raise an exception, return fail arg.
+    # example:
+    print(ttime())
+    print(ttime(1486572818.4218583298472936253)) # 2017-02-09 00:53:38
+    '''
+    tzone = Time.DEFAULT_TIMEZONE if tzone is None else tzone
+    timestamp = timestamp if timestamp != None else time.time()
+    timestamp = int(str(timestamp).split('.')[0][:10])
+    try:
+        timestamp = time.time() if timestamp is None else timestamp
+        return time.strftime(fmt, time.localtime(timestamp + time.timezone + tzone * 3600))
+    except:
+        return fail
+
+
+def ttimestr(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
+    '''
+    %z not work.
+    Translate time string like %Y-%m-%d %H:%M:%S into timestamp.
+    tzone: time compensation, by " - time.timezone - tzone * 3600";
+           eastern eight(+8) time zone by default(can be set with Time.DEFAULT_TIMEZONE).
+    '''
+    tzone = Time.DEFAULT_TIMEZONE if tzone is None else tzone
+    timestr = timestr or ttime()
+    try:
+        print(time.strptime(timestr, fmt))
+        return time.mktime(time.strptime(timestr, fmt)) - time.timezone - tzone * 3600
+    except:
+        return fail
 
 
 class RegexMapper(object):

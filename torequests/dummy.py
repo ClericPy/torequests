@@ -47,6 +47,10 @@ class NewTask(asyncio.tasks.Task):
         return wrapped
 
     @property
+    def cx(self):
+        return self.callback_result
+
+    @property
     def callback_result(self):
         if self._state == self._PENDING:
             self._loop.run_until_complete(self)
