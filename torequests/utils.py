@@ -3,17 +3,32 @@
 # TODO clean_url; frequency_tester; frequency_checker; string_converter;
 # regex_mappers
 import argparse
+import hashlib
 import json
 import logging
 import re
 import shlex
+import sys
 import time
 
-from requests.compat import (OrderedDict, cookielib, quote, quote_plus,
-                             unquote, unquote_plus, urlparse, urlunparse)
+from requests.compat import (quote, quote_plus, unquote, unquote_plus, urljoin,
+                             urlparse, urlsplit, urlunparse)
+
+PY2 = (sys.version_info[0] == 2)
+
+if PY2:
+    from cgi import escape
+    import HTMLParser
+    unescape = HTMLParser.HTMLParser().unescape
+else:
+    from html import escape, unescape
 
 dummy_logger = logging.getLogger('torequests.dummy')
 main_logger = logging.getLogger('torequests.main')
+
+
+class Config(object):
+    TIMEZONE = 8
 
 
 def init_logger(name='', handler_path_levels=None,
@@ -165,11 +180,6 @@ class String(object):
     pass
 
 
-class Time(object):
-    '''Tool kits for time converter'''
-    pass
-
-
 class Frequency(object):
     '''guess the anti-crawling frequency'''
     pass
@@ -183,9 +193,8 @@ def itertools_chain(*iterables):
 
 
 def slice_into_pieces(seq, n):
-    '''wrap seq to list, return generation'''
-    seq_list = list(seq)
-    length = len(seq_list)
+    '''return a generation of pieces'''
+    length = len(seq)
     if length % n == 0:
         size = length // n
     else:
@@ -204,22 +213,18 @@ def slice_by_size(seq, size):
             yield it
 
 
-class Time:
-    DEFAULT_TIMEZONE = 8
-
-
 def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
     '''
     %z not work.
     Translate timestamp into human readable: %Y-%m-%d %H:%M:%S.
     tzone: time compensation, by "+ time.timezone + tzone * 3600";
-           eastern eight(+8) time zone by default(can be set with Time.DEFAULT_TIMEZONE).
+           eastern eight(+8) time zone by default(can be set with Config.TIMEZONE).
     fail: while raise an exception, return fail arg.
     # example:
     print(ttime())
     print(ttime(1486572818.4218583298472936253)) # 2017-02-09 00:53:38
     '''
-    tzone = Time.DEFAULT_TIMEZONE if tzone is None else tzone
+    tzone = Config.TIMEZONE if tzone is None else tzone
     timestamp = timestamp if timestamp != None else time.time()
     timestamp = int(str(timestamp).split('.')[0][:10])
     try:
@@ -229,20 +234,28 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
         return fail
 
 
-def ttimestr(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
+def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
     '''
     %z not work.
     Translate time string like %Y-%m-%d %H:%M:%S into timestamp.
     tzone: time compensation, by " - time.timezone - tzone * 3600";
-           eastern eight(+8) time zone by default(can be set with Time.DEFAULT_TIMEZONE).
+           eastern eight(+8) time zone by default(can be set with Config.TIMEZONE).
     '''
-    tzone = Time.DEFAULT_TIMEZONE if tzone is None else tzone
+    tzone = Config.TIMEZONE if tzone is None else tzone
     timestr = timestr or ttime()
     try:
-        print(time.strptime(timestr, fmt))
-        return time.mktime(time.strptime(timestr, fmt)) - time.timezone - tzone * 3600
+        return time.mktime(time.strptime(timestr, fmt)) - (time.timezone + tzone * 3600)
     except:
         return fail
+
+
+def md5(string, n=32, encoding='utf-8'):
+    if n == 32:
+        return hashlib.md5(str(string).encode(encoding)).hexdigest()
+    if n == 16:
+        return hashlib.md5(str(string).encode(encoding)).hexdigest()[8:-8]
+    if isinstance(n, (tuple, list)):
+        return hashlib.md5(str(string).encode(encoding)).hexdigest()[n[0]:n[1]]
 
 
 class RegexMapper(object):
@@ -251,7 +264,7 @@ class RegexMapper(object):
     flags: set multi flags combined with '|', FLAG1 | FLAG2 | FLAG3
     '''
 
-    def __init__(self, name=None, file_path=None, match_mode='search', flags=None):
+    def __init__(self, name=None, match_mode='search', flags=None):
         # init regex from string to compiled regex
         self.match_mode = match_mode
         self.rules = []  # list of (str, obj)
@@ -275,12 +288,6 @@ class RegexMapper(object):
 
     def regex_walker(self):
         'return generator'
-        pass
-
-    def save(self, file_path):
-        pass
-
-    def load(self, file_path):
         pass
 
     def __getitem__(self, key):

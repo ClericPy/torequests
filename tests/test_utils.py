@@ -1,10 +1,7 @@
 #! coding:utf-8
 import time
-from torequests.dummy import *
-from torequests import *
 from torequests.utils import *
 import requests
-import asyncio
 
 
 def test_curlparse_get(capsys):
@@ -32,3 +29,9 @@ def test_slice_by_size():
 
 def test_slice_into_pieces():
     assert list(slice_into_pieces(range(10),3))==[(0, 1, 2, 3), (4, 5, 6, 7), (8, 9)], 'test fail: slice_into_pieces'
+
+def test_ttime_ptime():
+    assert time.time() - ptime(ttime(tzone=0),tzone=0) < 2, 'fail: ttime / ptime'
+
+def test_escape_unescape():
+    assert escape('<>')=='&lt;&gt;' and unescape('&lt;&gt;')=='<>', 'fail: escape'
