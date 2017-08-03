@@ -169,8 +169,9 @@ class Loop():
             task for task in self.tasks if task._state == NewTask._PENDING]
         return self.tasks
 
-    def run(self):
-        self.loop.run_until_complete(asyncio.gather(*self.todo_tasks))
+    def run(self, tasks=None):
+        tasks = tasks or self.todo_tasks
+        self.loop.run_until_complete(asyncio.gather(*tasks))
 
     def run_forever(self):
         self.loop.run_forever()
@@ -201,10 +202,9 @@ class Loop():
     def all_tasks(self):
         return asyncio.Task.all_tasks(loop=self.loop)
 
-    async def pendings(self):
-        await asyncio.gather(*self.todo_tasks)
-
-    
+    async def pendings(self, tasks=None):
+        tasks = tasks or self.todo_tasks
+        await asyncio.gather(*tasks)
 
 
 def Async(func, n=100, default_callback=None):
@@ -247,7 +247,7 @@ class Requests(Loop):
     def _initial_request(self):
         for method in self.METH:
             self.__setattr__('%s' % method, self._mock_request_method(method))
-
+    
     def _mock_request_method(self, method):
         def _new_request(url, callback=None, **kwargs):
             '''support args: retry, callback'''
@@ -300,7 +300,6 @@ class Requests(Loop):
             self.session.close()
         except Exception as e:
             dummy_logger.error('can not close session for: %s' % e)
-            pass
 
     def __del__(self):
         self.close()

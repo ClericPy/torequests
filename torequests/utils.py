@@ -174,17 +174,6 @@ class Null(object):
 
 null = Null()
 
-
-class String(object):
-    '''Tool kits for string converter'''
-    pass
-
-
-class Frequency(object):
-    '''guess the anti-crawling frequency'''
-    pass
-
-
 def itertools_chain(*iterables):
     '''From itertools import chain.'''
     for it in iterables:
@@ -257,41 +246,3 @@ def md5(string, n=32, encoding='utf-8'):
     if isinstance(n, (tuple, list)):
         return hashlib.md5(str(string).encode(encoding)).hexdigest()[n[0]:n[1]]
 
-
-class RegexMapper(object):
-    '''dict-like for regex mapper: input string, output obj.
-    support persistence rules;
-    flags: set multi flags combined with '|', FLAG1 | FLAG2 | FLAG3
-    '''
-
-    def __init__(self, name=None, match_mode='search', flags=None):
-        # init regex from string to compiled regex
-        self.match_mode = match_mode
-        self.rules = []  # list of (str, obj)
-        self.rules_compile = []
-        pass
-
-    def init_regex(self):
-        pass
-
-    def get(self, string, default=None):
-        'return only one matching obj'
-        return self.find(string, default)
-
-    def find(self, string, default=None):
-        'return only one matching obj'
-        pass
-
-    def findall(self, string):
-        'return all matching obj'
-        pass
-
-    def regex_walker(self):
-        'return generator'
-        pass
-
-    def __getitem__(self, key):
-        pass
-
-    def __setitem__(self, key, value):
-        pass
