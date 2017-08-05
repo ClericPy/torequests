@@ -35,7 +35,7 @@ if PY3:
 
     def test_dummy_Requests_time_interval_sem_run_forever():
         '''  test_dummy_Requests_time_interval_sem_run_forever '''
-        trequests = Requests(time_interval=1, n=2)
+        trequests = Requests(interval=1, n=2)
         trequests.async_run_forever()
         ss = [trequests.get('http://p.3.cn/prices/mgets?skuIds=J_1273500', callback=lambda x: (len(x.content), 'ok'))
             for i in range(3)]

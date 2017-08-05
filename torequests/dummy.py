@@ -228,15 +228,15 @@ class Requests(Loop):
     '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
-    def __init__(self, n=100, session=None, time_interval=0, catch_exception=True,
+    def __init__(self, n=100, session=None, interval=0, catch_exception=True,
                  default_callback=None, frequency=None, **kwargs):
         loop = kwargs.pop('loop', None)
         super().__init__(n=n, loop=loop)
-        self.time_interval = time_interval
+        self.interval = interval
         self.catch_exception = catch_exception
         self.default_callback = default_callback
-        self.default_frequency = (self.sem, self.time_interval)
-        self.frequency = frequency or {}
+        self.default_sem_interval = (self.sem, self.interval)
+        self.frequency = self.ensure_frequency(frequency)
         if session:
             session._loop = self.loop
             self.session = session
@@ -254,18 +254,38 @@ class Requests(Loop):
             return self.submit(self._request(method, url, **kwargs),
                                callback=(callback or self.default_callback))
         return _new_request
+    
+    def ensure_frequency(self, frequency):
+        if not frequency:
+            return {}
+        if isinstance(frequency, dict):
+            for key in frequency:
+                sem, interval = frequency[key]
+                if isinstance(sem, asyncio.Semaphore) and isinstance(interval, int):
+                    continue
+                elif (not isinstance(sem, asyncio.Semaphore)) and int(sem):
+                    sem = asyncio.Semaphore(int(sem))
+                elif not isinstance(interval, int):
+                    interval = int(interval)
+                frequency[key] = (sem, interval)
+            return frequency
+        else:
+            raise ValueError('frequency should be dict')
 
-    def set_frequency(self, host, n=None, interval=None):
-        self.frequency[host] = (asyncio.Semaphore(n) if n else self.sem,
-                                interval or self.time_interval)
 
-    def update_frequency(self, host_frequency_dict):
-        self.frequency.update(**host_frequency_dict)
+    def set_frequency(self, host, sem, interval=None):
+        sem = sem or self.sem
+        interval = self.interval if interval is None else interval
+        frequency = {host: (sem, interval)}
+        self.frequency.update(self.ensure_frequency(frequency))
+
+    def update_frequency(self, frequency):
+        self.frequency.update(self.ensure_frequency(frequency))
 
     async def _request(self, method, url, retry=0, **kwargs):
         netloc = urlparse(url).netloc
         sem, interval = self.frequency.get(
-            netloc, self.default_frequency)
+            netloc, self.default_sem_interval)
         for retries in range(retry + 1):
             with await sem:
                 try:
