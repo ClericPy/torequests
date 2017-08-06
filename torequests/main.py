@@ -1,5 +1,6 @@
 #! coding:utf-8
 # python2 requires: pip install futures
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures._base import Future, TimeoutError
@@ -11,6 +12,8 @@ from requests.adapters import HTTPAdapter
 
 from .utils import FailureException, main_logger
 
+PY2 = (sys.version_info[0] == 2)
+PY3 = (sys.version_info[0] == 3)
 
 class Pool(ThreadPoolExecutor):
     '''
@@ -59,6 +62,9 @@ class NewFuture(Future):
     """add .x (property) and timeout args for original Future class
     WARNING: Future thread will not stop running until function finished or pid killed.
     """
+    if PY3:
+        from .py3_patch import new_future_await
+        __await__ = new_future_await
 
     def __init__(self, timeout=None, args=None, kwargs=None):
         super(NewFuture, self).__init__()

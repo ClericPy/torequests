@@ -10,7 +10,7 @@ import aiohttp
 from aiohttp.client_reqrep import ClientResponse
 
 from .utils import FailureException, dummy_logger, urlparse
-from . import NewFuture
+from .main import NewFuture
 
 try:
     import uvloop

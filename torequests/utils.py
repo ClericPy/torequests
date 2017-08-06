@@ -15,6 +15,7 @@ from requests.compat import (quote, quote_plus, unquote, unquote_plus, urljoin,
                              urlparse, urlsplit, urlunparse)
 
 PY2 = (sys.version_info[0] == 2)
+PY3 = (sys.version_info[0] == 3)
 
 if PY2:
     from cgi import escape
