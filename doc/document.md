@@ -259,16 +259,16 @@ async def pendings(self)
     -  be used in coroutine context like `await loop.pendings`.
 ```
 
-## Async / threads
+## Asyncme / coros
 
 > to convert a function asynchronous 
 
 ```python
-Async(func, n=None, timeout=None)
+Asyncme(func, n=None, timeout=None)
     - Initial a Loop obj, and apply a coro-function with params while being called.
         It will return a new async function, so it does't overwrite the origin function.
 
-@threads(n=None, timeout=None)
+@coros(n=None, timeout=None)
     - Decorator function
         It will wrap the function in future, it will change the origin function.
 ```

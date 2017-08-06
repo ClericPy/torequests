@@ -207,11 +207,11 @@ class Loop():
         await asyncio.gather(*tasks)
 
 
-def Async(func, n=100, default_callback=None):
-    return threads(n, default_callback)(func)
+def Asyncme(func, n=100, default_callback=None):
+    return coros(n, default_callback)(func)
 
 
-def threads(n=100, default_callback=None):
+def coros(n=100, default_callback=None):
     return Loop(n, default_callback).submitter
 
 
