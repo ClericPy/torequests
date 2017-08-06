@@ -41,3 +41,18 @@ if PY3:
               for i in range(3)]
         ss = [i.cx for i in ss]
         assert all(ss), 'fail: test_main_tPool'
+
+    def test_new_future_await():
+        loop = Loop()
+        @threads()
+        def sleep(n):
+            time.sleep(n)
+            return n
+        async def test():
+            result = await sleep(2)
+            return result
+        coro = test()
+        task = loop.submit(coro)
+        loop.x
+        assert task.x == 2
+        

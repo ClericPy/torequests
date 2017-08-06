@@ -80,7 +80,7 @@ class NewTask(asyncio.tasks.Task):
 
 class Loop():
 
-    def __init__(self, n=100, loop=None, default_callback=None):
+    def __init__(self, n=999999, loop=None, default_callback=None):
         try:
             self.loop = loop or asyncio.get_event_loop()
             if self.loop.is_running():
