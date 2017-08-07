@@ -216,7 +216,7 @@ def coros(n=100, default_callback=None):
 
 
 def get_results_generator(*args):
-    raise NotImplementedError('Not finished')
+    raise NotImplementedError
 
 
 class Requests(Loop):
@@ -231,10 +231,9 @@ class Requests(Loop):
     def __init__(self, n=100, session=None, interval=0, catch_exception=True,
                  default_callback=None, frequency=None, **kwargs):
         loop = kwargs.pop('loop', None)
-        super().__init__(n=n, loop=loop)
+        super().__init__(n=n, loop=loop, default_callback=default_callback)
         self.interval = interval
         self.catch_exception = catch_exception
-        self.default_callback = default_callback
         self.default_sem_interval = (self.sem, self.interval)
         self.frequency = self.ensure_frequency(frequency)
         if session:
