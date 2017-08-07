@@ -5,7 +5,8 @@ import time
 from torequests import *
 from torequests.dummy import *
 
-## with capsys.disabled():
+# with capsys.disabled():
+
 
 def test_dummy_Requests():
     '''use default event loop'''
@@ -24,10 +25,11 @@ def test_dummy_Requests_time_interval_sem_run_forever(capsys):
         trequests = Requests(n=2, interval=1)
         trequests.async_run_forever()
         print()
-        ss = [trequests.get('http://p.3.cn/prices/mgets?skuIds=J_1273500', callback=lambda x: (len(x.content), print('ok')))
-            for i in range(4)]
+        ss = [trequests.get('http://p.3.cn/prices/mgets?skuIds=J_1273500', callback=lambda x: (len(x.content), print('run_forever 2 req/s')))
+              for i in range(4)]
         time.sleep(3)
         assert all(ss), 'fail: test_dummy_Requests_time_interval_sem_run_forever'
+
 
 def test_new_future_await():
     loop = Loop()
@@ -44,3 +46,33 @@ def test_new_future_await():
     task = loop.submit(coro)
     loop.x
     assert task.x == 1.5
+
+
+def test_coros(capsys):
+    with capsys.disabled():
+        @coros(2, interval=1)
+        async def testcoro():
+            print('testcoro 2 ops/s')
+            await asyncio.sleep(0)
+            return 'testcoro result'
+
+        print()
+        task = [testcoro() for i in range(4)]
+        tasks = [i.x for i in task]
+        assert tasks == ['testcoro result', 'testcoro result',
+                         'testcoro result', 'testcoro result']
+
+
+def test_asyncme(capsys):
+    with capsys.disabled():
+
+        async def test():
+            print('testAsyncme 2 ops/s')
+            await asyncio.sleep(0)
+            return 'testAsyncme result'
+        print()
+        testAsyncme = Asyncme(test, 2, 1)
+        task = [testAsyncme() for i in range(4)]
+        tasks = [i.x for i in task]
+        assert tasks == ['testAsyncme result', 'testAsyncme result',
+                         'testAsyncme result', 'testAsyncme result']

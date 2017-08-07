@@ -80,7 +80,7 @@ class NewTask(asyncio.tasks.Task):
 
 class Loop():
 
-    def __init__(self, loop=None, default_callback=None):
+    def __init__(self, n=None, interval=0, default_callback=None, loop=None):
         try:
             self.loop = loop or asyncio.get_event_loop()
             if self.loop.is_running():
@@ -92,8 +92,28 @@ class Loop():
             asyncio.set_event_loop(self.loop)
         self.tasks = []
         self.default_callback = default_callback
+        self.sem = asyncio.Semaphore(n) if n else None
+        self.interval = interval
         self.async_running = False
 
+    def wrap_sem(self, coro_func, sem=None, interval=0):
+        sem = sem or self.sem
+        interval = interval or self.interval
+
+        @wraps(coro_func)
+        async def new_coro_func(*args, **kwargs):
+            if sem:
+                with await sem:
+                    result = await coro_func(*args, **kwargs)
+                    if interval:
+                        await asyncio.sleep(interval)
+                    return result
+            else:
+                result = await coro_func(*args, **kwargs)
+                if interval:
+                    await asyncio.sleep(interval)
+                return result
+        return new_coro_func
 
     def run_in_executor(self, executor=None, func=None, *args):
         return self.loop.run_in_executor(executor, func, *args)
@@ -138,6 +158,8 @@ class Loop():
             return task
 
     def submitter(self, f):
+        f = self.wrap_sem(f)
+
         @wraps(f)
         def wrapped(*args, **kwargs):
             return self.submit(f(*args, **kwargs))
@@ -154,18 +176,12 @@ class Loop():
     @property
     def todo_tasks(self):
         self.tasks = [
-            task for task in self.all_tasks if task._state == NewTask._PENDING]
+            task for task in self.tasks if task._state == NewTask._PENDING]
         return self.tasks
 
     def run(self, tasks=None):
-        print(self.tasks)
-        print(self.all_tasks)
-        if self.async_running:
-            while any([i for i in self.all_tasks if i._state == i._PENDING]):
-                continue
-        if not self.async_running:
-            tasks = tasks or self.todo_tasks
-            self.loop.run_until_complete(asyncio.gather(*tasks))
+        tasks = tasks or self.todo_tasks
+        self.loop.run_until_complete(asyncio.gather(*tasks))
 
     def run_forever(self):
         self.loop.run_forever()
@@ -179,13 +195,6 @@ class Loop():
     def close(self):
         self.loop.close()
 
-    def __del__(self):
-        try:
-            self.stop()
-            self.close()
-        except Exception as e:
-            dummy_logger.error('Close loop fail: %s' % e)
-
     def stop(self):
         '''stop self.loop directly, often be used with run_forever'''
         try:
@@ -193,7 +202,6 @@ class Loop():
         except Exception as e:
             dummy_logger.error('can not stop loop for: %s' % e)
 
-    @property
     def all_tasks(self):
         return asyncio.Task.all_tasks(loop=self.loop)
 
@@ -202,12 +210,12 @@ class Loop():
         await asyncio.gather(*tasks)
 
 
-def Asyncme(func, n=100, default_callback=None):
-    return coros(n, default_callback)(func)
+def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):
+    return coros(n, interval, default_callback, loop)(func)
 
 
-def coros(n=100, default_callback=None):
-    return Loop(n, default_callback).submitter
+def coros(n=None, interval=0, default_callback=None, loop=None):
+    return Loop(n, interval, default_callback, loop).submitter
 
 
 def get_results_generator(*args):
@@ -218,15 +226,16 @@ class Requests(Loop):
     '''
         The kwargs is the same as kwargs of aiohttp.ClientSession.
         Sometimes the performance is limited by too large "n" .
-        frequency: {url_host: (Semaphore obj, internal)}
+        frequency: {url_host: (Semaphore obj, interval)}
 
     '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
-    def __init__(self, n=100, session=None, interval=0, catch_exception=True,
+    def __init__(self, n=100, interval=0, session=None, catch_exception=True,
                  default_callback=None, frequency=None, **kwargs):
         loop = kwargs.pop('loop', None)
-        super().__init__(n=n, loop=loop, default_callback=default_callback)
+        super().__init__(loop=loop, default_callback=default_callback)
+        self.sem = asyncio.Semaphore(n)
         self.interval = interval
         self.catch_exception = catch_exception
         self.default_sem_interval = (self.sem, self.interval)
