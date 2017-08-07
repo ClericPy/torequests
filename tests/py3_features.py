@@ -5,6 +5,7 @@ import time
 from torequests import *
 from torequests.dummy import *
 
+## with capsys.disabled():
 
 def test_dummy_Requests():
     '''use default event loop'''
@@ -17,14 +18,16 @@ def test_dummy_Requests():
     assert all(ss), 'fail: test_dummy_Requests'
 
 
-def test_dummy_Requests_time_interval_sem_run_forever():
+def test_dummy_Requests_time_interval_sem_run_forever(capsys):
     '''  test_dummy_Requests_time_interval_sem_run_forever '''
-    trequests = Requests(interval=1, n=2)
-    trequests.async_run_forever()
-    ss = [trequests.get('http://p.3.cn/prices/mgets?skuIds=J_1273500', callback=lambda x: (len(x.content), 'ok'))
-          for i in range(3)]
-    ss = [i.cx for i in ss]
-    assert all(ss), 'fail: test_main_tPool'
+    with capsys.disabled():
+        trequests = Requests(n=2, interval=1)
+        trequests.async_run_forever()
+        print()
+        ss = [trequests.get('http://p.3.cn/prices/mgets?skuIds=J_1273500', callback=lambda x: (len(x.content), print('ok')))
+            for i in range(4)]
+        time.sleep(3)
+        assert all(ss), 'fail: test_dummy_Requests_time_interval_sem_run_forever'
 
 
 def test_new_future_await():
@@ -36,9 +39,9 @@ def test_new_future_await():
         return n
 
     async def test():
-        result = await sleep(2)
+        result = await sleep(1.5)
         return result
     coro = test()
     task = loop.submit(coro)
     loop.x
-    assert task.x == 2
+    assert task.x == 1.5
