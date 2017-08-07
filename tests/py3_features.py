@@ -38,9 +38,9 @@ def test_new_future_await():
         return n
 
     async def test():
-        result = await sleep(2)
+        result = await sleep(1.5)
         return result
     coro = test()
     task = loop.submit(coro)
     loop.x
-    assert task.x == 2
+    assert task.x == 1.5

@@ -80,7 +80,7 @@ class NewTask(asyncio.tasks.Task):
 
 class Loop():
 
-    def __init__(self, n=999999, loop=None, default_callback=None):
+    def __init__(self, loop=None, default_callback=None):
         try:
             self.loop = loop or asyncio.get_event_loop()
             if self.loop.is_running():
@@ -92,18 +92,8 @@ class Loop():
             asyncio.set_event_loop(self.loop)
         self.tasks = []
         self.default_callback = default_callback
-        self.sem = asyncio.Semaphore(n)
         self.async_running = False
 
-    def wrap_sem(self, coro_func, sem=None):
-        sem = sem or self.sem
-
-        @wraps(coro_func)
-        async def new_coro_func(*args, **kwargs):
-            with await sem:
-                result = await coro_func(*args, **kwargs)
-                return result
-        return new_coro_func
 
     def run_in_executor(self, executor=None, func=None, *args):
         return self.loop.run_in_executor(executor, func, *args)
@@ -148,8 +138,6 @@ class Loop():
             return task
 
     def submitter(self, f):
-        f = self.wrap_sem(f)
-
         @wraps(f)
         def wrapped(*args, **kwargs):
             return self.submit(f(*args, **kwargs))
@@ -166,12 +154,18 @@ class Loop():
     @property
     def todo_tasks(self):
         self.tasks = [
-            task for task in self.tasks if task._state == NewTask._PENDING]
+            task for task in self.all_tasks if task._state == NewTask._PENDING]
         return self.tasks
 
     def run(self, tasks=None):
-        tasks = tasks or self.todo_tasks
-        self.loop.run_until_complete(asyncio.gather(*tasks))
+        print(self.tasks)
+        print(self.all_tasks)
+        if self.async_running:
+            while any([i for i in self.all_tasks if i._state == i._PENDING]):
+                continue
+        if not self.async_running:
+            tasks = tasks or self.todo_tasks
+            self.loop.run_until_complete(asyncio.gather(*tasks))
 
     def run_forever(self):
         self.loop.run_forever()
@@ -199,6 +193,7 @@ class Loop():
         except Exception as e:
             dummy_logger.error('can not stop loop for: %s' % e)
 
+    @property
     def all_tasks(self):
         return asyncio.Task.all_tasks(loop=self.loop)
 
