@@ -21,7 +21,8 @@ except ImportError:
 # conver ClientResponse attribute into Requests-like
 ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
 ClientResponse.ok = property(lambda self: self.status in range(200, 300))
-ClientResponse.encoding = property(lambda self: self.request_encoding  or self._get_encoding())
+ClientResponse.encoding = property(
+    lambda self: self.request_encoding or self._get_encoding())
 ClientResponse.json = lambda self, encoding=None: json.loads(
     self.content.decode(encoding or self.encoding))
 
@@ -96,7 +97,7 @@ class Loop():
         self.async_running = False
 
     def wrap_sem(self, coro_func, n=None, interval=0):
-        sem = asyncio.Semaphore(n)
+        sem = Frequency._ensure_sem(n) if n else n
         interval = interval
 
         @wraps(coro_func)
@@ -127,6 +128,7 @@ class Loop():
                 callback = [callback]
             for fn in callback:
                 future.add_done_callback(future.wrap_callback(fn))
+
         def callback_func():
             try:
                 asyncio.futures._chain_future(NewTask(coro, loop=loop), future)
@@ -214,7 +216,8 @@ def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):
 
 
 def coros(n=None, interval=0, default_callback=None, loop=None):
-    submitter = partial(Loop(default_callback, loop).submitter, n=n, interval=interval)
+    submitter = partial(
+        Loop(default_callback, loop).submitter, n=n, interval=interval)
 
     return submitter
 
@@ -223,25 +226,57 @@ def get_results_generator(*args):
     raise NotImplementedError
 
 
+class Frequency():
+    __slots__ = ('sem', 'interval', '_init_sem_value')
+
+    def __init__(self, sem=None, interval=0):
+        self.sem = self.ensure_sem(sem)
+        self.interval = interval
+
+    def __getitem__(self, key):
+        if key in self.__slots__:
+            return self.__getattribute__(key)
+    
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return 'Frequency(sem=%s/%s, interval=%s)'%(self.sem._value, self._init_sem_value, self.interval)
+
+    def ensure_sem(self, sem):
+        sem = self._ensure_sem(sem)
+        self._init_sem_value = sem._value
+        return sem
+
+    @classmethod
+    def _ensure_sem(cls, sem):
+        if isinstance(sem, asyncio.Semaphore):
+            return sem
+        elif isinstance(sem, (int, float)) and sem>0:
+            return asyncio.Semaphore(int(sem))
+        raise ValueError(
+            'sem should be an asyncio.Semaphore object or int/float')
+
+
 class Requests(Loop):
     '''
         The kwargs is the same as kwargs of aiohttp.ClientSession.
         Sometimes the performance is limited by too large "n", 
             or raise ValueError: too many file descriptors in select() (win32).
-        frequency: {url_host: (Semaphore obj, interval)}
+        frequencies: {url_host: Frequency obj}
 
     '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
     def __init__(self, n=100, interval=0, session=None, catch_exception=True,
-                 default_callback=None, frequency=None, **kwargs):
+                 default_callback=None, frequencies=None, **kwargs):
         loop = kwargs.pop('loop', None)
         super().__init__(loop=loop, default_callback=default_callback)
         self.sem = asyncio.Semaphore(n)
         self.interval = interval
         self.catch_exception = catch_exception
-        self.default_sem_interval = (self.sem, self.interval)
-        self.frequency = self.ensure_frequency(frequency)
+        self.default_frequency = Frequency(self.sem, self.interval)
+        self.frequencies = self.ensure_frequencies(frequencies)
         if session:
             session._loop = self.loop
             self.session = session
@@ -253,45 +288,41 @@ class Requests(Loop):
     def _initial_request(self):
         for method in self.METH:
             self.__setattr__('%s' % method, self._mock_request_method(method))
-    
+
     def _mock_request_method(self, method):
         def _new_request(url, callback=None, **kwargs):
             '''support args: retry, callback'''
             return self.submit(self._request(method, url, **kwargs),
                                callback=(callback or self.default_callback))
         return _new_request
-    
-    def ensure_frequency(self, frequency):
-        if not frequency:
+
+    def ensure_frequencies(self, frequencies):
+        if not frequencies:
             return {}
-        if isinstance(frequency, dict):
-            for key in frequency:
-                sem, interval = frequency[key]
-                if isinstance(sem, asyncio.Semaphore) and isinstance(interval, int):
-                    continue
-                elif (not isinstance(sem, asyncio.Semaphore)) and int(sem):
-                    sem = asyncio.Semaphore(int(sem))
-                elif not isinstance(interval, int):
-                    interval = int(interval)
-                frequency[key] = (sem, interval)
-            return frequency
-        else:
-            raise ValueError('frequency should be dict')
+        if not isinstance(frequencies, dict):
+            raise ValueError('frequencies should be dict')
+        for host in frequencies:
+            frequency = frequencies[host]
+            if isinstance(frequency, Frequency):
+                continue
+            if isinstance(frequency, (tuple, list)):
+                frequencies[host] = Frequency(*frequency)
+        return frequencies
+            
 
-
-    def set_frequency(self, host, sem, interval=None):
+    def set_frequency(self, host, sem=None, interval=None):
         sem = sem or self.sem
         interval = self.interval if interval is None else interval
-        frequency = {host: (sem, interval)}
-        self.frequency.update(self.ensure_frequency(frequency))
+        frequencies = {host: Frequency(sem, interval)}
+        self.frequencies.update(self.ensure_frequencies(frequencies))
 
-    def update_frequency(self, frequency):
-        self.frequency.update(self.ensure_frequency(frequency))
+    def update_frequency(self, frequencies):
+        self.frequencies.update(self.ensure_frequencies(frequencies))
 
     async def _request(self, method, url, retry=0, **kwargs):
         netloc = urlparse(url).netloc
-        sem, interval = self.frequency.get(
-            netloc, self.default_sem_interval)
+        frequency = self.frequencies.get(netloc, self.default_frequency)
+        sem, interval = frequency.sem, frequency.interval
         for retries in range(retry + 1):
             with await sem:
                 try:

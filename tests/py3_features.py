@@ -22,10 +22,12 @@ def test_dummy_Requests():
 def test_dummy_Requests_time_interval_sem_run_forever(capsys):
     '''  test_dummy_Requests_time_interval_sem_run_forever '''
     with capsys.disabled():
-        trequests = Requests(n=2, interval=1)
+        trequests = Requests(frequencies={'p.3.cn': (2, 1)})
         trequests.async_run_forever()
         print()
-        ss = [trequests.get('http://p.3.cn/prices/mgets?skuIds=J_1273500', callback=lambda x: (len(x.content), print('run_forever 2 req/s')))
+        ss = [trequests.get('http://p.3.cn/prices/mgets?skuIds=J_1273500',
+                            callback=lambda x: (len(x.content),
+                                                print('run_forever %s' % trequests.frequencies.get(urlparse(str(x.url)).netloc))))
               for i in range(4)]
         time.sleep(3)
         assert all(ss), 'fail: test_dummy_Requests_time_interval_sem_run_forever'
