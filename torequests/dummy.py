@@ -4,7 +4,7 @@ import asyncio
 import json
 import time
 import threading
-from functools import wraps
+from functools import wraps, partial
 
 import aiohttp
 from aiohttp.client_reqrep import ClientResponse
@@ -93,13 +93,11 @@ class Loop():
             asyncio.set_event_loop(self.loop)
         self.tasks = []
         self.default_callback = default_callback
-        self.sem = asyncio.Semaphore(n) if n else None
-        self.interval = interval
         self.async_running = False
 
-    def wrap_sem(self, coro_func, sem=None, interval=0):
-        sem = sem or self.sem
-        interval = interval or self.interval
+    def wrap_sem(self, coro_func, n=None, interval=0):
+        sem = asyncio.Semaphore(n)
+        interval = interval
 
         @wraps(coro_func)
         async def new_coro_func(*args, **kwargs):
@@ -158,8 +156,8 @@ class Loop():
             self.tasks.append(task)
             return task
 
-    def submitter(self, f):
-        f = self.wrap_sem(f)
+    def submitter(self, f, n=None, interval=0):
+        f = self.wrap_sem(f, n, interval)
 
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -216,7 +214,9 @@ def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):
 
 
 def coros(n=None, interval=0, default_callback=None, loop=None):
-    return Loop(n, interval, default_callback, loop).submitter
+    submitter = partial(Loop(default_callback, loop).submitter, n=n, interval=interval)
+
+    return submitter
 
 
 def get_results_generator(*args):

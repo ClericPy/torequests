@@ -50,7 +50,7 @@ def test_new_future_await():
 
 def test_coros(capsys):
     with capsys.disabled():
-        @coros(2, interval=1)
+        @coros(2, 1)
         async def testcoro():
             print('testcoro 2 ops/s')
             await asyncio.sleep(0)
