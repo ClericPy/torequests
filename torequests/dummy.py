@@ -226,7 +226,8 @@ def get_results_generator(*args):
 class Requests(Loop):
     '''
         The kwargs is the same as kwargs of aiohttp.ClientSession.
-        Sometimes the performance is limited by too large "n" .
+        Sometimes the performance is limited by too large "n", 
+            or raise ValueError: too many file descriptors in select() (win32).
         frequency: {url_host: (Semaphore obj, interval)}
 
     '''
@@ -246,6 +247,7 @@ class Requests(Loop):
             self.session = session
         else:
             self.session = aiohttp.ClientSession(loop=self.loop, **kwargs)
+        self.session._connector._limit = n
         self._initial_request()
 
     def _initial_request(self):
