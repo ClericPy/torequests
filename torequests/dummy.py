@@ -21,6 +21,7 @@ except ImportError:
 # conver ClientResponse attribute into Requests-like
 ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
 ClientResponse.ok = property(lambda self: self.status in range(200, 300))
+ClientResponse.encoding = property(lambda self: self.request_encoding  or self._get_encoding())
 ClientResponse.json = lambda self, encoding=None: json.loads(
     self.content.decode(encoding or self.encoding))
 
@@ -29,7 +30,7 @@ class NewTask(asyncio.tasks.Task):
     _PENDING = 'PENDING'
     _CANCELLED = 'CANCELLED'
     _FINISHED = 'FINISHED'
-    _RESPONSE_ARGS = ('encoding', 'content')
+    _RESPONSE_ARGS = ('encoding', 'request_encoding', 'content')
 
     def __init__(self, coro, *, loop=None):
         assert asyncio.coroutines.iscoroutine(coro), repr(coro)
@@ -295,8 +296,7 @@ class Requests(Loop):
                     async with self.session.request(method, url, **kwargs) as resp:
                         resp.status_code = resp.status
                         resp.content = await resp.read()
-                        resp.encoding = kwargs.get(
-                            'encoding') or resp._get_encoding()
+                        resp.request_encoding = kwargs.get('encoding')
                         return resp
                 except Exception as err:
                     error = err
