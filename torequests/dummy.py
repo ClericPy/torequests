@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import time
 import threading
 from functools import wraps, partial
 
@@ -20,10 +19,11 @@ except ImportError:
 
 # conver ClientResponse attribute into Requests-like
 ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
+ClientResponse.url_string = property(lambda self: str(self._url))
 ClientResponse.ok = property(lambda self: self.status in range(200, 300))
 ClientResponse.encoding = property(
     lambda self: self.request_encoding or self._get_encoding())
-ClientResponse.json = lambda self, encoding=None: json.loads(
+ClientResponse.json = lambda self, encoding=None, loads=json.loads: loads(
     self.content.decode(encoding or self.encoding))
 
 
@@ -236,12 +236,12 @@ class Frequency():
     def __getitem__(self, key):
         if key in self.__slots__:
             return self.__getattribute__(key)
-    
+
     def __str__(self):
         return self.__repr__()
 
     def __repr__(self):
-        return 'Frequency(sem=%s/%s, interval=%s)'%(self.sem._value, self._init_sem_value, self.interval)
+        return 'Frequency(sem=%s/%s, interval=%s)' % (self.sem._value, self._init_sem_value, self.interval)
 
     def ensure_sem(self, sem):
         sem = self._ensure_sem(sem)
@@ -252,7 +252,7 @@ class Frequency():
     def _ensure_sem(cls, sem):
         if isinstance(sem, asyncio.Semaphore):
             return sem
-        elif isinstance(sem, (int, float)) and sem>0:
+        elif isinstance(sem, (int, float)) and sem > 0:
             return asyncio.Semaphore(int(sem))
         raise ValueError(
             'sem should be an asyncio.Semaphore object or int/float')
@@ -308,7 +308,6 @@ class Requests(Loop):
             if isinstance(frequency, (tuple, list)):
                 frequencies[host] = Frequency(*frequency)
         return frequencies
-            
 
     def set_frequency(self, host, sem=None, interval=None):
         sem = sem or self.sem
@@ -323,6 +322,10 @@ class Requests(Loop):
         netloc = urlparse(url).netloc
         frequency = self.frequencies.get(netloc, self.default_frequency)
         sem, interval = frequency.sem, frequency.interval
+        proxies = kwargs.pop('proxies', None)
+        if proxies:
+            proxy = '://'.join(proxies.popitem())
+            kwargs['proxy'] = proxy
         for retries in range(retry + 1):
             with await sem:
                 try:

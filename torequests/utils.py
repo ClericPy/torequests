@@ -175,6 +175,7 @@ class Null(object):
 
 null = Null()
 
+
 def itertools_chain(*iterables):
     '''From itertools import chain.'''
     for it in iterables:
@@ -239,6 +240,19 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
         return fail
 
 
+def timeago(seconds=None):
+    'convert seconds to human readable'
+    mm, ss = divmod(seconds, 60)
+    hh, mm = divmod(mm, 60)
+    dd, hh = divmod(hh, 24)
+    s = "%02d:%02d:%02d" % (hh, mm, ss)
+    if dd:
+        def plural(n):
+            return n, abs(n) != 1 and "s" or ""
+        s = ("%d day%s, " % plural(dd)) + s
+    return s
+
+
 def md5(string, n=32, encoding='utf-8'):
     if n == 32:
         return hashlib.md5(str(string).encode(encoding)).hexdigest()
@@ -247,3 +261,20 @@ def md5(string, n=32, encoding='utf-8'):
     if isinstance(n, (tuple, list)):
         return hashlib.md5(str(string).encode(encoding)).hexdigest()[n[0]:n[1]]
 
+
+class Counts(object):
+    __slots__ = ('start', 'step', 'current')
+
+    def __init__(self, start=0, step=1):
+        self.start = start
+        self.step = step
+        self.current = start
+
+    @property
+    def x(self):
+        self.current += self.step
+        return self.current
+
+    @property
+    def c(self):
+        return self.x

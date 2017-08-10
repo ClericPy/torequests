@@ -34,3 +34,8 @@ def test_ttime_ptime():
 
 def test_escape_unescape():
     assert escape('<>')=='&lt;&gt;' and unescape('&lt;&gt;')=='<>', 'fail: escape'
+
+def test_counts():
+    c = Counts()
+    [c.c for i in range(10)]
+    assert c.c == 11, 'fail: test_counts'
