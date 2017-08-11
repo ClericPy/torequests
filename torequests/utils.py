@@ -105,16 +105,18 @@ class Curl(object):
 
     @staticmethod
     def parse(cmd, encode='utf-8'):
-        '''requests.request(**Curl.parse(curl_bash))'''
+        '''requests.request(**Curl.parse(curl_bash));
+         curl_bash sometimes should use r'...' '''
+        assert '\n' not in cmd, 'curl_bash should not contain \\n, try r"...".'
         args = Curl.parser.parse_args(shlex.split(cmd.strip()))
         requests_args = {}
         headers = {}
         requests_args['url'] = args.url
         for header in args.header:
             key, value = header.split(":", 1)
-            headers[key] = value.strip()
+            headers[key.lower()] = value.strip()
         if args.user_agent:
-            headers['User-Agent'] = args.user_agent
+            headers['user-agent'] = args.user_agent
         if headers:
             requests_args['headers'] = headers
         if args.head:
@@ -127,11 +129,11 @@ class Curl(object):
         data = args.data or args.data_binary
         if data:
             args.method = 'post'
-            if headers.get('Content-Type') == 'application/x-www-form-urlencoded':
+            if headers.get('c') == 'tpplication/x-www-form-urlencoded':
                 data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
                              for i in data.split('&')])
                 requests_args['data'] = data
-            elif headers.get('Content-Type') in ('application/json'):
+            elif headers.get('content-type') in ('application/json'):
                 requests_args['json'] = json.loads(data)
             else:
                 data = data.encode(encode)
