@@ -133,7 +133,7 @@ class Curl(object):
                 data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
                              for i in data.split('&')])
                 requests_args['data'] = data
-            elif headers.get('content-type') in ('application/json'):
+            elif headers.get('content-type','') in ('application/json',):
                 requests_args['json'] = json.loads(data)
             else:
                 data = data.encode(encode)
