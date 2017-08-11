@@ -178,12 +178,18 @@ class Loop():
             task for task in self.all_tasks if task._state == NewTask._PENDING]
         return tasks
 
-    def run(self, tasks=None):
+    @property
+    def done_tasks(self):
+        tasks = [
+            task for task in self.all_tasks if task._state != NewTask._PENDING]
+        return tasks
+
+    def run(self, tasks=None, timeout=None):
         if self.async_running:
-            self.wait_all_tasks_done()
+            return self.wait_all_tasks_done(timeout)
         else:
             tasks = tasks or self.todo_tasks
-            self.loop.run_until_complete(asyncio.gather(*tasks))
+            return self.loop.run_until_complete(asyncio.gather(*tasks, loop=self.loop))
 
     def run_forever(self):
         self.loop.run_forever()
@@ -192,11 +198,12 @@ class Loop():
         timeout = timeout or float('inf')
         start_time = time.time()
         time.sleep(delay)
-        while time.time()-start_time < timeout:
+        while 1:
             if not self.todo_tasks:
-                break
+                return self.all_tasks
+            if time.time() - start_time < timeout:
+                return self.done_tasks
             time.sleep(interval)
-
 
     def async_run_forever(self, daemon=True):
         thread = threading.Thread(target=self.loop.run_forever)
