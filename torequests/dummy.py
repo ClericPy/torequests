@@ -3,12 +3,15 @@
 import asyncio
 import json
 import threading
-from functools import wraps, partial
+import time
+from functools import partial, wraps
+from urllib.parse import urlparse
 
 import aiohttp
 from aiohttp.client_reqrep import ClientResponse
 
-from .utils import FailureException, dummy_logger, urlparse
+from .exceptions import FailureException
+from .logs import dummy_logger
 from .main import NewFuture
 
 try:
@@ -81,6 +84,7 @@ class NewTask(asyncio.tasks.Task):
 
 
 class Loop():
+    DEFAULT_WAIT_TIMEOUT = 5
 
     def __init__(self, n=None, interval=0, default_callback=None, loop=None):
         try:
@@ -92,7 +96,6 @@ class Loop():
             dummy_logger.debug("Rebuilding a new loop for exception: %s" % e)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
-        self.tasks = []
         self.default_callback = default_callback
         self.async_running = False
 
@@ -155,7 +158,6 @@ class Loop():
                     callback = [callback]
                 for fn in callback:
                     task.add_done_callback(task.wrap_callback(fn))
-            self.tasks.append(task)
             return task
 
     def submitter(self, f, n=None, interval=0):
@@ -166,26 +168,35 @@ class Loop():
             return self.submit(f(*args, **kwargs))
         return wrapped
 
-    def clear(self):
-        self.tasks.clear()
-        return True
-
     @property
     def x(self):
         return self.run()
 
     @property
     def todo_tasks(self):
-        self.tasks = [
-            task for task in self.tasks if task._state == NewTask._PENDING]
-        return self.tasks
+        tasks = [
+            task for task in self.all_tasks if task._state == NewTask._PENDING]
+        return tasks
 
     def run(self, tasks=None):
-        tasks = tasks or self.todo_tasks
-        self.loop.run_until_complete(asyncio.gather(*tasks))
+        if self.async_running:
+            self.wait_all_tasks_done()
+        else:
+            tasks = tasks or self.todo_tasks
+            self.loop.run_until_complete(asyncio.gather(*tasks))
 
     def run_forever(self):
         self.loop.run_forever()
+
+    def wait_all_tasks_done(self, timeout=None, delay=0.5, interval=0.1):
+        timeout = timeout or float('inf')
+        start_time = time.time()
+        time.sleep(delay)
+        while time.time()-start_time < timeout:
+            if not self.todo_tasks:
+                break
+            time.sleep(interval)
+
 
     def async_run_forever(self, daemon=True):
         thread = threading.Thread(target=self.loop.run_forever)
@@ -203,12 +214,13 @@ class Loop():
         except Exception as e:
             dummy_logger.error('can not stop loop for: %s' % e)
 
+    @property
     def all_tasks(self):
         return asyncio.Task.all_tasks(loop=self.loop)
 
     async def pendings(self, tasks=None):
         tasks = tasks or self.todo_tasks
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks, loop=self.loop)
 
 
 def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):

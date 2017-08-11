@@ -10,10 +10,12 @@ from functools import wraps
 from requests import Session
 from requests.adapters import HTTPAdapter
 
-from .utils import FailureException, main_logger
+from .exceptions import FailureException
+from .logs import main_logger
 
 PY2 = (sys.version_info[0] == 2)
 PY3 = (sys.version_info[0] == 3)
+
 
 class Pool(ThreadPoolExecutor):
     '''
