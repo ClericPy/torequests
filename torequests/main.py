@@ -130,7 +130,7 @@ def get_results_generator(future_list, timeout=None, sort_by_completed=False):
 
 class tPool(object):
 
-    def __init__(self, n=None, session=None, timeout=None, time_interval=0,
+    def __init__(self, n=None, session=None, timeout=None, interval=0,
                  catch_exception=True, default_callback=None):
         self.pool = Pool(n, timeout)
         self.session = session if session else Session()
@@ -139,7 +139,7 @@ class tPool(object):
             pool_connections=pool_size, pool_maxsize=pool_size)
         self.session.mount('http://', custom_adapter)
         self.session.mount('https://', custom_adapter)
-        self.time_interval = time_interval
+        self.interval = interval
         self.catch_exception = catch_exception
         self.default_callback = default_callback
 
@@ -169,8 +169,8 @@ class tPool(object):
                                   (url, _ + 1, e, kwargs))
                 continue
             finally:
-                if self.time_interval:
-                    time.sleep(self.time_interval)
+                if self.interval:
+                    time.sleep(self.interval)
         kwargs['retry'] = retry
         error_info = dict(url=url, kwargs=kwargs,
                           type=type(error), error_msg=str(error))
