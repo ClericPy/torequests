@@ -84,7 +84,6 @@ class NewTask(asyncio.tasks.Task):
 
 
 class Loop():
-    DEFAULT_WAIT_TIMEOUT = 5
 
     def __init__(self, n=None, interval=0, default_callback=None, loop=None):
         try:
@@ -201,7 +200,7 @@ class Loop():
         while 1:
             if not self.todo_tasks:
                 return self.all_tasks
-            if time.time() - start_time < timeout:
+            if time.time() - start_time > timeout:
                 return self.done_tasks
             time.sleep(interval)
 
@@ -245,12 +244,20 @@ def get_results_generator(*args):
     raise NotImplementedError
 
 
-class Frequency():
-    __slots__ = ('sem', 'interval', '_init_sem_value')
+class Frequency:
+    __slots__ = ('sem', 'interval', '_init_sem_value', 'name')
 
-    def __init__(self, sem=None, interval=0):
+    def __init__(self, sem=None, interval=0, name=''):
         self.sem = self.ensure_sem(sem)
         self.interval = interval
+        self.name = name
+
+    @classmethod
+    def ensure_frequency(cls, obj):
+        if isinstance(obj, cls):
+            return obj
+        else:
+            return cls(*obj)
 
     def __getitem__(self, key):
         if key in self.__slots__:
@@ -260,7 +267,8 @@ class Frequency():
         return self.__repr__()
 
     def __repr__(self):
-        return 'Frequency(sem=%s/%s, interval=%s)' % (self.sem._value, self._init_sem_value, self.interval)
+        return '<Frequency %s (sem=%s/%s, interval=%s)>' % (self.name, self.sem._value,
+                                                                  self._init_sem_value, self.interval)
 
     def ensure_sem(self, sem):
         sem = self._ensure_sem(sem)
@@ -287,14 +295,18 @@ class Requests(Loop):
     '''
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
-    def __init__(self, n=100, interval=0, session=None, catch_exception=True,
-                 default_callback=None, frequencies=None, **kwargs):
+    def __init__(self, n=100, interval=0, session=None,
+                 catch_exception=True, default_callback=None,
+                 frequencies=None, default_host_frequency=None, **kwargs):
         loop = kwargs.pop('loop', None)
         super().__init__(loop=loop, default_callback=default_callback)
         self.sem = asyncio.Semaphore(n)
         self.interval = interval
         self.catch_exception = catch_exception
-        self.default_frequency = Frequency(self.sem, self.interval)
+        self.default_host_frequency = default_host_frequency
+        if self.default_host_frequency:
+            assert isinstance(self.default_host_frequency, (list, tuple))
+        self.global_frequency = Frequency(self.sem, self.interval)
         self.frequencies = self.ensure_frequencies(frequencies)
         if session:
             session._loop = self.loop
@@ -320,26 +332,29 @@ class Requests(Loop):
             return {}
         if not isinstance(frequencies, dict):
             raise ValueError('frequencies should be dict')
-        for host in frequencies:
-            frequency = frequencies[host]
-            if isinstance(frequency, Frequency):
-                continue
-            if isinstance(frequency, (tuple, list)):
-                frequencies[host] = Frequency(*frequency)
+        frequencies = {host: Frequency.ensure_frequency(
+            frequencies[host]) for host in frequencies}
         return frequencies
 
     def set_frequency(self, host, sem=None, interval=None):
         sem = sem or self.sem
         interval = self.interval if interval is None else interval
-        frequencies = {host: Frequency(sem, interval)}
-        self.frequencies.update(self.ensure_frequencies(frequencies))
+        frequency = Frequency(sem, interval, host)
+        frequencies = {host: frequency}
+        self.update_frequency(frequencies)
+        return frequency
 
     def update_frequency(self, frequencies):
         self.frequencies.update(self.ensure_frequencies(frequencies))
 
     async def _request(self, method, url, retry=0, **kwargs):
-        netloc = urlparse(url).netloc
-        frequency = self.frequencies.get(netloc, self.default_frequency)
+        host = urlparse(url).netloc
+        if host in self.frequencies:
+            frequency = self.frequencies[host]
+        elif self.default_host_frequency:
+            frequency = self.set_frequency(host, *self.default_host_frequency)
+        else:
+            frequency = self.global_frequency
         sem, interval = frequency.sem, frequency.interval
         proxies = kwargs.pop('proxies', None)
         if proxies:

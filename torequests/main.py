@@ -2,7 +2,8 @@
 # python2 requires: pip install futures
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from weakref import WeakSet
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from concurrent.futures._base import Future, TimeoutError
 from concurrent.futures.thread import _WorkItem
 from functools import wraps
@@ -29,6 +30,7 @@ class Pool(ThreadPoolExecutor):
         super(Pool, self).__init__(n)
         self._timeout = timeout
         self.default_callback = default_callback
+        self._all_futures = WeakSet()
 
     def async_func(self, function):
         @wraps(function)
@@ -38,6 +40,17 @@ class Pool(ThreadPoolExecutor):
 
     def close(self, wait=True):
         self.shutdown(wait=wait)
+
+    @property
+    def x(self):
+        return self.wait_futures_done(list(self._all_futures))
+
+    def wait_futures_done(self, tasks=None):
+        # ignore the order of tasks
+        tasks = tasks or self._all_futures
+        fs = {f.x for f in wait(tasks).done}
+        return fs
+
 
     def submit(self, func, *args, **kwargs):
         '''self.submit(function,arg1,arg2,arg3=3)'''
@@ -56,6 +69,7 @@ class Pool(ThreadPoolExecutor):
             w = _WorkItem(future, func, args, kwargs)
             self._work_queue.put(w)
             self._adjust_thread_count()
+            self._all_futures.add(future)
             return future
 
 
@@ -142,6 +156,10 @@ class tPool(object):
         self.interval = interval
         self.catch_exception = catch_exception
         self.default_callback = default_callback
+
+    @property
+    def x(self):
+        return self.pool.x
 
     def close(self, wait=True):
         self.session.close()

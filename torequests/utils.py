@@ -195,6 +195,8 @@ def timeago(seconds=None):
         s = ("%d day%s, " % plural(dd)) + s
     return s
 
+# alias name
+timepass = timeago
 
 def md5(string, n=32, encoding='utf-8'):
     if n == 32:
