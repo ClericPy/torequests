@@ -32,7 +32,6 @@ class Curl(object):
     parser = argparse.ArgumentParser()
     parser.add_argument('curl')
     parser.add_argument('url')
-    parser.add_argument('-I', '--head', action='store_true')
     parser.add_argument('-X', '--method', default='get')
     parser.add_argument('-A', '--user-agent')
     parser.add_argument('-u', '--user')  # <user[:password]>
@@ -44,12 +43,12 @@ class Curl(object):
                         default=[])  # key: value
     parser.add_argument('--compressed', action='store_true')
 
-    @staticmethod
-    def parse(cmd, encode='utf-8'):
+    @classmethod
+    def parse(cls, cmd, encode='utf-8'):
         '''requests.request(**Curl.parse(curl_bash));
          curl_bash sometimes should use r'...' '''
         assert '\n' not in cmd, 'curl_bash should not contain \\n, try r"...".'
-        args = Curl.parser.parse_args(shlex.split(cmd.strip()))
+        args, unknown = cls.parser.parse_known_args(shlex.split(cmd.strip()))
         requests_args = {}
         headers = {}
         requests_args['url'] = args.url
@@ -60,8 +59,6 @@ class Curl(object):
             headers['user-agent'] = args.user_agent
         if headers:
             requests_args['headers'] = headers
-        if args.head:
-            args.method = 'head'
         if args.user:
             requests_args['auth'] = tuple(
                 u for u in args.user.split(':', 1) + [''])[:2]
