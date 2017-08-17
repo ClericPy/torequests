@@ -174,10 +174,10 @@ class tPool(object):
     def __del__(self):
         self.close()
 
-    def request(self, url, mode, retry=0, **kwargs):
+    def request(self, url, method, retry=0, **kwargs):
         for _ in range(retry + 1):
             try:
-                resp = self.session.request(mode, url, **kwargs)
+                resp = self.session.request(method, url, **kwargs)
                 main_logger.debug('%s done, %s' % (url, kwargs))
 
                 return resp
