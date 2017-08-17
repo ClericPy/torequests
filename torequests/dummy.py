@@ -323,7 +323,7 @@ class Requests(Loop):
     def _mock_request_method(self, method):
         def _new_request(url, callback=None, **kwargs):
             '''support args: retry, callback'''
-            return self.submit(self._request(url, **kwargs),
+            return self.submit(self._request(method, url, **kwargs),
                                callback=(callback or self.default_callback))
         return _new_request
 
