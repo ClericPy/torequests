@@ -15,26 +15,6 @@ def test_main_tPool():
     ss = [i.cx for i in ss]
     assert all(ss), 'fail: test_main_tPool'
 
-def proc_function():
-    print('start')
-    time.sleep(1.5)
-    print('finish')
-    return 'ok'
-
-def test_process(capsys):
-    '''  test_dummy_Requests_time_interval_sem_run_forever '''
-
-    with capsys.disabled():
-
-        f1 = Process(proc_function, timeout=0.5)
-        f2 = Process(proc_function, timeout=2)
-        f1_result = f1().x
-        f2_result = f2().x
-        print(f1_result, f2_result)
-        assert isinstance(f1_result, Exception)
-        assert bool(f2_result)
-
-
 # ================================= PYTHON 3 only ========================
 
 

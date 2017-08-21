@@ -37,5 +37,8 @@ def test_escape_unescape():
 
 def test_counts():
     c = Counts()
-    [c.c for i in range(10)]
+    [c.x for i in range(10)]
     assert c.c == 11, 'fail: test_counts'
+
+def test_unique():
+    assert unique(list(range(4,0,-1))+list(range(5)))==[4, 3, 2, 1, 0]

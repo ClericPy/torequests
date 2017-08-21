@@ -192,8 +192,10 @@ def timeago(seconds=None):
         s = ("%d day%s, " % plural(dd)) + s
     return s
 
+
 # alias name
 timepass = timeago
+
 
 def md5(string, n=32, encoding='utf-8'):
     if n == 32:
@@ -214,9 +216,25 @@ class Counts(object):
 
     @property
     def x(self):
-        self.current += self.step
-        return self.current
+        return self.add()
+
+    @property
+    def s(self):
+        return self.sub()
 
     @property
     def c(self):
         return self.x
+
+    def add(self):
+        self.current += self.step
+        return self.current
+
+    def sub(self):
+        self.current -= self.step
+        return self.current
+
+
+def unique(seq):
+    '''unique seq in order. return as list'''
+    return [item for x, item in enumerate(seq) if seq.index(item) == x]
