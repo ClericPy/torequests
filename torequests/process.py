@@ -8,7 +8,7 @@ from multiprocessing import TimeoutError
 from multiprocessing.pool import ApplyResult, Pool
 
 from .main import Async
-from .utils import FailureException
+from .exceptions import FailureException
 
 PY2 = sys.version_info.major == 2
 
@@ -76,6 +76,9 @@ class NewApplyResult(ApplyResult):
 
     @property
     def x(self):
+        return self.run()
+    
+    def run(self):
         try:
             return self.get(self._timeout)
         except Exception as err:
