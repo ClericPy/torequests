@@ -22,7 +22,7 @@ if py_version.minor >= 5:
 # print(install_requires)
 setup(
     name='torequests',
-    version='4.4.3',
+    version='4.4.5',
     keywords=('requests tomorrow async multi-thread aiohttp asyncio uvloop futures asynchronous'),
     description='Asynchronous requests. Using concurrent.futures to make requests asynchronous, and some functions to make async-coding easy. Besides, add aiohttp+uvloop to enjoy python3.5+ coroutine. Read more: https://github.com/ClericPy/torequests.',
     license='MIT License',
