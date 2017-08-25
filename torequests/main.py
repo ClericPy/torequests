@@ -144,7 +144,7 @@ def get_results_generator(future_list, timeout=None, sort_by_completed=False):
 
 class tPool(object):
 
-    def __init__(self, n=None, session=None, timeout=None, interval=0,
+    def __init__(self, n=None, interval=0, timeout=None, session=None,
                  catch_exception=True, default_callback=None):
         self.pool = Pool(n, timeout)
         self.session = session if session else Session()
