@@ -174,7 +174,7 @@ class tPool(object):
     def __del__(self):
         self.close()
 
-    def request(self, url, method, retry=0, **kwargs):
+    def _request(self, url, method, retry=0, **kwargs):
         for _ in range(retry + 1):
             try:
                 resp = self.session.request(method, url, **kwargs)
@@ -199,23 +199,22 @@ class tPool(object):
         if self.catch_exception:
             return FailureException(error)
         raise error
+    
+    def request(self, url, method='get', callback=None, **kwargs):
+        return self.pool.submit(self._request, url, method,
+                                callback=callback or self.default_callback, **kwargs)
 
     def get(self, url, callback=None, **kwargs):
-        return self.pool.submit(self.request, url, 'get',
-                                callback=callback or self.default_callback, **kwargs)
+        return self.request(url, 'get', callback, **kwargs)
 
     def post(self, url, callback=None, **kwargs):
-        return self.pool.submit(self.request, url, 'post',
-                                callback=callback or self.default_callback, **kwargs)
+        return self.request(url, 'post', callback, **kwargs)
 
     def delete(self, url, callback=None, **kwargs):
-        return self.pool.submit(self.request, url, 'delete',
-                                callback=callback or self.default_callback, **kwargs)
+        return self.request(url, 'delete', callback, **kwargs)
 
     def put(self, url, callback=None, **kwargs):
-        return self.pool.submit(self.request, url, 'put',
-                                callback=callback or self.default_callback, **kwargs)
+        return self.request(url, 'put', callback, **kwargs)
 
     def head(self, url, callback=None, **kwargs):
-        return self.pool.submit(self.request, url, 'head',
-                                callback=callback or self.default_callback, **kwargs)
+        return self.request(url, 'head', callback, **kwargs)
