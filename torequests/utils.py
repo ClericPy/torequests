@@ -1,7 +1,5 @@
 #! coding:utf-8
 # compatible for win32 / python 2 & 3
-# TODO clean_url; frequency_tester; frequency_checker; string_converter;
-# regex_mappers
 import argparse
 import hashlib
 import json
@@ -15,6 +13,7 @@ from requests.compat import (quote, quote_plus, unquote, unquote_plus, urljoin,
 
 PY2 = (sys.version_info[0] == 2)
 PY3 = (sys.version_info[0] == 3)
+PY35_plus = sys.version_info[0] == 3 and sys.version_info[1] >= 5
 
 if PY2:
     from cgi import escape
@@ -66,13 +65,15 @@ class Curl(object):
             # pass
         data = args.data or args.data_binary
         if data:
+            if data.startswith('$'):
+                data = data[1:]
             args.method = 'post'
-            if headers.get('c') == 'tpplication/x-www-form-urlencoded':
+            if headers.get('content-type') == 'tpplication/x-www-form-urlencoded':
                 data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
                              for i in data.split('&')])
                 requests_args['data'] = data
-            elif headers.get('content-type', '') in ('application/json',):
-                requests_args['json'] = json.loads(data)
+            # elif headers.get('content-type', '') in ('application/json',):
+                # requests_args['json'] = json.loads(data)
             else:
                 data = data.encode(encode)
                 requests_args['data'] = data
