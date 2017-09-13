@@ -327,7 +327,8 @@ class Requests(Loop):
                                callback=(callback or self.default_callback))
         return _new_request
 
-    def request(self, method, url, callback=None, **kwargs):
+    def request(self, method='get', url='', callback=None, **kwargs):
+        assert bool(url), 'url can not be null'
         return self.submit(self._request(method, url, **kwargs),
                                callback=(callback or self.default_callback))
 

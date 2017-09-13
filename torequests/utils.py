@@ -13,7 +13,7 @@ from requests.compat import (quote, quote_plus, unquote, unquote_plus, urljoin,
 
 PY2 = (sys.version_info[0] == 2)
 PY3 = (sys.version_info[0] == 3)
-PY35_plus = sys.version_info[0] == 3 and sys.version_info[1] >= 5
+PY35_PLUS = sys.version_info[0] >= 3 and sys.version_info[1] >= 5
 
 if PY2:
     from cgi import escape
@@ -226,7 +226,11 @@ class Counts(object):
     @property
     def c(self):
         return self.x
-
+    
+    @property
+    def now(self):
+        return self.current
+    
     def add(self):
         self.current += self.step
         return self.current
@@ -236,6 +240,30 @@ class Counts(object):
         return self.current
 
 
-def unique(seq):
-    '''unique seq in order. return as list'''
-    return [item for x, item in enumerate(seq) if seq.index(item) == x]
+def _unique_with_index(seq):
+    for x, item in enumerate(seq):
+        if seq.index(item) == x:
+            yield item
+    return
+
+
+def _unique_without_index(seq):
+    temp = [] # set can not save non-hashable obj
+    for item in seq:
+        if item not in temp:
+            yield item
+            temp.append(item)
+    return
+
+
+def unique(seq, return_as=None):
+    '''unique seq in order. return as generator, or list / set / str...'''
+    generator = _unique_with_index(seq) if hasattr(
+        seq, 'index') else _unique_without_index(seq)
+    if return_as:
+        if return_as == str:
+            return ''.join(map(str, generator))
+        return return_as(generator)
+    else:
+        # python2 not support yield from
+        return generator
