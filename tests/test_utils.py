@@ -41,4 +41,18 @@ def test_counts():
     assert c.c == 11, 'fail: test_counts'
 
 def test_unique():
-    assert unique(list(range(4,0,-1))+list(range(5)))==[4, 3, 2, 1, 0]
+    assert list(unique(list(range(4,0,-1))+list(range(5))))==[4, 3, 2, 1, 0]
+
+def test_regex():
+    reg = Regex()
+
+    @reg.register_function('http.*cctv.*')
+    def mock():
+        pass
+
+    reg.register('http.*HELLOWORLD', 'helloworld', flags=re.I)
+
+    assert (reg.search('http://cctv.com'))
+    assert (reg.match('http://helloworld')=='helloworld')
+    assert (reg.match('non-http://helloworld')==None)
+    assert (reg.search('non-http://helloworld')=='helloworld')

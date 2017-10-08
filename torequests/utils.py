@@ -267,3 +267,40 @@ def unique(seq, return_as=None):
     else:
         # python2 not support yield from
         return generator
+
+class Regex(object):
+
+    def __init__(self, allow_duplicated=True):
+        self.container = []
+        self.allow_duplicated = allow_duplicated
+
+    def register(self, pattern, obj, **kwargs):
+        self.container.append((re.compile(pattern, **kwargs), obj))
+
+    def register_function(self, pattern, **kwargs):
+        def wrapper(function):
+            self.register(pattern, function, **kwargs)
+            return function
+        return wrapper
+
+    def search(self, string, default=None):
+        result = []
+        for item in self.container:
+            if item[0].search(string):
+                if self.allow_duplicated:
+                    return item[1]
+                result.append(item)
+        assert len(result) < 2, '%s matches more than one pattern: %s' % (
+            string, result)
+        return result[0][1] if result else default
+
+    def match(self, string, default=None):
+        result = []
+        for item in self.container:
+            if item[0].match(string):
+                if self.allow_duplicated:
+                    return item[1]
+                result.append(item)
+        assert len(result) < 2, '%s matches more than one pattern: %s' % (
+            string, result)
+        return result[0][1] if result else default
