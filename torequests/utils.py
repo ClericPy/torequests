@@ -275,7 +275,10 @@ class Regex(object):
         self.allow_duplicated = allow_duplicated
 
     def register(self, pattern, obj, **kwargs):
-        self.container.append((re.compile(pattern, **kwargs), obj))
+        if not isinstance(pattern, (list, tuple)):
+            pattern = [pattern]
+        for one_pattern in pattern:
+            self.container.append((re.compile(one_pattern, **kwargs), obj))
 
     def register_function(self, pattern, **kwargs):
         def wrapper(function):
