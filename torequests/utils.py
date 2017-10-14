@@ -226,11 +226,11 @@ class Counts(object):
     @property
     def c(self):
         return self.x
-    
+
     @property
     def now(self):
         return self.current
-    
+
     def add(self):
         self.current += self.step
         return self.current
@@ -248,7 +248,7 @@ def _unique_with_index(seq):
 
 
 def _unique_without_index(seq):
-    temp = [] # set can not save non-hashable obj
+    temp = []  # set can not save non-hashable obj
     for item in seq:
         if item not in temp:
             yield item
@@ -268,11 +268,14 @@ def unique(seq, return_as=None):
         # python2 not support yield from
         return generator
 
-class Regex(object):
 
-    def __init__(self, allow_duplicated=True):
+class Regex(object):
+    '''Input string, return a list of mapped obj'''
+
+    def __init__(self, ensure_mapping=False):
+        '''ensure_mapping: make sure one on one mapping, if False, will return all mapped obj in a list.'''
         self.container = []
-        self.allow_duplicated = allow_duplicated
+        self.ensure_mapping = ensure_mapping
 
     def register(self, pattern, obj, **kwargs):
         if not isinstance(pattern, (list, tuple)):
@@ -281,29 +284,35 @@ class Regex(object):
             self.container.append((re.compile(one_pattern, **kwargs), obj))
 
     def register_function(self, pattern, **kwargs):
+        '''instance of pattern can be set in function.__doc__'''
         def wrapper(function):
             self.register(pattern, function, **kwargs)
             return function
         return wrapper
 
     def search(self, string, default=None):
-        result = []
-        for item in self.container:
-            if item[0].search(string):
-                if self.allow_duplicated:
-                    return item[1]
-                result.append(item)
-        assert len(result) < 2, '%s matches more than one pattern: %s' % (
-            string, result)
-        return result[0][1] if result else default
+        default = default if default else []
+        result = [item[1] for item in self.container if item[0].search(string)]
+        if self.ensure_mapping:
+            assert len(result) < 2, '%s matches more than one pattern: %s' % (
+                string, result)
+        return result if result else default
 
     def match(self, string, default=None):
+        default = default if default else []
+        result = [item[1] for item in self.container if item[0].match(string)]
+        if self.ensure_mapping:
+            assert len(result) < 2, '%s matches more than one pattern: %s' % (
+                string, result)
+        return result if result else default
+
+    def show_all(self, as_string=True):
+        '''python2 will not show flags'''
         result = []
         for item in self.container:
-            if item[0].match(string):
-                if self.allow_duplicated:
-                    return item[1]
-                result.append(item)
-        assert len(result) < 2, '%s matches more than one pattern: %s' % (
-            string, result)
-        return result[0][1] if result else default
+            key = str(item[0])[10:] if PY3 else item[0].pattern
+            value = '%s "%s"' % (item[1].__name__, (item[1].__doc__ or '')) if callable(
+                item[1]) else str(item[1])
+            value = '%s %s' % (type(item[1]), value)
+            result.append(' => '.join((key, value)))
+        return '\n'.join(result) if as_string else result

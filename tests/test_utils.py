@@ -51,8 +51,10 @@ def test_regex():
         pass
 
     reg.register('http.*HELLOWORLD', 'helloworld', flags=re.I)
+    reg.register('http.*HELLOWORLD2', 'helloworld2', flags=re.I)
 
     assert (reg.search('http://cctv.com'))
-    assert (reg.match('http://helloworld')=='helloworld')
-    assert (reg.match('non-http://helloworld')==None)
-    assert (reg.search('non-http://helloworld')=='helloworld')
+    assert (reg.match('http://helloworld')==['helloworld'])
+    assert (reg.match('non-http://helloworld')==[])
+    assert (reg.search('non-http://helloworld')==['helloworld'])
+    assert (len(reg.search('non-http://helloworld2'))==2)
