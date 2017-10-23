@@ -1,6 +1,6 @@
 #! coding:utf-8
 from __future__ import print_function
-from .utils import PY35_PLUS, curlparse, ttime, timepass, slice_by_size, Counts
+from .utils import PY35_PLUS, curlparse, ttime, timepass, slice_by_size, Counts, md5
 import time
 if PY35_PLUS:
     from .dummy import Requests
@@ -9,14 +9,23 @@ else:
 
 
 class StressTest(object):
-    def __init__(self, curl='', n=100, interval=0, num=None, chunk=1000, parser=None,
-                 logger_function=None, **kwargs):
+    '''changed_callback may be os._exit(0)'''
+
+    def __init__(self, curl='', n=100, interval=0, num=None, chunk=1,
+                 parser=None, logger_function=None, changed_callback=None,
+                 allow_changed=1, proc=True, **kwargs):
         self.count = Counts()
         self.req = Requests(n, interval)
+        self.init_parse_value = md5(time.time())
+        self.last_parse_value = self.init_parse_value
         self.parser = parser or self.content_len
+        self.changed_callback = changed_callback
+        self.allow_changed = allow_changed
+        self.changed_times = 0
         self.callback = kwargs.pop('callback', self._callback)
         self.chunk = chunk
         self.num = num
+        self.proc = proc
         self.start_time_ts = time.time()
         self.logger_function = logger_function or print
         self.start_time = ttime(self.start_time_ts)
@@ -36,14 +45,25 @@ class StressTest(object):
         if ok:
             self.succ += 1
             response = self.parser(r.x)
+
         else:
             response = r.x
         succ_rate = round(self.succ / count, 4) * 100
         speed = int(count // passed)
-        log_str = '[%s] response: %s, %s - %s (+%s), succ_rate: %s%%, %s req/s' % (
-            count, response, ttime(), self.start_time, timepass(passed), succ_rate, speed)
-        self.logger_function(log_str)
-
+        if self.proc:
+            log_str = '[%s] response: %s, %s - %s (+%s), succ_rate: %s%%, %s req/s' % (
+                count, response, self.start_time, ttime(), timepass(passed), succ_rate, speed)
+            self.logger_function(log_str)
+        if self.changed_callback \
+                and self.last_parse_value != self.init_parse_value \
+                and response != self.last_parse_value:
+            if self.proc:
+                self.changed_times += 1
+                self.logger_function(
+                    'responce changed %s times' % self.changed_times)
+            if self.changed_times >= self.allow_changed:
+                self.changed_callback(response)
+        self.last_parse_value = response
         return ok
 
     def _run_with_num(self):
@@ -70,6 +90,7 @@ class StressTest(object):
     @property
     def x(self):
         return self.run()
+
 
 class Uptime(object):
     '''TODO'''
