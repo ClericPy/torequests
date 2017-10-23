@@ -199,12 +199,13 @@ timepass = timeago
 
 
 def md5(string, n=32, encoding='utf-8'):
+    str_func = unicode if PY2 else str
     if n == 32:
-        return hashlib.md5(str(string).encode(encoding)).hexdigest()
+        return hashlib.md5(str_func(string).encode(encoding)).hexdigest()
     if n == 16:
-        return hashlib.md5(str(string).encode(encoding)).hexdigest()[8:-8]
+        return hashlib.md5(str_func(string).encode(encoding)).hexdigest()[8:-8]
     if isinstance(n, (tuple, list)):
-        return hashlib.md5(str(string).encode(encoding)).hexdigest()[n[0]:n[1]]
+        return hashlib.md5(str_func(string).encode(encoding)).hexdigest()[n[0]:n[1]]
 
 
 class Counts(object):
