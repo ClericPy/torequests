@@ -284,8 +284,10 @@ class Regex(object):
             patterns, (list, tuple)) else [patterns]
         for pattern in patterns:
             pattern_compiled = re.compile(pattern, **kwargs)
-            self.container.append((pattern_compiled, obj))
-            if instance:
+            self.container.append((pattern_compiled, obj, instance))
+            if self.ensure_mapping:
+                self.check_instances()
+            elif instance:
                 assert self.search(instance) or self.match(instance), \
                     'instance %s not fit pattern %s' % (instance, pattern)
 
@@ -311,6 +313,12 @@ class Regex(object):
             assert len(result) < 2, '%s matches more than one pattern: %s' % (
                 string, result)
         return result if result else default
+
+    def check_instances(self):
+        for item in self.container:
+            if item[2]:
+                assert self.search(item[2]) or self.match(item[2]), \
+                    'instance %s not fit pattern %s' % (item[2], item[0].pattern)
 
     def show_all(self, as_string=True):
         '''python2 will not show flags'''
