@@ -353,6 +353,7 @@ class Requests(Loop):
         self.frequencies.update(self.ensure_frequencies(frequencies))
 
     async def _request(self, method, url, retry=0, **kwargs):
+        url = url.strip()
         host = urlparse(url).netloc
         if host in self.frequencies:
             frequency = self.frequencies[host]
