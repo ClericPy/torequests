@@ -274,20 +274,25 @@ class Regex(object):
     '''Input string, return a list of mapped obj'''
 
     def __init__(self, ensure_mapping=False):
-        '''ensure_mapping: make sure one on one mapping, if False, will return all mapped obj in a list.'''
+        '''ensure_mapping: make sure one on one mapping, if False,
+                           will return all mapped obj in a list.'''
         self.container = []
         self.ensure_mapping = ensure_mapping
 
-    def register(self, pattern, obj, **kwargs):
-        if not isinstance(pattern, (list, tuple)):
-            pattern = [pattern]
-        for one_pattern in pattern:
-            self.container.append((re.compile(one_pattern, **kwargs), obj))
+    def register(self, patterns, obj=None, instance=None, **kwargs):
+        patterns = patterns if isinstance(
+            patterns, (list, tuple)) else [patterns]
+        for pattern in patterns:
+            pattern_compiled = re.compile(pattern, **kwargs)
+            self.container.append((pattern_compiled, obj))
+            if instance:
+                assert self.search(instance) or self.match(instance), \
+                    'instance %s not fit pattern %s' % (instance, pattern)
 
-    def register_function(self, pattern, **kwargs):
+    def register_function(self, pattern, instance=None, **kwargs):
         '''instance of pattern can be set in function.__doc__'''
         def wrapper(function):
-            self.register(pattern, function, **kwargs)
+            self.register(pattern, function, instance=instance, **kwargs)
             return function
         return wrapper
 
