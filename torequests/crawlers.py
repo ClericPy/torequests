@@ -9,7 +9,7 @@ else:
 
 
 class StressTest(object):
-    '''changed_callback may be os._exit(0)'''
+    '''changed_callback may be lambda x=None:os._exit(0)'''
 
     def __init__(self, curl='', n=100, interval=0, num=None, chunk=1,
                  parser=None, logger_function=None, changed_callback=None,
@@ -93,4 +93,7 @@ class StressTest(object):
 
 
 class Uptime(object):
+    '''TODO'''
+
+def clean_request():
     '''TODO'''

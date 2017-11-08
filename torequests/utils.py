@@ -27,27 +27,59 @@ class Config(object):
     TIMEZONE = 8
 
 
-class Curl(object):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('curl')
-    parser.add_argument('url')
-    parser.add_argument('-X', '--method', default='get')
-    parser.add_argument('-A', '--user-agent')
-    parser.add_argument('-u', '--user')  # <user[:password]>
-    parser.add_argument('-x', '--proxy')  # proxy.com:port
-    parser.add_argument('-d', '--data')
-    parser.add_argument('--data-binary')
-    parser.add_argument('--connect-timeout', type=float)
-    parser.add_argument('-H', '--header', action='append',
-                        default=[])  # key: value
-    parser.add_argument('--compressed', action='store_true')
+def simple_cmd():
+    parser = argparse.ArgumentParser(
+        prog='Simple command-line function toolkit.',
+        description='''Input function name and args and kwargs.
+        python xxx.py main -a 1 2 3 -k a=1,b=2,c=3''')
+    parser.add_argument('-f', '--func_name', default='main')
+    parser.add_argument('-a', '--args', dest='args', nargs='*')
+    parser.add_argument('-k', '--kwargs', dest='kwargs')
+    parser.add_argument('-i', '-s', '--info', '--show',
+                        '--status', dest='show', action='store_true',
+                        help='show the args, kwargs and function\'s source code.')
+    params = parser.parse_args()
+    func_name = params.func_name
+    func = globals().get(func_name)
+    if not (callable(func)):
+        print('invalid func_name: %s' % func_name)
+        return
+    args = params.args or []
+    kwargs = params.kwargs or {}
+    if kwargs:
+        import re
+        items = [re.split('[:=]', i) for i in re.split('[,;]+', kwargs)]
+        kwargs = dict(items)
+    if params.show:
+        from inspect import getsource
+        print('args: %s; kwargs: %s' % (args, kwargs))
+        print(getsource(func))
+        return
+    func(*args, **kwargs)
 
-    @classmethod
-    def parse(cls, cmd, encode='utf-8'):
+
+class Curl(object):
+
+    def __init__(self):
+        self.parser = argparse.ArgumentParser()
+        parser.add_argument('curl')
+        parser.add_argument('url')
+        parser.add_argument('-X', '--method', default='get')
+        parser.add_argument('-A', '--user-agent')
+        parser.add_argument('-u', '--user')  # <user[:password]>
+        parser.add_argument('-x', '--proxy')  # proxy.com:port
+        parser.add_argument('-d', '--data')
+        parser.add_argument('--data-binary')
+        parser.add_argument('--connect-timeout', type=float)
+        parser.add_argument('-H', '--header', action='append',
+                            default=[])  # key: value
+        parser.add_argument('--compressed', action='store_true')
+
+    def parse(self, cmd, encode='utf-8'):
         '''requests.request(**Curl.parse(curl_bash));
          curl_bash sometimes should use r'...' '''
         assert '\n' not in cmd, 'curl_bash should not contain \\n, try r"...".'
-        args, unknown = cls.parser.parse_known_args(shlex.split(cmd.strip()))
+        args, unknown = self.parser.parse_known_args(shlex.split(cmd.strip()))
         requests_args = {}
         headers = {}
         requests_args['url'] = args.url
@@ -81,7 +113,7 @@ class Curl(object):
         return requests_args
 
 
-curlparse = Curl.parse
+curlparse = Curl().parse
 
 
 class Null(object):
@@ -318,7 +350,8 @@ class Regex(object):
         for item in self.container:
             if item[2]:
                 assert self.search(item[2]) or self.match(item[2]), \
-                    'instance %s not fit pattern %s' % (item[2], item[0].pattern)
+                    'instance %s not fit pattern %s' % (
+                        item[2], item[0].pattern)
 
     def show_all(self, as_string=True):
         '''python2 will not show flags'''
