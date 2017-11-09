@@ -2,6 +2,10 @@
 from __future__ import print_function
 from .utils import PY35_PLUS, curlparse, ttime, timepass, slice_by_size, Counts, md5
 import time
+
+if PY3:
+    unicode = str
+
 if PY35_PLUS:
     from .dummy import Requests
 else:
@@ -95,5 +99,44 @@ class StressTest(object):
 class Uptime(object):
     '''TODO'''
 
-def clean_request():
-    '''TODO'''
+
+class RequestCleaner(object):
+
+    def __init__(self, request):
+        if isinstance(request, (str, unicode)):
+            request = curlparse(request)
+        self.request = request
+        self.new_request = None
+
+    def result(self):
+        return self.new_request
+
+    @property
+    def x(self):
+        return self.result()
+
+    def check_sortable(self):
+        self.sortable = True
+
+    def clean_get_query(self):
+        url = self.request.url
+        parsed = urlparse(url)
+        old_query = parsed.query
+        qs = parse_qs(old_query)
+        qs['f'] = ['1', '22']
+        new_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path,
+                              parsed.params, unparse_qs(qs, self.sortable),
+                              parsed.fragment))
+        return self
+
+    def clean_post_json(self):
+        return self
+
+    def clean_post_form(self):
+        return self
+
+    def clean_cookie(self):
+        return self
+
+    def clean_header(self):
+        return self

@@ -9,8 +9,7 @@ from multiprocessing.pool import ApplyResult, Pool
 
 from .main import Async
 from .exceptions import FailureException
-
-PY2 = sys.version_info.major == 2
+from .versions import PY2
 
 
 class ProcessPool(Pool):

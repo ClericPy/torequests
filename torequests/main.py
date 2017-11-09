@@ -13,10 +13,9 @@ from requests.adapters import HTTPAdapter
 
 from .exceptions import FailureException
 from .logs import main_logger
+from .versions import PY2, PY3
 
-PY2 = (sys.version_info[0] == 2)
-PY3 = (sys.version_info[0] == 3)
-
+import sys
 
 class Pool(ThreadPoolExecutor):
     '''

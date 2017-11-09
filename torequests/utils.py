@@ -2,28 +2,26 @@
 # compatible for win32 / python 2 & 3
 import argparse
 import hashlib
-import json
 import re
 import shlex
-import sys
 import time
 
-from requests.compat import (quote, quote_plus, unquote, unquote_plus, urljoin,
-                             urlparse, urlsplit, urlunparse)
+from .versions import PY2, PY3, PY35_PLUS
 
-PY2 = (sys.version_info[0] == 2)
-PY3 = (sys.version_info[0] == 3)
-PY35_PLUS = sys.version_info[0] >= 3 and sys.version_info[1] >= 5
 
 if PY2:
+    from urllib import quote, quote_plus, unquote_plus
+    from urlparse import parse_qs, urlparse, unquote, urljoin, urlsplit, urlunparse
     from cgi import escape
     import HTMLParser
     unescape = HTMLParser.HTMLParser().unescape
-else:
+
+if PY3:
+    from urllib.parse import parse_qs, urlparse, quote, quote_plus, unquote, unquote_plus, urljoin, urlsplit, urlunparse
     from html import escape, unescape
 
 
-class Config(object):
+class Config:
     TIMEZONE = 8
 
 
@@ -62,18 +60,18 @@ class Curl(object):
 
     def __init__(self):
         self.parser = argparse.ArgumentParser()
-        parser.add_argument('curl')
-        parser.add_argument('url')
-        parser.add_argument('-X', '--method', default='get')
-        parser.add_argument('-A', '--user-agent')
-        parser.add_argument('-u', '--user')  # <user[:password]>
-        parser.add_argument('-x', '--proxy')  # proxy.com:port
-        parser.add_argument('-d', '--data')
-        parser.add_argument('--data-binary')
-        parser.add_argument('--connect-timeout', type=float)
-        parser.add_argument('-H', '--header', action='append',
-                            default=[])  # key: value
-        parser.add_argument('--compressed', action='store_true')
+        self.parser.add_argument('curl')
+        self.parser.add_argument('url')
+        self.parser.add_argument('-X', '--method', default='get')
+        self.parser.add_argument('-A', '--user-agent')
+        self.parser.add_argument('-u', '--user')  # <user[:password]>
+        self.parser.add_argument('-x', '--proxy')  # proxy.com:port
+        self.parser.add_argument('-d', '--data')
+        self.parser.add_argument('--data-binary')
+        self.parser.add_argument('--connect-timeout', type=float)
+        self.parser.add_argument('-H', '--header', action='append',
+                                 default=[])  # key: value
+        self.parser.add_argument('--compressed', action='store_true')
 
     def parse(self, cmd, encode='utf-8'):
         '''requests.request(**Curl.parse(curl_bash));
@@ -301,6 +299,17 @@ def unique(seq, return_as=None):
         # python2 not support yield from
         return generator
 
+
+def unparse_qs(qs, sort=False, reverse=False):
+    result = []
+    items = qs.items()
+    if sort:
+        items = sorted(items, key=lambda x: x[0], reverse=reverse)
+    for keys, values in items:
+        query_name = quote(keys)
+        for value in values:
+            result.append(query_name + "=" + quote(value))
+    return "&".join(result)
 
 class Regex(object):
     '''Input string, return a list of mapped obj'''
