@@ -1,7 +1,9 @@
 #! coding:utf-8
 from __future__ import print_function
 from .utils import PY35_PLUS, curlparse, ttime, timepass, slice_by_size, Counts, md5
+from .versions import PY3, PY35_PLUS
 import time
+import traceback
 
 if PY3:
     unicode = str
@@ -15,7 +17,7 @@ else:
 class StressTest(object):
     '''changed_callback may be lambda x=None:os._exit(0)'''
 
-    def __init__(self, curl='', n=100, interval=0, num=None, chunk=1,
+    def __init__(self, curl='', n=100, interval=0, stop=None, chunk=1,
                  parser=None, logger_function=None, changed_callback=None,
                  allow_changed=1, proc=True, **kwargs):
         self.count = Counts()
@@ -28,7 +30,7 @@ class StressTest(object):
         self.changed_times = 0
         self.callback = kwargs.pop('callback', self._callback)
         self.chunk = chunk
-        self.num = num
+        self.stop = stop
         self.proc = proc
         self.start_time_ts = time.time()
         self.logger_function = logger_function or print
@@ -70,38 +72,98 @@ class StressTest(object):
         self.last_parse_value = response
         return ok
 
-    def _run_with_num(self):
-        if self.num < self.chunk:
-            tries = self.num
-        chunks = slice_by_size(range(self.num), self.chunk)
+    def _run_with_stop(self):
+        if self.stop < self.chunk:
+            tries = self.stop
+        chunks = slice_by_size(range(self.stop), self.chunk)
         for chunk in chunks:
             tasks = [self.req.request(callback=self.callback, **self.kwargs)
                      for i in chunk]
             self.req.x
 
-    def _run_without_num(self):
+    def _run_without_stop(self):
         while 1:
             tasks = [self.req.request(callback=self.callback, **self.kwargs)
                      for i in range(self.chunk)]
             self.req.x
 
     def run(self):
-        if self.num:
-            return self._run_with_num()
+        if self.stop:
+            return self._run_with_stop()
         else:
-            return self._run_without_num()
+            return self._run_without_stop()
 
     @property
     def x(self):
         return self.run()
 
 
-class Uptime(object):
+class Uptimer(object):
     '''TODO'''
+    INIT_TEMP_VALUE = md5(str(time.time()**2))
+
+    def __init__(self, request, ensure_resp_cb=None, timeout=None, retry=0):
+        '''request: dict or curl-string.'''
+        self.req = Requests()
+        self.last_cb_resp = self.INIT_TEMP_VALUE
+        self.cb = ensure_resp_cb or self.default_callback
+        if isinstance(request, (str, unicode)):
+            request = curlparse(request)
+        self.request = request
+        self.timeout = timeout
+        self.retry = retry
+
+    def default_callback(self, resp):
+        if resp.x:
+            temp = md5(resp.content, skip_encode=True)
+        else:
+            temp = None
+        return temp
+
+    def check_ok(self, temp):
+        if self.last_cb_resp == self.INIT_TEMP_VALUE:
+            return True
+        elif temp == self.last_cb_resp:
+            return True
+        else:
+            return False
+
+    def start(self, duration=None, interval=10, stop=0):
+        duration = duration or float('inf')
+        stop = stop or float('inf')
+        start_at = time.time()
+        start_at_time = ttime()
+        count = 0
+        while time.time() - start_at < duration or count < stop:
+            try:
+                temp = self.req.request(callback=self.cb, timeout=self.timeout, retry=self.retry, **self.request).cx
+                log_str = '[%s] response: %s, %s - %s (+%s), interval=%s, stop=%s' % (
+                    count, temp, start_at_time, ttime(), timepass(time.time() - start_at), interval, stop)
+                print(log_str)
+                if not self.check_ok(temp):
+                    return False
+            except:
+                traceback.print_exc()
+                return False
+            finally:
+                count += 1
+            time.sleep(interval)
+            self.last_cb_resp = temp
+        return True
+
+    def guess_safe_interval(self, start_interval=60, step=-1, stop=0, duration=3600):
+        for interval in range(start_interval, 0, step):
+            ok = self.start(duration=duration, interval=interval, stop=stop)
+            if not ok:
+                break
+            safe_interval = interval
+        print('safe interval = %s' % safe_interval)
+        return safe_interval
 
 class RequestCleaner(object):
 
     def __init__(self, request):
+        '''request: dict or curl-string.'''
         if isinstance(request, (str, unicode)):
             request = curlparse(request)
         self.request = request
