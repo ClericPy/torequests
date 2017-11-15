@@ -228,14 +228,15 @@ def timeago(seconds=None):
 timepass = timeago
 
 
-def md5(string, n=32, encoding='utf-8'):
+def md5(string, n=32, encoding='utf-8', skip_encode=False):
     str_func = unicode if PY2 else str
+    todo = string if skip_encode else str_func(string).encode(encoding)
     if n == 32:
-        return hashlib.md5(str_func(string).encode(encoding)).hexdigest()
+        return hashlib.md5(todo).hexdigest()
     if n == 16:
-        return hashlib.md5(str_func(string).encode(encoding)).hexdigest()[8:-8]
+        return hashlib.md5(todo).hexdigest()[8:-8]
     if isinstance(n, (tuple, list)):
-        return hashlib.md5(str_func(string).encode(encoding)).hexdigest()[n[0]:n[1]]
+        return hashlib.md5(todo).hexdigest()[n[0]:n[1]]
 
 
 class Counts(object):
@@ -355,6 +356,14 @@ class Regex(object):
                 string, result)
         return result if result else default
 
+    def fuzzy(self, key, limit=3):
+        instances = [i[2] for i in self.container if i[2]]
+        if not instances:
+            return
+        from fuzzywuzzy import process
+        maybe = process.extract(key, instances, limit=limit)
+        return maybe
+
     def check_instances(self):
         for item in self.container:
             if item[2]:
@@ -367,8 +376,9 @@ class Regex(object):
         result = []
         for item in self.container:
             key = str(item[0])[10:] if PY3 else item[0].pattern
+            instance = item[2] or 'No instance'
             value = '%s "%s"' % (item[1].__name__, (item[1].__doc__ or '')) if callable(
                 item[1]) else str(item[1])
             value = '%s %s' % (type(item[1]), value)
-            result.append(' => '.join((key, value)))
+            result.append(' => '.join((instance, key, value)))
         return '\n'.join(result) if as_string else result
