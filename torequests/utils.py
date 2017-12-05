@@ -11,13 +11,13 @@ from .versions import PY2, PY3, PY35_PLUS
 
 if PY2:
     from urllib import quote, quote_plus, unquote_plus
-    from urlparse import parse_qs, urlparse, unquote, urljoin, urlsplit, urlunparse
+    from urlparse import parse_qs, parse_qsl, urlparse, unquote, urljoin, urlsplit, urlunparse
     from cgi import escape
     import HTMLParser
     unescape = HTMLParser.HTMLParser().unescape
 
 if PY3:
-    from urllib.parse import parse_qs, urlparse, quote, quote_plus, unquote, unquote_plus, urljoin, urlsplit, urlunparse
+    from urllib.parse import parse_qs, parse_qsl, urlparse, quote, quote_plus, unquote, unquote_plus, urljoin, urlsplit, urlunparse
     from html import escape, unescape
 
 
@@ -312,31 +312,50 @@ def unparse_qs(qs, sort=False, reverse=False):
             result.append(query_name + "=" + quote(value))
     return "&".join(result)
 
+
+def unparse_qsl(qsl, sort=False, reverse=False):
+    result = []
+    items = qsl
+    if sort:
+        items = sorted(items, key=lambda x: x[0], reverse=reverse)
+    for keys, values in items:
+        query_name = quote(keys)
+        result.append(query_name + "=" + quote(values))
+    return "&".join(result)
+
+
 class Regex(object):
-    '''Input string, return a list of mapped obj'''
+    '''Input string, return a list of mapping object'''
 
     def __init__(self, ensure_mapping=False):
-        '''ensure_mapping: make sure one on one mapping, if False,
-                           will return all mapped obj in a list.'''
+        '''
+        ensure_mapping: ensure mapping one to one, 
+                        if False, will return all(more than 1) 
+                        mapped object list.'''
         self.container = []
         self.ensure_mapping = ensure_mapping
 
-    def register(self, patterns, obj=None, instance=None, **kwargs):
+    def register(self, patterns, obj=None, instances=None, **reg_kwargs):
         patterns = patterns if isinstance(
-            patterns, (list, tuple)) else [patterns]
+            patterns, (list, tuple, set)) else [patterns]
+        instances = instances or []
+        instances = instances if isinstance(
+            instances, (list, tuple, set)) else [instances]
         for pattern in patterns:
-            pattern_compiled = re.compile(pattern, **kwargs)
-            self.container.append((pattern_compiled, obj, instance))
+            pattern_compiled = re.compile(pattern, **reg_kwargs)
+            self.container.append((pattern_compiled, obj, instances))
             if self.ensure_mapping:
+                # check all instances to avoid one-to-many instances.
                 self.check_instances()
-            elif instance:
-                assert self.search(instance) or self.match(instance), \
-                    'instance %s not fit pattern %s' % (instance, pattern)
+            else:
+                # no need to check all instances.
+                for instance in instances:
+                    assert self.search(instance) or self.match(instance), \
+                        'instance %s not fit pattern %s' % (instance, pattern)
 
-    def register_function(self, pattern, instance=None, **kwargs):
-        '''instance of pattern can be set in function.__doc__'''
+    def register_function(self, patterns, instances=None, **reg_kwargs):
         def wrapper(function):
-            self.register(pattern, function, instance=instance, **kwargs)
+            self.register(patterns, function, instances=instances, **reg_kwargs)
             return function
         return wrapper
 
@@ -356,29 +375,30 @@ class Regex(object):
                 string, result)
         return result if result else default
 
-    def fuzzy(self, key, limit=3):
+    def fuzzy(self, key, limit=5):
         instances = [i[2] for i in self.container if i[2]]
         if not instances:
             return
+        instances = sum(instances, [])
         from fuzzywuzzy import process
         maybe = process.extract(key, instances, limit=limit)
         return maybe
 
     def check_instances(self):
         for item in self.container:
-            if item[2]:
-                assert self.search(item[2]) or self.match(item[2]), \
+            for instance in item[2]:
+                assert self.search(instance) or self.match(instance), \
                     'instance %s not fit pattern %s' % (
-                        item[2], item[0].pattern)
+                        instance, item[0].pattern)
 
     def show_all(self, as_string=True):
         '''python2 will not show flags'''
         result = []
         for item in self.container:
             key = str(item[0])[10:] if PY3 else item[0].pattern
-            instance = item[2] or 'No instance'
+            instances = item[2] or []
             value = '%s "%s"' % (item[1].__name__, (item[1].__doc__ or '')) if callable(
                 item[1]) else str(item[1])
             value = '%s %s' % (type(item[1]), value)
-            result.append(' => '.join((instance, key, value)))
+            result.append(' => '.join((','.join(instances), key, value)))
         return '\n'.join(result) if as_string else result

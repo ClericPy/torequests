@@ -16,6 +16,7 @@ top_level.txt
 env/
 venv/
 build/
+dist/
 develop-eggs/
 eggs/
 lib/
