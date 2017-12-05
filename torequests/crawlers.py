@@ -173,7 +173,7 @@ class Uptimer(object):
 class CleanRequest(object):
 
     def __init__(self, request, ensure_responce=None, n=10, interval=0,
-                 include_cookie=True, retry=1, encoding='utf-8', **kwargs):
+                 include_cookie=True, retry=1, timeout=15, encoding='utf-8', **kwargs):
         '''request: dict or curl-string.'''
         if isinstance(request, (str, unicode)):
             request = curlparse(request)
@@ -182,10 +182,11 @@ class CleanRequest(object):
         self.encoding = encoding
         self.request_args = request
         self.retry = retry
+        self.timeout = timeout
         self.include_cookie = include_cookie
         self.ensure_responce = ensure_responce or self._ensure_response
         self.init_responce = self.ensure_responce(
-            self.req.request(retry=self.retry, **self.request_args).x)
+            self.req.request(retry=self.retry, timeout=self.timeout, **self.request_args).x)
         self.new_request = dict(self.request_args)
         self.tasks = []
         self.ignore = {'qsl': [], 'cookie': [], 'headers': [],
@@ -206,8 +207,8 @@ class CleanRequest(object):
         return cls._join_url(parsed_url, sorted(qsl, **kws))
 
     def _check_request(self, key, value, request):
-        task = [key, value, self.req.request(retry=self.retry, callback=self.check_response_same,
-                                             **request)]
+        task = [key, value, self.req.request(retry=self.retry, timeout=self.timeout, 
+        callback=self.check_response_same, **request)]
         self.tasks.append(task)
 
     @classmethod
@@ -292,18 +293,21 @@ class CleanRequest(object):
         new_url = self._join_url(
                 parsed_url, [i for i in qsl if i not in self.ignore['qsl']])
         self.new_request['url'] = new_url
+        print(self.ignore)
         for key in self.ignore['headers']:
             self.new_request['headers'].pop(key)
-        
-        if self.ignore['cookie']:
+
+        if not self.new_request.get('headers'):
+            self.new_request.pop('headers', None)
+
+        if self.ignore['cookie'] and 'cookie' not in self.ignore['headers']:
             headers = self.new_request['headers']
             headers = {key.lower():headers[key] for key in headers}
             if 'cookie' in headers:
                 cookies = SimpleCookie(headers['cookie'])
                 new_cookie = '; '.join([i[1].OutputString() for i in cookies.items() if i[0] not in self.ignore['cookie']])
                 self.new_request['headers']['cookie'] = new_cookie
-        if not self.new_request.get('headers'):
-            self.new_request.pop('headers', None)
+        
         if self.new_request['method'] == 'post':
             data = self.new_request.get('data')
             if data:
