@@ -14,7 +14,7 @@ def test(num):
 @app.get('/sleep/<num:int>')
 def sleep(num):
     time.sleep(num)
-    return 'sleep ok %s' % num
+    return 'sleep ok %s; %s' % (num, time.ctime())
 
 
 @app.get('/')

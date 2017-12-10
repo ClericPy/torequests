@@ -173,7 +173,8 @@ class Uptimer(object):
 class CleanRequest(object):
 
     def __init__(self, request, ensure_responce=None, n=10, interval=0,
-                 include_cookie=True, retry=1, timeout=15, encoding='utf-8', **kwargs):
+                 include_cookie=True, retry=1, timeout=15, logger_function=None,
+                 encoding='utf-8', **kwargs):
         '''request: dict or curl-string.'''
         if isinstance(request, (str, unicode)):
             request = curlparse(request)
@@ -189,6 +190,7 @@ class CleanRequest(object):
             self.req.request(retry=self.retry, timeout=self.timeout, **self.request_args).x)
         self.new_request = dict(self.request_args)
         self.tasks = []
+        self.logger_function = logger_function or print
         self.ignore = {'qsl': [], 'cookie': [], 'headers': [],
                        'json_data': [], 'form_data': []}
 
@@ -200,6 +202,11 @@ class CleanRequest(object):
             task = task.x
         return self.ensure_responce(task) == self.init_responce
 
+    @property
+    def speed(self):
+        return self.req.interval / self.req.n
+
+
     @classmethod
     def sort_url_qsl(cls, raw_url, **kws):
         parsed_url = urlparse(raw_url)
@@ -207,8 +214,8 @@ class CleanRequest(object):
         return cls._join_url(parsed_url, sorted(qsl, **kws))
 
     def _check_request(self, key, value, request):
-        task = [key, value, self.req.request(retry=self.retry, timeout=self.timeout, 
-        callback=self.check_response_same, **request)]
+        task = [key, value, self.req.request(retry=self.retry, timeout=self.timeout,
+                                             callback=self.check_response_same, **request)]
         self.tasks.append(task)
 
     @classmethod
@@ -263,10 +270,11 @@ class CleanRequest(object):
         headers = self.request_args.get('headers', {})
         if 'cookie' not in map(lambda x: x.lower(), headers.keys()):
             return self
-        headers = {key.lower():headers[key] for key in headers}
+        headers = {key.lower(): headers[key] for key in headers}
         cookies = SimpleCookie(headers['cookie'])
         for k, v in cookies.items():
-            new_cookie = '; '.join([i.OutputString() for i in cookies.values() if i != v])
+            new_cookie = '; '.join([i.OutputString()
+                                    for i in cookies.values() if i != v])
             new_request = dict(self.new_request)
             new_request['headers']['cookie'] = new_cookie
             self._check_request('cookie', k, new_request)
@@ -291,9 +299,9 @@ class CleanRequest(object):
         parsed_url = urlparse(raw_url)
         qsl = parse_qsl(parsed_url.query)
         new_url = self._join_url(
-                parsed_url, [i for i in qsl if i not in self.ignore['qsl']])
+            parsed_url, [i for i in qsl if i not in self.ignore['qsl']])
         self.new_request['url'] = new_url
-        print(self.ignore)
+        self.logger_function('ignore: %s' % self.ignore)
         for key in self.ignore['headers']:
             self.new_request['headers'].pop(key)
 
@@ -302,12 +310,13 @@ class CleanRequest(object):
 
         if self.ignore['cookie'] and 'cookie' not in self.ignore['headers']:
             headers = self.new_request['headers']
-            headers = {key.lower():headers[key] for key in headers}
+            headers = {key.lower(): headers[key] for key in headers}
             if 'cookie' in headers:
                 cookies = SimpleCookie(headers['cookie'])
-                new_cookie = '; '.join([i[1].OutputString() for i in cookies.items() if i[0] not in self.ignore['cookie']])
+                new_cookie = '; '.join([i[1].OutputString() for i in cookies.items(
+                ) if i[0] not in self.ignore['cookie']])
                 self.new_request['headers']['cookie'] = new_cookie
-        
+
         if self.new_request['method'] == 'post':
             data = self.new_request.get('data')
             if data:
@@ -319,11 +328,13 @@ class CleanRequest(object):
                     for key in self.ignore['json_data']:
                         json_data.pop(key)
                     self.new_request['data'] = json.dumps(
-                            json_data).encode(self.encoding)
-
+                        json_data).encode(self.encoding)
 
     def clean_all(self):
         self.clean_url().clean_post_form().clean_post_json().clean_headers()
+        tasks_length = len(self.tasks)
+        self.logger_function('%s tasks of request, will cost more than %s seconds.' % (
+            tasks_length, round(self.speed * tasks_length, 2)))
         self.req.x
         for task in self.tasks:
             key, value, fut = task

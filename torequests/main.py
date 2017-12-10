@@ -147,9 +147,9 @@ class tPool(object):
                  catch_exception=True, default_callback=None):
         self.pool = Pool(n, timeout)
         self.session = session if session else Session()
-        pool_size = n or 10
+        self.n = n or 10
         custom_adapter = HTTPAdapter(
-            pool_connections=pool_size, pool_maxsize=pool_size)
+            pool_connections=self.n, pool_maxsize=self.n)
         self.session.mount('http://', custom_adapter)
         self.session.mount('https://', custom_adapter)
         self.interval = interval

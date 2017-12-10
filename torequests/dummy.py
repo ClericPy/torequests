@@ -301,6 +301,7 @@ class Requests(Loop):
         loop = kwargs.pop('loop', None)
         super().__init__(loop=loop, default_callback=default_callback)
         self.sem = asyncio.Semaphore(n)
+        self.n = n
         self.interval = interval
         self.catch_exception = catch_exception
         self.default_host_frequency = default_host_frequency
