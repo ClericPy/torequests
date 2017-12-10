@@ -2,12 +2,15 @@
 # compatible for win32 / python 2 & 3
 import argparse
 import hashlib
+import os
 import re
 import shlex
+import signal
+import sys
 import time
 
+from .main import run_after_async
 from .versions import PY2, PY3, PY35_PLUS
-
 
 if PY2:
     from urllib import quote, quote_plus, unquote_plus
@@ -402,3 +405,15 @@ class Regex(object):
             value = '%s %s' % (type(item[1]), value)
             result.append(' => '.join((','.join(instances), key, value)))
         return '\n'.join(result) if as_string else result
+
+# def restart_program():
+#     os.execl(sys.executable, sys.executable, *sys.argv)
+
+# def restart_after(seconds):
+#     run_after_async(seconds, restart_program)
+
+def kill_after(seconds, timeout=2):
+    pid = os.getpid()
+    kill = os.kill
+    run_after_async(seconds, kill, pid, signal.SIGTERM)
+    run_after_async(seconds + timeout, kill, pid, 9)

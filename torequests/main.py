@@ -141,6 +141,10 @@ def get_results_generator(future_list, timeout=None, sort_by_completed=False):
         return
 
 
+@threads(1)
+def run_after_async(seconds, func, *args, **kwargs):
+    time.sleep(seconds)
+    return func(*args, **kwargs)
 class tPool(object):
 
     def __init__(self, n=None, interval=0, timeout=None, session=None,
