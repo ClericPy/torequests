@@ -12,7 +12,7 @@ from aiohttp.client_reqrep import ClientResponse
 
 from .exceptions import FailureException
 from .logs import dummy_logger
-from .main import NewFuture
+from .main import NewFuture, Pool, ProcessPool
 
 try:
     import uvloop
@@ -118,6 +118,14 @@ class Loop():
         return new_coro_func
 
     def run_in_executor(self, executor=None, func=None, *args):
+        return self.loop.run_in_executor(executor, func, *args)
+
+    def run_in_thread_pool(self, pool_size=None, func=None, *args):
+        executor = Pool(pool_size)
+        return self.loop.run_in_executor(executor, func, *args)
+
+    def run_in_process_pool(self, pool_size=None, func=None, *args):
+        executor = ProcessPool(pool_size)
         return self.loop.run_in_executor(executor, func, *args)
 
     def run_coroutine_threadsafe(self, coro, loop=None, callback=None):
@@ -268,7 +276,7 @@ class Frequency:
 
     def __repr__(self):
         return '<Frequency %s (sem=%s/%s, interval=%s)>' % (self.name, self.sem._value,
-                                                                  self._init_sem_value, self.interval)
+                                                            self._init_sem_value, self.interval)
 
     def ensure_sem(self, sem):
         sem = self._ensure_sem(sem)
@@ -331,7 +339,7 @@ class Requests(Loop):
     def request(self, method='get', url='', callback=None, **kwargs):
         assert bool(url), 'url can not be null'
         return self.submit(self._request(method, url, **kwargs),
-                               callback=(callback or self.default_callback))
+                           callback=(callback or self.default_callback))
 
     def ensure_frequencies(self, frequencies):
         if not frequencies:
