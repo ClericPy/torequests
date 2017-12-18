@@ -333,7 +333,7 @@ class CleanRequest(object):
     def clean_all(self):
         self.clean_url().clean_post_form().clean_post_json().clean_headers()
         tasks_length = len(self.tasks)
-        self.logger_function('%s tasks of request, will cost more than %s seconds.' % (
+        self.logger_function('%s tasks of request, will cost about %s seconds.' % (
             tasks_length, round(self.speed * tasks_length, 2)))
         self.req.x
         for task in self.tasks:
