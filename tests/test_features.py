@@ -3,7 +3,6 @@ import sys
 import time
 
 from torequests import *
-from torequests.process import Process
 
 
 def test_main_tPool():
@@ -14,6 +13,23 @@ def test_main_tPool():
     [i.x for i in ss]
     ss = [i.cx for i in ss]
     assert all(ss), 'fail: test_main_tPool'
+
+# def test_main_ProcessPool():
+#     def test(arg):
+#         return arg**2
+#     ppool = ProcessPool(2)
+#     task = ppool.submit(test, 2)
+#     assert task.x==4
+
+
+# if __name__ == '__main__':
+#     test_main_ProcessPool()
+
+
+
+
+
+
 
 # ================================= PYTHON 3 only ========================
 

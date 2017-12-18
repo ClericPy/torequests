@@ -3,8 +3,8 @@
 import sys
 import time
 from weakref import WeakSet
-from concurrent.futures import ThreadPoolExecutor, as_completed, wait
-from concurrent.futures._base import Future, TimeoutError
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed, wait
+from concurrent.futures._base import Future, TimeoutError, Executor
 from concurrent.futures.thread import _WorkItem
 from functools import wraps
 
@@ -15,18 +15,20 @@ from .exceptions import FailureException
 from .logs import main_logger
 from .versions import PY2, PY3
 
-import sys
+if PY3:
+    from concurrent.futures.process import BrokenProcessPool
 
-class Pool(ThreadPoolExecutor):
+
+class NewExecutorPool(Executor):
     '''
-    add async_func(function decorator) for submitting called-function into Pool obj.
+    add async_func(function decorator) for submitting called-function into NewExecutorPool obj.
     '''
 
     def __init__(self, n=None, timeout=None, default_callback=None):
         if n is None and (not isinstance(range, type)):
             # python2 n!=None
             n = 20
-        super(Pool, self).__init__(n)
+        super(NewExecutorPool, self).__init__(n)
         self._timeout = timeout
         self.default_callback = default_callback
         self._all_futures = WeakSet()
@@ -51,6 +53,10 @@ class Pool(ThreadPoolExecutor):
         return fs
 
 
+class Pool(NewExecutorPool, ThreadPoolExecutor):
+    def __init__(self, *args, **kwargs):
+        super(Pool, self).__init__(*args, **kwargs)
+
     def submit(self, func, *args, **kwargs):
         '''self.submit(function,arg1,arg2,arg3=3)'''
 
@@ -68,6 +74,38 @@ class Pool(ThreadPoolExecutor):
             w = _WorkItem(future, func, args, kwargs)
             self._work_queue.put(w)
             self._adjust_thread_count()
+            self._all_futures.add(future)
+            return future
+
+
+class ProcessPool(NewExecutorPool, ProcessPoolExecutor):
+    def __init__(self, *args, **kwargs):
+        super(ProcessPool, self).__init__(*args, **kwargs)
+
+    def submit(self, func, *args, **kwargs):
+        '''self.submit(function,arg1,arg2,arg3=3)'''
+
+        with self._shutdown_lock:
+            if PY3 and self._broken:
+                raise BrokenProcessPool('A child process terminated '
+                    'abruptly, the process pool is not usable anymore')
+            if self._shutdown_thread:
+                raise RuntimeError('cannot schedule new futures after shutdown')
+            future = NewFuture(self._timeout, args, kwargs)
+            callback = kwargs.pop('callback', self.default_callback)
+            if callback:
+                if not isinstance(callback, (list, tuple)):
+                    callback = [callback]
+                for fn in callback:
+                    future.add_done_callback(future.wrap_callback(fn))
+            w = _WorkItem(future, func, args, kwargs)
+            self._pending_work_items[self._queue_count] = w
+            self._work_ids.put(self._queue_count)
+            self._queue_count += 1
+            self._result_queue.put(None)
+            self._start_queue_management_thread()
+            if PY2:
+                self._adjust_process_count()
             self._all_futures.add(future)
             return future
 
@@ -145,6 +183,8 @@ def get_results_generator(future_list, timeout=None, sort_by_completed=False):
 def run_after_async(seconds, func, *args, **kwargs):
     time.sleep(seconds)
     return func(*args, **kwargs)
+
+
 class tPool(object):
 
     def __init__(self, n=None, interval=0, timeout=None, session=None,
@@ -202,7 +242,7 @@ class tPool(object):
         if self.catch_exception:
             return FailureException(error)
         raise error
-    
+
     def request(self, url, method='get', callback=None, **kwargs):
         return self.pool.submit(self._request, url, method,
                                 callback=callback or self.default_callback, **kwargs)
