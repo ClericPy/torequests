@@ -406,14 +406,19 @@ class Regex(object):
             result.append(' => '.join((','.join(instances), key, value)))
         return '\n'.join(result) if as_string else result
 
-# def restart_program():
-#     os.execl(sys.executable, sys.executable, *sys.argv)
-
-# def restart_after(seconds):
-#     run_after_async(seconds, restart_program)
 
 def kill_after(seconds, timeout=2):
     pid = os.getpid()
     kill = os.kill
     run_after_async(seconds, kill, pid, signal.SIGTERM)
     run_after_async(seconds + timeout, kill, pid, 9)
+
+class UA:
+    __slots__ = ()
+    Android = 'Mozilla/5.0 (Linux; Android 5.1.1; Nexus 6 Build/LYZ28E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Mobile Safari/537.36'
+    iPhone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1'
+    iPad = 'Mozilla/5.0 (iPad; CPU OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1'
+    Firefox = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
+    Chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
+    IE6 = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'
+    IE9 = 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0;'
