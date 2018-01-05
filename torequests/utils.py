@@ -80,6 +80,8 @@ class Curl(object):
         '''requests.request(**Curl.parse(curl_bash));
          curl_bash sometimes should use r'...' '''
         assert '\n' not in cmd, 'curl_bash should not contain \\n, try r"...".'
+        if cmd.startswith('http'):
+            return {'url': cmd, 'method': 'get'}
         args, unknown = self.parser.parse_known_args(shlex.split(cmd.strip()))
         requests_args = {}
         headers = {}

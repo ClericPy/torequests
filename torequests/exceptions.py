@@ -13,5 +13,8 @@ class FailureException(Exception):
     def __bool__(self):
         return False
 
+    def __nonzero__(self):
+        return False
+
     def __str__(self):
         return repr(self)

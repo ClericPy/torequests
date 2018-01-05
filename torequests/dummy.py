@@ -304,14 +304,14 @@ class Requests(Loop):
     METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
     def __init__(self, n=100, interval=0, session=None,
-                 catch_exception=True, default_callback=None,
+                 catch_exception=True, return_exceptions=True, default_callback=None,
                  frequencies=None, default_host_frequency=None, **kwargs):
         loop = kwargs.pop('loop', None)
         super().__init__(loop=loop, default_callback=default_callback)
         self.sem = asyncio.Semaphore(n)
         self.n = n
         self.interval = interval
-        self.catch_exception = catch_exception
+        self.catch_exception = catch_exception or return_exceptions
         self.default_host_frequency = default_host_frequency
         if self.default_host_frequency:
             assert isinstance(self.default_host_frequency, (list, tuple))
