@@ -66,3 +66,8 @@ def test_clean_request():
 
     c = CleanRequest(request)
     assert (c.x == {'url': 'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2', 'method': 'get'})
+
+
+def test_failure():
+    from torequests.exceptions import FailureException
+    assert bool(FailureException(BaseException()))==False
