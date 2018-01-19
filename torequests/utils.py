@@ -277,26 +277,14 @@ class Counts(object):
         return self.current
 
 
-def _unique_with_index(seq):
-    for x, item in enumerate(seq):
-        if seq.index(item) == x:
-            yield item
-    return
-
-
-def _unique_without_index(seq):
-    temp = []  # set can not save non-hashable obj
-    for item in seq:
-        if item not in temp:
-            yield item
-            temp.append(item)
-    return
-
-
 def unique(seq, return_as=None):
-    '''unique seq in order. return as generator, or list / set / str...'''
-    generator = _unique_with_index(seq) if hasattr(
-        seq, 'index') else _unique_without_index(seq)
+    '''Unique the seq in order. 
+    Instead of the slow way: 
+        lambda seq: (x for index, x in enumerate(seq) if seq.index(x)==index)
+    return_as: generator for default, or list / set / str...'''
+    seen = set()
+    add = seen.add
+    generator = (x for x in seq if x not in seen and not add(x))
     if return_as:
         if return_as == str:
             return ''.join(map(str, generator))
@@ -360,7 +348,8 @@ class Regex(object):
 
     def register_function(self, patterns, instances=None, **reg_kwargs):
         def wrapper(function):
-            self.register(patterns, function, instances=instances, **reg_kwargs)
+            self.register(patterns, function,
+                          instances=instances, **reg_kwargs)
             return function
         return wrapper
 
@@ -414,6 +403,7 @@ def kill_after(seconds, timeout=2):
     kill = os.kill
     run_after_async(seconds, kill, pid, signal.SIGTERM)
     run_after_async(seconds + timeout, kill, pid, 9)
+
 
 class UA:
     __slots__ = ()
