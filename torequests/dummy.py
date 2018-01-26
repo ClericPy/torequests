@@ -118,13 +118,16 @@ class Loop():
         return new_coro_func
 
     def run_in_executor(self, executor=None, func=None, *args):
+        '''if kwargs needed, try like this: func=lambda: foo(*args, **kwargs)'''
         return self.loop.run_in_executor(executor, func, *args)
 
     def run_in_thread_pool(self, pool_size=None, func=None, *args):
+        '''if kwargs needed, try like this: func=lambda: foo(*args, **kwargs)'''
         executor = Pool(pool_size)
         return self.loop.run_in_executor(executor, func, *args)
 
     def run_in_process_pool(self, pool_size=None, func=None, *args):
+        '''if kwargs needed, try like this: func=lambda: foo(*args, **kwargs)'''
         executor = ProcessPool(pool_size)
         return self.loop.run_in_executor(executor, func, *args)
 
@@ -295,23 +298,25 @@ class Frequency:
 
 class Requests(Loop):
     '''
-        The kwargs is the same as kwargs of aiohttp.ClientSession.
+        The `kwargs` is same as kwargs of aiohttp.ClientSession.
         Sometimes the performance is limited by too large "n", 
-            or raise ValueError: too many file descriptors in select() (win32).
-        frequencies: {url_host: Frequency obj}
-
+            or raise ValueError: too many file descriptors on select() (win32),
+            so n=100 by default.
+        frequencies: {host: Frequency obj} or {host: [n, interval]}
     '''
-    METH = ('get', 'options', 'head', 'post', 'put', 'patch', 'delete')
 
     def __init__(self, n=100, interval=0, session=None,
-                 catch_exception=True, return_exceptions=True, default_callback=None,
+                 return_exceptions=True, default_callback=None,
                  frequencies=None, default_host_frequency=None, **kwargs):
         loop = kwargs.pop('loop', None)
+        # for old version arg `catch_exception`
+        catch_exception = kwargs.pop('catch_exception', None)
         super().__init__(loop=loop, default_callback=default_callback)
         self.sem = asyncio.Semaphore(n)
         self.n = n
         self.interval = interval
-        self.catch_exception = catch_exception or return_exceptions
+        self.catch_exception = catch_exception if catch_exception \
+            is not None else return_exceptions
         self.default_host_frequency = default_host_frequency
         if self.default_host_frequency:
             assert isinstance(self.default_host_frequency, (list, tuple))
@@ -323,24 +328,7 @@ class Requests(Loop):
         else:
             self.session = aiohttp.ClientSession(loop=self.loop, **kwargs)
         self.session._connector._limit = n
-        self._initial_request()
-
-    def _initial_request(self):
-        for method in self.METH:
-            self.__setattr__('%s' % method, self._mock_request_method(method))
-
-    def _mock_request_method(self, method):
-        def _new_request(url, callback=None, **kwargs):
-            '''support args: retry, callback'''
-            return self.submit(self._request(method, url, **kwargs),
-                               callback=(callback or self.default_callback))
-        return _new_request
-
-    def request(self, method='get', url='', callback=None, **kwargs):
-        assert bool(url), 'url can not be null'
-        return self.submit(self._request(method, url, **kwargs),
-                           callback=(callback or self.default_callback))
-
+   
     def ensure_frequencies(self, frequencies):
         if not frequencies:
             return {}
@@ -401,9 +389,35 @@ class Requests(Loop):
                 return FailureException(error)
             raise error
 
+    def request(self, method, url, callback=None, **kwargs):
+        '''submit the coro of self._request to self.loop'''
+        return self.submit(self._request(method, url, **kwargs),
+                           callback=(callback or self.default_callback))
+
+    def get(self, url, callback=None, **kwargs):
+        return self.request('get', url, callback, **kwargs)
+
+    def post(self, url, callback=None, **kwargs):
+        return self.request('post', url, callback, **kwargs)
+
+    def delete(self, url, callback=None, **kwargs):
+        return self.request('delete', url, callback, **kwargs)
+
+    def put(self, url, callback=None, **kwargs):
+        return self.request('put', url, callback, **kwargs)
+
+    def head(self, url, callback=None, **kwargs):
+        return self.request('head', url, callback, **kwargs)
+    
+    def options(self, url, callback=None, **kwargs):
+        return self.request('options', url, callback, **kwargs)
+
+    def patch(self, url, callback=None, **kwargs):
+        return self.request('patch', url, callback, **kwargs)
+
     def close(self):
         '''Should be closed[explicit] while using external session or connector,
-        instead of close by __del__.'''
+        instead of close by self.__del__.'''
         try:
             self.session.close()
         except Exception as e:
