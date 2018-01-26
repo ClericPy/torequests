@@ -217,7 +217,7 @@ class tPool(object):
     def __del__(self):
         self.close()
 
-    def _request(self, url, method, retry=0, **kwargs):
+    def _request(self, method, url, retry=0, **kwargs):
         for _ in range(retry + 1):
             try:
                 resp = self.session.request(method, url, **kwargs)
@@ -243,21 +243,27 @@ class tPool(object):
             return FailureException(error)
         raise error
 
-    def request(self, url, method='get', callback=None, **kwargs):
-        return self.pool.submit(self._request, url, method,
+    def request(self, method, url, callback=None, **kwargs):
+        return self.pool.submit(self._request, method, url,
                                 callback=callback or self.default_callback, **kwargs)
 
     def get(self, url, callback=None, **kwargs):
-        return self.request(url, 'get', callback, **kwargs)
+        return self.request('get', url, callback, **kwargs)
 
     def post(self, url, callback=None, **kwargs):
-        return self.request(url, 'post', callback, **kwargs)
+        return self.request('post', url, callback, **kwargs)
 
     def delete(self, url, callback=None, **kwargs):
-        return self.request(url, 'delete', callback, **kwargs)
+        return self.request('delete', url, callback, **kwargs)
 
     def put(self, url, callback=None, **kwargs):
-        return self.request(url, 'put', callback, **kwargs)
+        return self.request('put', url, callback, **kwargs)
 
     def head(self, url, callback=None, **kwargs):
-        return self.request(url, 'head', callback, **kwargs)
+        return self.request('head', url, callback, **kwargs)
+
+    def options(self, url, callback=None, **kwargs):
+        return self.request('options', url, callback, **kwargs)
+
+    def patch(self, url, callback=None, **kwargs):
+        return self.request('patch', url, callback, **kwargs)
