@@ -24,7 +24,7 @@ else:
 
 
 class StressTest(object):
-    '''changed_callback may be lambda x=None:os._exit(0)'''
+    """changed_callback may be lambda x=None:os._exit(0)"""
 
     def __init__(self, curl='', n=100, interval=0, stop=None, chunk=1,
                  parser=None, logger_function=None, changed_callback=None,
@@ -111,7 +111,7 @@ class Uptimer(object):
     INIT_TEMP_VALUE = md5(str(time.time()**2))
 
     def __init__(self, request, ensure_resp_cb=None, timeout=None, retry=0):
-        '''request: dict or curl-string.'''
+        """request: dict or curl-string."""
         self.req = Requests()
         self.last_cb_resp = self.INIT_TEMP_VALUE
         self.cb = ensure_resp_cb or self.default_callback
@@ -175,7 +175,7 @@ class CleanRequest(object):
     def __init__(self, request, ensure_responce=None, n=10, interval=0,
                  include_cookie=True, retry=1, timeout=15, logger_function=None,
                  encoding='utf-8', **kwargs):
-        '''request: dict or curl-string.'''
+        """request: dict or curl-string."""
         if isinstance(request, (str, unicode)):
             request = curlparse(request)
         assert isinstance(request, dict), 'request should be dict.'

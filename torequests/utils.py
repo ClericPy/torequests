@@ -31,8 +31,8 @@ class Config:
 def simple_cmd():
     parser = argparse.ArgumentParser(
         prog='Simple command-line function toolkit.',
-        description='''Input function name and args and kwargs.
-        python xxx.py main -a 1 2 3 -k a=1,b=2,c=3''')
+        description="""Input function name and args and kwargs.
+        python xxx.py main -a 1 2 3 -k a=1,b=2,c=3""")
     parser.add_argument('-f', '--func_name', default='main')
     parser.add_argument('-a', '--args', dest='args', nargs='*')
     parser.add_argument('-k', '--kwargs', dest='kwargs')
@@ -77,8 +77,8 @@ class Curl(object):
         self.parser.add_argument('--compressed', action='store_true')
 
     def parse(self, cmd, encode='utf-8'):
-        '''requests.request(**Curl.parse(curl_bash));
-         curl_bash sometimes should use r'...' '''
+        """requests.request(**Curl.parse(curl_bash));
+           curl_bash sometimes should use r'...' """
         assert '\n' not in cmd, 'curl_bash should not contain \\n, try r"...".'
         if cmd.startswith('http'):
             return {'url': cmd, 'method': 'get'}
@@ -153,14 +153,14 @@ null = Null()
 
 
 def itertools_chain(*iterables):
-    '''From itertools import chain.'''
+    """From itertools import chain."""
     for it in iterables:
         for element in it:
             yield element
 
 
 def slice_into_pieces(seq, n):
-    '''return a generation of pieces'''
+    """return a generation of pieces"""
     length = len(seq)
     if length % n == 0:
         size = length // n
@@ -171,7 +171,7 @@ def slice_into_pieces(seq, n):
 
 
 def slice_by_size(seq, size):
-    '''return as a generation of chunks'''
+    """return as a generation of chunks"""
     filling = null
     for it in zip(*(itertools_chain(seq, [filling] * size),) * size):
         if filling in it:
@@ -181,7 +181,7 @@ def slice_by_size(seq, size):
 
 
 def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
-    '''
+    """
     %z not work.
     Translate timestamp into human readable: %Y-%m-%d %H:%M:%S.
     tzone: time compensation, by "+ time.timezone + tzone * 3600";
@@ -190,7 +190,7 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
     # example:
     print(ttime())
     print(ttime(1486572818.4218583298472936253)) # 2017-02-09 00:53:38
-    '''
+    """
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestamp = timestamp if timestamp != None else time.time()
     timestamp = int(str(timestamp).split('.')[0][:10])
@@ -202,12 +202,12 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
 
 
 def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
-    '''
+    """
     %z not work.
     Translate time string like %Y-%m-%d %H:%M:%S into timestamp.
     tzone: time compensation, by " - time.timezone - tzone * 3600";
            eastern eight(+8) time zone by default(can be set with Config.TIMEZONE).
-    '''
+    """
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestr = timestr or ttime()
     try:
@@ -278,10 +278,10 @@ class Counts(object):
 
 
 def unique(seq, return_as=None):
-    '''Unique the seq in order. 
+    """Unique the seq in order. 
     Instead of the slow way: 
         lambda seq: (x for index, x in enumerate(seq) if seq.index(x)==index)
-    return_as: generator for default, or list / set / str...'''
+    return_as: generator for default, or list / set / str..."""
     seen = set()
     add = seen.add
     generator = (x for x in seq if x not in seen and not add(x))
@@ -318,13 +318,13 @@ def unparse_qsl(qsl, sort=False, reverse=False):
 
 
 class Regex(object):
-    '''Input string, return a list of mapping object'''
+    """Input string, return a list of mapping object"""
 
     def __init__(self, ensure_mapping=False):
-        '''
+        """
         ensure_mapping: ensure mapping one to one, 
                         if False, will return all(more than 1) 
-                        mapped object list.'''
+                        mapped object list."""
         self.container = []
         self.ensure_mapping = ensure_mapping
 
@@ -386,7 +386,7 @@ class Regex(object):
                         instance, item[0].pattern)
 
     def show_all(self, as_string=True):
-        '''python2 will not show flags'''
+        """python2 will not show flags"""
         result = []
         for item in self.container:
             key = str(item[0])[10:] if PY3 else item[0].pattern

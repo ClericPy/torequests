@@ -118,16 +118,16 @@ class Loop():
         return new_coro_func
 
     def run_in_executor(self, executor=None, func=None, *args):
-        '''if kwargs needed, try like this: func=lambda: foo(*args, **kwargs)'''
+        """if kwargs needed, try like this: func=lambda: foo(*args, **kwargs)"""
         return self.loop.run_in_executor(executor, func, *args)
 
     def run_in_thread_pool(self, pool_size=None, func=None, *args):
-        '''if kwargs needed, try like this: func=lambda: foo(*args, **kwargs)'''
+        """if kwargs needed, try like this: func=lambda: foo(*args, **kwargs)"""
         executor = Pool(pool_size)
         return self.loop.run_in_executor(executor, func, *args)
 
     def run_in_process_pool(self, pool_size=None, func=None, *args):
-        '''if kwargs needed, try like this: func=lambda: foo(*args, **kwargs)'''
+        """if kwargs needed, try like this: func=lambda: foo(*args, **kwargs)"""
         executor = ProcessPool(pool_size)
         return self.loop.run_in_executor(executor, func, *args)
 
@@ -225,7 +225,7 @@ class Loop():
         self.loop.close()
 
     def stop(self):
-        '''stop self.loop directly, often be used with run_forever'''
+        """stop self.loop directly, often be used with run_forever"""
         try:
             self.loop.stop()
         except Exception as e:
@@ -297,13 +297,13 @@ class Frequency:
 
 
 class Requests(Loop):
-    '''
+    """
         The `kwargs` is same as kwargs of aiohttp.ClientSession.
         Sometimes the performance is limited by too large "n", 
             or raise ValueError: too many file descriptors on select() (win32),
             so n=100 by default.
         frequencies: {host: Frequency obj} or {host: [n, interval]}
-    '''
+    """
 
     def __init__(self, n=100, interval=0, session=None,
                  return_exceptions=True, default_callback=None,
@@ -390,7 +390,7 @@ class Requests(Loop):
             raise error
 
     def request(self, method, url, callback=None, **kwargs):
-        '''submit the coro of self._request to self.loop'''
+        """submit the coro of self._request to self.loop"""
         return self.submit(self._request(method, url, **kwargs),
                            callback=(callback or self.default_callback))
 
@@ -416,8 +416,8 @@ class Requests(Loop):
         return self.request('patch', url, callback, **kwargs)
 
     def close(self):
-        '''Should be closed[explicit] while using external session or connector,
-        instead of close by self.__del__.'''
+        """Should be closed[explicit] while using external session or connector,
+        instead of close by self.__del__."""
         try:
             self.session.close()
         except Exception as e:

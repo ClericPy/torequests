@@ -9,7 +9,7 @@ from torequests.dummy import *
 
 
 def test_dummy_Requests():
-    '''use default event loop'''
+    """use default event loop"""
     trequests = Requests()
     test_url = 'http://p.3.cn/prices/mgets?skuIds=J_1273500'
     ss = [trequests.get(test_url, retry=0, callback=lambda x:len(
@@ -20,7 +20,7 @@ def test_dummy_Requests():
 
 
 def test_dummy_Requests_time_interval_sem_run_forever(capsys):
-    '''  test_dummy_Requests_time_interval_sem_run_forever '''
+    """  test_dummy_Requests_time_interval_sem_run_forever """
     with capsys.disabled():
         trequests = Requests(frequencies={'p.3.cn': (2, 1)})
         trequests.async_run_forever()

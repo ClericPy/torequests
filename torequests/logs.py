@@ -8,7 +8,7 @@ main_logger = logging.getLogger('torequests.main')
 def init_logger(name='', handler_path_levels=None,
                 level=logging.INFO, formatter=None,
                 formatter_str=None, datefmt="%Y-%m-%d %H:%M:%S"):
-    '''Args:
+    """Args:
     name = '' or logger obj.
     handler_path_levels = [['loggerfile.log',13],['','DEBUG'],['','info'],['','notSet']] # [[path,level]]
     level : the least level for the logger.
@@ -19,7 +19,7 @@ def init_logger(name='', handler_path_levels=None,
 
     custom formatter:
         %(asctime)s  %(created)f  %(filename)s  %(funcName)s  %(levelname)s  %(levelno)s  %(lineno)s   %(message)s   %(module)s    %(name)s   %(pathname)s   %(process)s   %(relativeCreated)s   %(thread)s  %(threadName)s  
-    '''
+    """
     levels = {'NOTSET': logging.NOTSET, 'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
               'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
     if not formatter:

@@ -2,12 +2,12 @@
 from setuptools import setup, find_packages
 import sys
 import platform
-'''
+"""
 linux:
 python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload dist/*
 win32:
 python3 setup.py bdist_wheel&python2 setup.py bdist_wheel&twine upload dist/*
-'''
+"""
 
 
 py_version = sys.version_info

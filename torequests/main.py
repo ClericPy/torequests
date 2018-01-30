@@ -20,9 +20,7 @@ if PY3:
 
 
 class NewExecutorPool(Executor):
-    '''
-    add async_func(function decorator) for submitting called-function into NewExecutorPool obj.
-    '''
+    """add async_func(function decorator) for submitting called-function into NewExecutorPool obj."""
 
     def __init__(self, n=None, timeout=None, default_callback=None):
         if n is None and (not isinstance(range, type)):
@@ -58,7 +56,7 @@ class Pool(NewExecutorPool, ThreadPoolExecutor):
         super(Pool, self).__init__(*args, **kwargs)
 
     def submit(self, func, *args, **kwargs):
-        '''self.submit(function,arg1,arg2,arg3=3)'''
+        """self.submit(function,arg1,arg2,arg3=3)"""
 
         with self._shutdown_lock:
             if self._shutdown:
@@ -83,14 +81,15 @@ class ProcessPool(NewExecutorPool, ProcessPoolExecutor):
         super(ProcessPool, self).__init__(*args, **kwargs)
 
     def submit(self, func, *args, **kwargs):
-        '''self.submit(function,arg1,arg2,arg3=3)'''
+        """self.submit(function,arg1,arg2,arg3=3)"""
 
         with self._shutdown_lock:
             if PY3 and self._broken:
                 raise BrokenProcessPool('A child process terminated '
-                    'abruptly, the process pool is not usable anymore')
+                                        'abruptly, the process pool is not usable anymore')
             if self._shutdown_thread:
-                raise RuntimeError('cannot schedule new futures after shutdown')
+                raise RuntimeError(
+                    'cannot schedule new futures after shutdown')
             future = NewFuture(self._timeout, args, kwargs)
             callback = kwargs.pop('callback', self.default_callback)
             if callback:
@@ -167,7 +166,7 @@ def threads(n=None, timeout=None):
 
 
 def get_results_generator(future_list, timeout=None, sort_by_completed=False):
-    '''Return as a generator, python2 not support yield from...'''
+    """Return as a generator, python2 not support yield from..."""
     try:
         if sort_by_completed:
             for future in as_completed(future_list, timeout=timeout):
