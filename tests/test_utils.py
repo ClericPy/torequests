@@ -115,3 +115,10 @@ def test_json_parser():
     # print(json_parser('$.items[*].title').find(scode))
     result = parser.parse(scode, [['1-n', 'json', '$.items[*]'], ['n-n', 'json', '$.title']])
     assert result == ['a', 'b', u'中文']
+
+
+def test_try_import():
+    assert try_import('re')
+    assert try_import('re', 'findall')
+    assert not try_import('fake_re')
+    assert not try_import('fake_re', 'findall')

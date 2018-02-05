@@ -2,6 +2,7 @@
 # compatible for win32 / python 2 & 3
 import argparse
 import hashlib
+import importlib
 import os
 import re
 import shlex
@@ -11,6 +12,7 @@ import time
 
 from .main import run_after_async
 from .versions import PY2, PY3, PY35_PLUS
+from .exceptions import ImportErrorModule
 
 if PY2:
     from urllib import quote, quote_plus, unquote_plus
@@ -61,28 +63,29 @@ def simple_cmd():
 
 class Curl(object):
 
-    def __init__(self):
-        self.parser = argparse.ArgumentParser()
-        self.parser.add_argument('curl')
-        self.parser.add_argument('url')
-        self.parser.add_argument('-X', '--method', default='get')
-        self.parser.add_argument('-A', '--user-agent')
-        self.parser.add_argument('-u', '--user')  # <user[:password]>
-        self.parser.add_argument('-x', '--proxy')  # proxy.com:port
-        self.parser.add_argument('-d', '--data')
-        self.parser.add_argument('--data-binary')
-        self.parser.add_argument('--connect-timeout', type=float)
-        self.parser.add_argument('-H', '--header', action='append',
-                                 default=[])  # key: value
-        self.parser.add_argument('--compressed', action='store_true')
+    # def __init__(self):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('curl')
+    parser.add_argument('url')
+    parser.add_argument('-X', '--method', default='get')
+    parser.add_argument('-A', '--user-agent')
+    parser.add_argument('-u', '--user')  # <user[:password]>
+    parser.add_argument('-x', '--proxy')  # proxy.com:port
+    parser.add_argument('-d', '--data')
+    parser.add_argument('--data-binary')
+    parser.add_argument('--connect-timeout', type=float)
+    parser.add_argument('-H', '--header', action='append',
+                        default=[])  # key: value
+    parser.add_argument('--compressed', action='store_true')
 
-    def parse(self, cmd, encode='utf-8'):
+    @classmethod
+    def parse(cls, cmd, encode='utf-8'):
         """requests.request(**Curl.parse(curl_bash));
            curl_bash sometimes should use r'...' """
         assert '\n' not in cmd, 'curl_bash should not contain \\n, try r"...".'
         if cmd.startswith('http'):
             return {'url': cmd, 'method': 'get'}
-        args, unknown = self.parser.parse_known_args(shlex.split(cmd.strip()))
+        args, unknown = cls.parser.parse_known_args(shlex.split(cmd.strip()))
         requests_args = {}
         headers = {}
         requests_args['url'] = args.url
@@ -116,7 +119,7 @@ class Curl(object):
         return requests_args
 
 
-curlparse = Curl().parse
+curlparse = Curl.parse
 
 
 class Null(object):
@@ -414,3 +417,26 @@ class UA:
     Chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
     IE6 = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'
     IE9 = 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0;'
+
+
+def try_import(module_name, names=None, default=ImportErrorModule):
+    """
+    Try import module_name, except ImportError and return default.
+    Sometimes be used for lazy-import, 
+    """
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError:
+        module = ImportErrorModule(module_name) if default is ImportErrorModule else default
+    if not names:
+        return module
+    if not isinstance(names, (tuple, set, list)):
+        names = [names]
+    result = []
+    for name in names:
+        if hasattr(module, name):
+            result.append(module.__getattribute__(name))
+        else:
+            result.append(ImportErrorModule('%s.%s' % (module_name, name))
+                          if default is ImportErrorModule else default)
+    return result[0] if len(result) == 1 else result
