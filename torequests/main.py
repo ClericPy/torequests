@@ -115,7 +115,7 @@ class NewFuture(Future):
     WARNING: Future thread will not stop running until function finished or pid killed.
     """
     if PY3:
-        from .py3_patch import new_future_await
+        from ._py3_patch import new_future_await
         __await__ = new_future_await
 
     def __init__(self, timeout=None, args=None, kwargs=None):
