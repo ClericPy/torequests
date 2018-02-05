@@ -13,9 +13,9 @@ def init_logger(name='', handler_path_levels=None,
     handler_path_levels = [['loggerfile.log',13],['','DEBUG'],['','info'],['','notSet']] # [[path,level]]
     level : the least level for the logger.
     formatter = logging.Formatter(
-            '%(levelname)-6s  %(asctime)s  %(name)s (%(filename)s: %(lineno)s): %(message)s',
+            '%(levelname)-8s  %(asctime)s  %(name)s (%(filename)s: %(lineno)s): %(message)s',
              "%Y-%m-%d %H:%M:%S")
-    formatter_str = '%(levelname)-6s  %(asctime)s  %(name)s (%(funcName)s: %(lineno)s): %(message)s'
+    formatter_str = '%(levelname)-8s  %(asctime)s  %(name)s (%(funcName)s: %(lineno)s): %(message)s'
 
     custom formatter:
         %(asctime)s  %(created)f  %(filename)s  %(funcName)s  %(levelname)s  %(levelno)s  %(lineno)s   %(message)s   %(module)s    %(name)s   %(pathname)s   %(process)s   %(relativeCreated)s   %(thread)s  %(threadName)s  
@@ -26,7 +26,7 @@ def init_logger(name='', handler_path_levels=None,
         if formatter_str:
             formatter_str = formatter_str
         else:
-            formatter_str = '%(levelname)-6s  %(asctime)s  %(name)s (%(filename)s: %(lineno)s): %(message)s'
+            formatter_str = '%(levelname)-8s  %(asctime)s  %(name)s (%(filename)s: %(lineno)s): %(message)s'
         formatter = logging.Formatter(formatter_str, datefmt=datefmt)
     logger = name if isinstance(
         name, logging.Logger) else logging.getLogger(str(name))
