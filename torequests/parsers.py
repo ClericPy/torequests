@@ -4,13 +4,15 @@ import json
 import re
 from functools import reduce
 
-from jsonpath_rw_ext import parse as json_parser
-from lxml.html import HTMLParser, XHTMLParser, fromstring, tostring
-
 from .versions import PY2
+from .utils import try_import
 
 if not PY2:
     unicode = str
+
+JP = try_import('jsonpath_rw_ext', 'parse')
+HTMLParser, XHTMLParser, fromstring, tostring = try_import(
+    'lxml.html', ['HTMLParser', 'XHTMLParser', 'fromstring', 'tostring'])
 
 
 def get_one(seq, default=None, skip_string_iter=True):
@@ -24,12 +26,11 @@ def get_one(seq, default=None, skip_string_iter=True):
 
 class SimpleParser(object):
     """
-    pip install lxml cssselect
+        pip install lxml cssselect jsonpath_rw_ext
     """
 
-    def __init__(self, encoding=None,
-                 json_parser=None, regex_parser=None, html_parser=None,
-                 xml_parser=None):
+    def __init__(self, encoding=None, json_parser=None, regex_parser=None,
+                 html_parser=None, xml_parser=None):
         self._encoding = encoding or 'utf-8'
         self._json = json_parser or json
         self._re = regex_parser or re
@@ -84,7 +85,7 @@ class SimpleParser(object):
         # normalize json_path
         json_path = re.sub('\.$', '',
                            re.sub('^JSON\.?|^\$?\.?', '$.', json_path))
-        jp = json_parser(json_path)
+        jp = JP(json_path)
         return [i.value for i in jp.find(scode)]
 
     def const_parser(self, scode, *args):
@@ -93,17 +94,17 @@ class SimpleParser(object):
     def parse(self, scode, args_chain=None, join_with=None, default=''):
         """
         single arg:
-        [one_or_many, parser_name, method, args]
+        [one_to_many, parser_name, method, args]
         args_chain: 
         [['1-n', 're', '(<.*?>)', '\\1']]
 
         """
         for arg in args_chain:
             # py2 not support * unpack
-            one_or_many, parser_name, parse_args = (arg[0], arg[1], arg[2:])
+            one_to_many, parser_name, parse_args = (arg[0], arg[1], arg[2:])
             assert re.match(
-                '^[1n]-[1n]$', one_or_many), 'one_or_many should be one of 1-n, n-n, n-1'
-            inputs, outputs = one_or_many.split('-')
+                '^[1n]-[1n]$', one_to_many), 'one_to_many should be one of 1-n, n-n, n-1'
+            inputs, outputs = one_to_many.split('-')
             parser = self._choose_parser(parser_name)
             # set by in_puts
             if inputs == 'n':
