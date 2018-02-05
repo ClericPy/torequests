@@ -1,6 +1,7 @@
 #! coding:utf-8
 import time
 from torequests.utils import *
+from torequests.parsers import *
 import requests
 
 ### with capsys.disabled():
@@ -71,3 +72,46 @@ def test_clean_request():
 def test_failure():
     from torequests.exceptions import FailureException
     assert bool(FailureException(BaseException()))==False
+
+
+def test_xml_parser():
+    parser = SimpleParser()
+    scode = u'''<?xml version='1.0' encoding='utf-8'?>
+    <slideshow 
+        title="Sample Slide Show"
+        date="Date of publication"
+        author="Yours Truly"
+        >
+        <!-- TITLE SLIDE -->
+        <slide type="all">
+        <title>Wake up to WonderWidgets!</title>
+        </slide>
+
+        <!-- OVERVIEW -->
+        <slide type="all">
+            <title>中文</title>
+            <item>Why <em>WonderWidgets</em> are great</item>
+            <item/>
+            <item>Who <em>buys</em> WonderWidgets</item>
+        </slide>
+
+    </slideshow>'''.encode('u8')
+    result = parser.parse(
+        scode, [['1-n', 'xml', '//slide', 'xml'], ['n-n', 'xml', '/slide/title', 'text']])
+    assert result == [u'Wake up to WonderWidgets!', u'中文']
+
+
+def test_html_parser():
+    parser = SimpleParser()
+    scode = u'<div><p>Hello<br>world</p>TAIL<p>Hello<br>world中文!</p>TAIL</div>'
+    result = parser.parse(
+        scode, [['1-n', 'html', 'p', 'html'], ['n-n', 'html', 'p', 'text']])
+    assert result == [u'Helloworld', u'Helloworld中文!']
+
+
+def test_json_parser():
+    parser = SimpleParser()
+    scode = {'items': [{'title': 'a'}, {'title': 'b'}, {'title': u'中文'}]}
+    # print(json_parser('$.items[*].title').find(scode))
+    result = parser.parse(scode, [['1-n', 'json', '$.items[*]'], ['n-n', 'json', '$.title']])
+    assert result == ['a', 'b', u'中文']
