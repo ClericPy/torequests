@@ -5,7 +5,7 @@ import json
 import time
 import traceback
 
-from .utils import (PY35_PLUS, Counts, curlparse, md5, parse_qsl,
+from .utils import (Counts, curlparse, md5, parse_qsl,
                     slice_by_size, timepass, ttime, unparse_qsl, urlparse,
                     urlunparse)
 from .versions import PY3, PY35_PLUS, PY2
