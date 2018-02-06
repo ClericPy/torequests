@@ -4,7 +4,8 @@ from torequests.utils import *
 from torequests.parsers import *
 import requests
 
-### with capsys.disabled():
+# with capsys.disabled():
+
 
 def test_curlparse_get():
     """  test_dummy_utils """
@@ -25,24 +26,34 @@ def test_curlparse_post():
 
 
 def test_slice_by_size():
-    assert list(slice_by_size(range(10), 6)) == [(0, 1, 2, 3, 4, 5), (6, 7, 8, 9)], 'test fail: slice_by_size'
+    assert list(slice_by_size(range(10), 6)) == [
+        (0, 1, 2, 3, 4, 5), (6, 7, 8, 9)], 'test fail: slice_by_size'
+
 
 def test_slice_into_pieces():
-    assert list(slice_into_pieces(range(10),3))==[(0, 1, 2, 3), (4, 5, 6, 7), (8, 9)], 'test fail: slice_into_pieces'
+    assert list(slice_into_pieces(range(10), 3)) == [
+        (0, 1, 2, 3), (4, 5, 6, 7), (8, 9)], 'test fail: slice_into_pieces'
+
 
 def test_ttime_ptime():
-    assert time.time() - ptime(ttime(tzone=0),tzone=0) < 2, 'fail: ttime / ptime'
+    assert time.time() - ptime(ttime(tzone=0), tzone=0) < 2, 'fail: ttime / ptime'
+
 
 def test_escape_unescape():
-    assert escape('<>')=='&lt;&gt;' and unescape('&lt;&gt;')=='<>', 'fail: escape'
+    assert escape('<>') == '&lt;&gt;' and unescape(
+        '&lt;&gt;') == '<>', 'fail: escape'
+
 
 def test_counts():
     c = Counts()
     [c.x for i in range(10)]
     assert c.c == 11, 'fail: test_counts'
 
+
 def test_unique():
-    assert list(unique(list(range(4,0,-1))+list(range(5))))==[4, 3, 2, 1, 0]
+    assert list(unique(list(range(4, 0, -1)) +
+                       list(range(5)))) == [4, 3, 2, 1, 0]
+
 
 def test_regex():
     reg = Regex()
@@ -55,10 +66,10 @@ def test_regex():
     reg.register('http.*HELLOWORLD2', 'helloworld2', flags=re.I)
 
     assert (reg.search('http://cctv.com'))
-    assert (reg.match('http://helloworld')==['helloworld'])
-    assert (reg.match('non-http://helloworld')==[])
-    assert (reg.search('non-http://helloworld')==['helloworld'])
-    assert (len(reg.search('non-http://helloworld2'))==2)
+    assert (reg.match('http://helloworld') == ['helloworld'])
+    assert (reg.match('non-http://helloworld') == [])
+    assert (reg.search('non-http://helloworld') == ['helloworld'])
+    assert (len(reg.search('non-http://helloworld2')) == 2)
 
 
 def test_clean_request():
@@ -66,15 +77,16 @@ def test_clean_request():
     request = ("""curl 'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2' -H 'Pragma: no-cache' -H 'DNT: 1' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.9' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Cache-Control: no-cache' -H 'Referer: http://www.ip138.com/ips138.asp?ip=39.75.221.132&action=2' -H 'Cookie: ASPSESSIONIDSQRRSADB=MLHDPOPCAMBDGPFGBEEJKLAF' -H 'Connection: keep-alive' --compressed""")
 
     c = CleanRequest(request)
-    assert (c.x == {'url': 'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2', 'method': 'get'})
+    assert (c.x == {
+            'url': 'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2', 'method': 'get'})
 
 
 def test_failure():
     from torequests.exceptions import FailureException
-    assert bool(FailureException(BaseException()))==False
+    assert bool(FailureException(BaseException())) == False
 
 
-def test_xml_parser():
+def test_parsers():
     parser = SimpleParser()
     scode = u'''<?xml version='1.0' encoding='utf-8'?>
     <slideshow 
@@ -98,23 +110,25 @@ def test_xml_parser():
     </slideshow>'''.encode('u8')
     result = parser.parse(
         scode, [['1-n', 'xml', '//slide', 'xml'], ['n-n', 'xml', '/slide/title', 'text']])
-    assert result == [u'Wake up to WonderWidgets!', u'中文']
+    assert result == [u'Wake up to WonderWidgets!', u'中文'], 'test xml fail.'
 
-
-def test_html_parser():
-    parser = SimpleParser()
     scode = u'<div><p>Hello<br>world</p>TAIL<p>Hello<br>world中文!</p>TAIL</div>'
     result = parser.parse(
         scode, [['1-n', 'html', 'p', 'html'], ['n-n', 'html', 'p', 'text']])
-    assert result == [u'Helloworld', u'Helloworld中文!']
+    assert result == [u'Helloworld', u'Helloworld中文!'], 'test html fail.'
 
-
-def test_json_parser():
-    parser = SimpleParser()
     scode = {'items': [{'title': 'a'}, {'title': 'b'}, {'title': u'中文'}]}
-    # print(json_parser('$.items[*].title').find(scode))
-    result = parser.parse(scode, [['1-n', 'json', '$.items[*]'], ['n-n', 'json', '$.title']])
-    assert result == ['a', 'b', u'中文']
+    result = parser.parse(
+        scode, [['1-n', 'json', '$.items[*]'], ['n-n', 'json', '$.title']])
+    assert result == ['a', 'b', u'中文'], 'test json fail.'
+
+    scode = {'a': '1', 'items': [{'title': 'b'}, {'title': 'b'}, {'title': u'中文'}]}
+    result = parser.parse(scode, [['1-n', 'object', '$.items[@.title is b]'], ['n-n', 'object', '$.*']])
+    assert result == [{'title': 'b'}, {'title': 'b'}], 'test object fail.'
+
+    scode = '<p> hello world </p>'
+    result = parser.parse(scode, [['1-n', 're', 'findall', '<.*?>']])
+    assert result == ['<p>', '</p>'], 'test re fail.'
 
 
 def test_try_import():
