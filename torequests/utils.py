@@ -7,12 +7,11 @@ import os
 import re
 import shlex
 import signal
-import sys
 import time
 
-from .main import run_after_async
-from .versions import PY2, PY3, PY35_PLUS
 from .exceptions import ImportErrorModule
+from .main import run_after_async
+from .versions import PY2, PY3
 
 if PY2:
     from urllib import quote, quote_plus, unquote_plus
@@ -419,7 +418,7 @@ class UA:
     IE9 = 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0;'
 
 
-def try_import(module_name, names=None, default=ImportErrorModule):
+def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
     """
     Try import module_name, except ImportError and return default.
     Sometimes be used for lazy-import, 
@@ -427,7 +426,13 @@ def try_import(module_name, names=None, default=ImportErrorModule):
     try:
         module = importlib.import_module(module_name)
     except ImportError:
-        module = ImportErrorModule(module_name) if default is ImportErrorModule else default
+        if warn:
+            if warn is True:
+                print('Module `%s` not found. Install it to remove this warning' % module_name)
+            else:
+                warn(module_name, names, default)
+        module = ImportErrorModule(
+            module_name) if default is ImportErrorModule else default
     if not names:
         return module
     if not isinstance(names, (tuple, set, list)):
