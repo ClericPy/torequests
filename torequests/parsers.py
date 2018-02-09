@@ -27,9 +27,10 @@ def get_one(seq, default=None, skip_string_iter=True):
 
 class SimpleParser(object):
     """
-        pip install lxml cssselect jsonpath_rw_ext objectpath
+        pip install lxml cssselect jsonpath_rw_ext objectpath;
     """
     alias = {
+        'py': 'python',
         'jp': 'jsonpath',
         'json': 'jsonpath',
         'json_path': 'jsonpath',
@@ -43,8 +44,12 @@ class SimpleParser(object):
         'cssselector': 'html',
     }
 
-    def __init__(self, encoding='utf-8', json_parser=None, regex_parser=None,
-                 html_parser=None, xml_parser=None):
+    def __init__(self,
+                 encoding='utf-8',
+                 json_parser=None,
+                 regex_parser=None,
+                 html_parser=None,
+                 xml_parser=None):
         self._encoding = encoding
         self._json = json_parser or json
         self._re = regex_parser or re
@@ -58,56 +63,103 @@ class SimpleParser(object):
             raise ValueError('BadParser name %s' % name)
         return getattr(self, func_name)
 
-    def ensure_list(self, obj):
+    @staticmethod
+    def ensure_list(obj):
+        """
+        null obj -> return []; 
+
+        str, unicode, bytes, bytearray -> [obj];
+
+        else -> list(obj)
+        """
         if not obj:
             return []
         elif isinstance(obj, (str, unicode, bytes, bytearray)):
             return [obj]
-        else:
+        elif hasattr(obj, '__iter__'):
             return list(obj)
+        else:
+            return [obj]
+
+    @staticmethod
+    def ensure_json(obj):
+        if isinstance(obj, (str, unicode, bytes, bytearray)):
+            return self._json.loads(obj, encoding=self._encoding)
+        return obj
+
+    def ensure_str(self, obj):
+        if isinstance(obj, bytes):
+            return obj.decode(self._encoding)
+        return obj
+
+    def python_parser(self, obj, *args):
+        """operate a python obj"""
+        attr, args = args[0], args[1:]
+        item = getattr(obj, attr)
+        if callable(item):
+            item = item(*args)
+        return [item]
 
     def re_parser(self, scode, *args):
-        result = getattr(self._re, args[0])(*(list(args[1:]) + [scode]))
+        """
+        args: [arg1, arg2]
+        
+        arg[0] = a valid regex pattern
+
+        arg[1] : if exist, call sub, else call findall
+
+        return an ensure_list
+        """
+        # py2 not support * unpack
+        scode = self.ensure_str(scode)
+        function = getattr(self._re, 'sub' if len(args) > 1 else 'findall')
+        result = function(string=scode, *args)
         return self.ensure_list(result)
 
     def html_parser(self, scode, *args):
         """
-        args[0]: cssselector for the element
-        args[1]: text / html / xml
+        args[0] = cssselector
+
+        args[1] = text / html / xml / @attribute_name
         """
         allow_method = ('text', 'html', 'xml')
-        css, method = args
-        assert method in allow_method, 'method allow: %s' % allow_method
-        result = self.ensure_list(fromstring(
-            scode, parser=self._html_parser).cssselect(css))
-        result = [tostring(item, method=method, with_tail=0,
-                           encoding='unicode') for item in result]
+        css_path, method = args
+        assert method in allow_method or method.startswith(
+            '@'), 'method allow: %s or @attr' % allow_method
+        result = self.ensure_list(
+            fromstring(scode, parser=self._html_parser).cssselect(css_path))
+        if method.startswith('@'):
+            result = [item.get(method[1:]) for item in result]
+        else:
+            result = [
+                tostring(item, method=method, with_tail=0, encoding='unicode')
+                for item in result
+            ]
         return result
 
     def xml_parser(self, scode, *args):
         """
-        args[0]: cssselector for the element
+        args[0]: xpath
+
         args[1]: text / html / xml
         """
         allow_method = ('text', 'html', 'xml')
         xpath_string, method = args
         assert method in allow_method, 'method allow: %s' % allow_method
-        result = self.ensure_list(fromstring(
-            scode, parser=self._xml_parser).xpath(xpath_string))
-        result = [tostring(item, method=method, with_tail=0,
-                           encoding='unicode') for item in result]
+        result = self.ensure_list(
+            fromstring(scode, parser=self._xml_parser).xpath(xpath_string))
+        result = [
+            tostring(item, method=method, with_tail=0, encoding='unicode')
+            for item in result
+        ]
         return result
-
-    def ensure_json(self, obj):
-        if isinstance(obj, (str, unicode, bytes, bytearray)):
-            return self._json.loads(obj, encoding=self._encoding)
-        return obj
 
     def jsonpath_parser(self, scode, json_path):
         scode = self.ensure_json(scode)
         # normalize json_path
-        json_path = self._re.sub('\.$', '', self._re.sub(
-            '^JSON\.?|^\$?\.?', '$.', json_path))
+        json_path = self._re.sub('\.$', '',
+                                 self._re.sub('^JSON\.?|^\$?\.?', '$.',
+                                              json_path))
         jp = JP(json_path)
         return [i.value for i in jp.find(scode)]
 
@@ -136,27 +188,26 @@ class SimpleParser(object):
             assert self._re.match(
                 '^[1n]-[1n]$',
                 one_to_many), 'one_to_many should be one of 1-1, 1-n, n-n, n-1'
-            inputs, outputs = one_to_many.split('-')
+            input_count, output_count = one_to_many.split('-')
             parser = self._choose_parser(parser_name)
-            # set by in_puts
-            if inputs == 'n':
+            # input data to parse.
+            if input_count == 'n':
                 scode = list(
                     map(lambda item: parser(item, *parse_args), scode))
-            elif inputs == '1':
-                if parser in (self.jsonpath_parser, self.objectpath_parser):
-                    scode = parser(scode, *parse_args)
-                else:
-                    scode = parser(
-                        get_one(scode, default=default), *parse_args)
-            # get out_puts
-            if parser == self.objectpath_parser:
-                print('ignore')
+            if input_count == '1':
+                if parser not in (self.jsonpath_parser, self.objectpath_parser,
+                                  self.python_parser):
+                    # json may remain multi-items
+                    scode = get_one(scode, default=default)
+                scode = parser(scode, *parse_args)
+            # ensure result match n or 1 after parsing.
+            if parser in (self.objectpath_parser,):
+                # objectpath not need
                 continue
-
-            if outputs == '1':
+            if output_count == '1':
                 # 1-1 or n-1
                 scode = get_one(scode, default=default)
-            elif inputs == 'n':
+            elif input_count == 'n':
                 # n-n
                 scode = [get_one(i, default=default) for i in scode]
             else:

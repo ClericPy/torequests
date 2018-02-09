@@ -22,21 +22,25 @@ def test_curlparse_post():
     args = curlparse(cmd)
     resp = requests.request(**args)
     rj = resp.json()
-    assert rj['form']['test1'] == u'测试', 'test fail: curlparse post & urlencode'
+    assert rj['form'][
+        'test1'] == u'测试', 'test fail: curlparse post & urlencode'
 
 
 def test_slice_by_size():
-    assert list(slice_by_size(range(10), 6)) == [
-        (0, 1, 2, 3, 4, 5), (6, 7, 8, 9)], 'test fail: slice_by_size'
+    assert list(slice_by_size(range(10),
+                              6)) == [(0, 1, 2, 3, 4, 5),
+                                      (6, 7, 8, 9)], 'test fail: slice_by_size'
 
 
 def test_slice_into_pieces():
-    assert list(slice_into_pieces(range(10), 3)) == [
-        (0, 1, 2, 3), (4, 5, 6, 7), (8, 9)], 'test fail: slice_into_pieces'
+    assert list(slice_into_pieces(
+        range(10), 3)) == [(0, 1, 2, 3), (4, 5, 6, 7),
+                           (8, 9)], 'test fail: slice_into_pieces'
 
 
 def test_ttime_ptime():
-    assert time.time() - ptime(ttime(tzone=0), tzone=0) < 2, 'fail: ttime / ptime'
+    assert time.time() - ptime(
+        ttime(tzone=0), tzone=0) < 2, 'fail: ttime / ptime'
 
 
 def test_escape_unescape():
@@ -51,8 +55,8 @@ def test_counts():
 
 
 def test_unique():
-    assert list(unique(list(range(4, 0, -1)) +
-                       list(range(5)))) == [4, 3, 2, 1, 0]
+    assert list(
+        unique(list(range(4, 0, -1)) + list(range(5)))) == [4, 3, 2, 1, 0]
 
 
 def test_regex():
@@ -74,11 +78,17 @@ def test_regex():
 
 def test_clean_request():
     from torequests.crawlers import CleanRequest
-    request = ("""curl 'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2' -H 'Pragma: no-cache' -H 'DNT: 1' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.9' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Cache-Control: no-cache' -H 'Referer: http://www.ip138.com/ips138.asp?ip=39.75.221.132&action=2' -H 'Cookie: ASPSESSIONIDSQRRSADB=MLHDPOPCAMBDGPFGBEEJKLAF' -H 'Connection: keep-alive' --compressed""")
+    request = (
+        """curl 'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2' -H 'Pragma: no-cache' -H 'DNT: 1' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.9' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Cache-Control: no-cache' -H 'Referer: http://www.ip138.com/ips138.asp?ip=39.75.221.132&action=2' -H 'Cookie: ASPSESSIONIDSQRRSADB=MLHDPOPCAMBDGPFGBEEJKLAF' -H 'Connection: keep-alive' --compressed"""
+    )
 
     c = CleanRequest(request)
     assert (c.x == {
-            'url': 'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2', 'method': 'get'})
+        'url':
+        'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2',
+        'method':
+        'get'
+    })
 
 
 def test_failure():
@@ -88,6 +98,36 @@ def test_failure():
 
 def test_parsers():
     parser = SimpleParser()
+
+    scode = parser
+    result = parser.parse(scode, [['1-1', 'py', 'alias']])
+    assert isinstance(result, dict), 'test json fail.'
+
+    scode = {'items': [{'title': 'a'}, {'title': 'b'}, {'title': u'中文'}]}
+    result = parser.parse(
+        scode, [['1-n', 'json', '$.items[*]'], ['n-n', 'json', '$.title']])
+    assert result == ['a', 'b', u'中文'], 'test json fail.'
+
+    scode = {
+        'a': '1',
+        'items': [{
+            'title': 'b'
+        }, {
+            'title': 'b'
+        }, {
+            'title': u'中文'
+        }]
+    }
+    result = parser.parse(
+        scode,
+        [['1-n', 'object', '$.items[@.title is b]'], ['n-n', 'object', '$.*']])
+    assert result == [{'title': 'b'}, {'title': 'b'}], 'test object fail.'
+
+    scode = '<p> hello world </p>'
+    result = parser.parse(scode, [['1-n', 're', '<.*?>']])
+    assert result == ['<p>', '</p>'], 'test re fail.'
+    result = parser.parse(scode, [['1-n', 're', '<.*?>', '']])
+    assert result == [' hello world ']
     scode = u'''<?xml version='1.0' encoding='utf-8'?>
     <slideshow 
         title="Sample Slide Show"
@@ -108,27 +148,17 @@ def test_parsers():
         </slide>
 
     </slideshow>'''.encode('u8')
-    result = parser.parse(
-        scode, [['1-n', 'xml', '//slide', 'xml'], ['n-n', 'xml', '/slide/title', 'text']])
+    result = parser.parse(scode, [['1-n', 'xml', '//slide', 'xml'],
+                                  ['n-n', 'xml', '/slide/title', 'text']])
     assert result == [u'Wake up to WonderWidgets!', u'中文'], 'test xml fail.'
 
-    scode = u'<div><p>Hello<br>world</p>TAIL<p>Hello<br>world中文!</p>TAIL</div>'
+    scode = u'<div><p class="test" >Hello<br>world</p><p>Your<br>world</p>TAIL<p class>Hello<br>world中文!</p>TAIL</div>'
     result = parser.parse(
         scode, [['1-n', 'html', 'p', 'html'], ['n-n', 'html', 'p', 'text']])
-    assert result == [u'Helloworld', u'Helloworld中文!'], 'test html fail.'
-
-    scode = {'items': [{'title': 'a'}, {'title': 'b'}, {'title': u'中文'}]}
-    result = parser.parse(
-        scode, [['1-n', 'json', '$.items[*]'], ['n-n', 'json', '$.title']])
-    assert result == ['a', 'b', u'中文'], 'test json fail.'
-
-    scode = {'a': '1', 'items': [{'title': 'b'}, {'title': 'b'}, {'title': u'中文'}]}
-    result = parser.parse(scode, [['1-n', 'object', '$.items[@.title is b]'], ['n-n', 'object', '$.*']])
-    assert result == [{'title': 'b'}, {'title': 'b'}], 'test object fail.'
-
-    scode = '<p> hello world </p>'
-    result = parser.parse(scode, [['1-n', 're', 'findall', '<.*?>']])
-    assert result == ['<p>', '</p>'], 'test re fail.'
+    assert result == [u'Helloworld', 'Yourworld',
+                      u'Helloworld中文!'], 'test html fail.'
+    result = parser.parse(scode, [['1-n', 'html', 'p', '@class']])
+    assert result == ['test', None, ''], 'test html fail.'
 
 
 def test_try_import():
