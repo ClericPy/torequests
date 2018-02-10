@@ -22,8 +22,7 @@ def test_curlparse_post():
     args = curlparse(cmd)
     resp = requests.request(**args)
     rj = resp.json()
-    assert rj['form'][
-        'test1'] == u'测试', 'test fail: curlparse post & urlencode'
+    assert rj['form']['test1'] == u'测试', 'test fail: curlparse post & urlencode'
 
 
 def test_slice_by_size():
@@ -90,10 +89,8 @@ def test_clean_request():
 
     c = CleanRequest(request)
     assert (c.x == {
-        'url':
-        'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2',
-        'method':
-        'get'
+        'url': 'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2',
+        'method': 'get'
     })
 
 

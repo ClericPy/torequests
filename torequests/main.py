@@ -32,6 +32,7 @@ class NewExecutorPool(Executor):
         self._all_futures = WeakSet()
 
     def async_func(self, function):
+
         @wraps(function)
         def wrapped(*args, **kwargs):
             return self.submit(function, *args, **kwargs)
@@ -53,6 +54,7 @@ class NewExecutorPool(Executor):
 
 
 class Pool(NewExecutorPool, ThreadPoolExecutor):
+
     def __init__(self, *args, **kwargs):
         super(Pool, self).__init__(*args, **kwargs)
 
@@ -61,8 +63,7 @@ class Pool(NewExecutorPool, ThreadPoolExecutor):
 
         with self._shutdown_lock:
             if self._shutdown:
-                raise RuntimeError(
-                    'cannot schedule new futures after shutdown')
+                raise RuntimeError('cannot schedule new futures after shutdown')
             future = NewFuture(self._timeout, args, kwargs)
             callback = kwargs.pop('callback', self.default_callback)
             if callback:
@@ -78,6 +79,7 @@ class Pool(NewExecutorPool, ThreadPoolExecutor):
 
 
 class ProcessPool(NewExecutorPool, ProcessPoolExecutor):
+
     def __init__(self, *args, **kwargs):
         super(ProcessPool, self).__init__(*args, **kwargs)
 
@@ -90,8 +92,7 @@ class ProcessPool(NewExecutorPool, ProcessPoolExecutor):
                     'A child process terminated '
                     'abruptly, the process pool is not usable anymore')
             if self._shutdown_thread:
-                raise RuntimeError(
-                    'cannot schedule new futures after shutdown')
+                raise RuntimeError('cannot schedule new futures after shutdown')
             future = NewFuture(self._timeout, args, kwargs)
             callback = kwargs.pop('callback', self.default_callback)
             if callback:
@@ -135,6 +136,7 @@ class NewFuture(Future):
 
     @staticmethod
     def wrap_callback(function):
+
         @wraps(function)
         def wrapped(future):
             future._callback_result = function(future)
@@ -188,6 +190,7 @@ def run_after_async(seconds, func, *args, **kwargs):
 
 
 class tPool(object):
+
     def __init__(self,
                  n=None,
                  interval=0,
@@ -242,7 +245,7 @@ class tPool(object):
         kwargs['retry'] = retry
         error_info = dict(
             url=url, kwargs=kwargs, type=type(error), error_msg=str(error))
-        error.args = (error_info, )
+        error.args = (error_info,)
         main_logger.debug('Retry %s & failed: %s.' % (retry, error_info))
         if self.catch_exception:
             return FailureException(error)

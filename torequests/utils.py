@@ -129,6 +129,7 @@ curlparse = Curl.parse
 
 
 class Null(object):
+
     def __init__(self, *args, **kwargs):
         return
 
@@ -181,7 +182,7 @@ def slice_into_pieces(seq, n):
 def slice_by_size(seq, size):
     """return as a generation of chunks"""
     filling = null
-    for it in zip(*(itertools_chain(seq, [filling] * size), ) * size):
+    for it in zip(*(itertools_chain(seq, [filling] * size),) * size):
         if filling in it:
             it = tuple(i for i in it if i is not filling)
         if it:
@@ -220,8 +221,8 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestr = timestr or ttime()
     try:
-        return time.mktime(time.strptime(timestr,
-                                         fmt)) - (time.timezone + tzone * 3600)
+        return time.mktime(time.strptime(timestr, fmt)) - (
+            time.timezone + tzone * 3600)
     except:
         return fail
 
@@ -360,9 +361,9 @@ class Regex(object):
                         'instance %s not fit pattern %s' % (instance, pattern)
 
     def register_function(self, patterns, instances=None, **reg_kwargs):
+
         def wrapper(function):
-            self.register(
-                patterns, function, instances=instances, **reg_kwargs)
+            self.register(patterns, function, instances=instances, **reg_kwargs)
             return function
 
         return wrapper
@@ -441,9 +442,8 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
     except ImportError:
         if warn:
             if warn is True:
-                print(
-                    'Module `%s` not found. Install it to remove this warning'
-                    % module_name)
+                print('Module `%s` not found. Install it to remove this warning'
+                      % module_name)
             else:
                 warn(module_name, names, default)
         module = ImportErrorModule(

@@ -44,6 +44,7 @@ class NewTask(asyncio.tasks.Task):
 
     @staticmethod
     def wrap_callback(function):
+
         @wraps(function)
         def wrapped(future):
             future._callback_history.append(function)
@@ -85,6 +86,7 @@ class NewTask(asyncio.tasks.Task):
 
 
 class Loop():
+
     def __init__(self, n=None, interval=0, default_callback=None, loop=None):
         try:
             self.loop = loop or asyncio.get_event_loop()
@@ -396,7 +398,7 @@ class Requests(Loop):
             kwargs['retry'] = retry
             error_info = dict(
                 url=url, kwargs=kwargs, type=type(error), error_msg=str(error))
-            error.args = (error_info, )
+            error.args = (error_info,)
             dummy_logger.debug('Retry %s & failed: %s.' % (retry, error_info))
             if self.catch_exception:
                 return FailureException(error)

@@ -192,6 +192,7 @@ class Uptimer(object):
 
 
 class CleanRequest(object):
+
     def __init__(self,
                  request,
                  ensure_responce=None,
@@ -286,8 +287,7 @@ class CleanRequest(object):
                 new_request = dict(self.request_args)
                 new_json = dict(json_data)
                 new_json.pop(key)
-                new_request['data'] = json.dumps(new_json).encode(
-                    self.encoding)
+                new_request['data'] = json.dumps(new_json).encode(self.encoding)
                 self._check_request('json_data', key, new_request)
             return self
         except json.decoder.JSONDecodeError:
@@ -354,7 +354,8 @@ class CleanRequest(object):
             if 'cookie' in headers:
                 cookies = SimpleCookie(headers['cookie'])
                 new_cookie = '; '.join([
-                    i[1].OutputString() for i in cookies.items()
+                    i[1].OutputString()
+                    for i in cookies.items()
                     if i[0] not in self.ignore['cookie']
                 ])
                 self.new_request['headers']['cookie'] = new_cookie

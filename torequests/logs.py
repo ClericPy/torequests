@@ -44,8 +44,7 @@ def init_logger(name='',
     # ---------------------------------------
     for each_handler in handler_path_levels:
         path, handler_level = each_handler
-        handler = logging.FileHandler(
-            path) if path else logging.StreamHandler()
+        handler = logging.FileHandler(path) if path else logging.StreamHandler()
         handler.setLevel(
             levels.get(handler_level.upper(), 1) if isinstance(
                 handler_level, str) else handler_level)

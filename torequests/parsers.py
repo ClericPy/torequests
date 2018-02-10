@@ -192,8 +192,7 @@ class SimpleParser(object):
             parser = self._choose_parser(parser_name)
             # input data to parse.
             if input_count == 'n':
-                scode = list(
-                    map(lambda item: parser(item, *parse_args), scode))
+                scode = list(map(lambda item: parser(item, *parse_args), scode))
             if input_count == '1':
                 if parser not in (self.jsonpath_parser, self.objectpath_parser,
                                   self.python_parser):
@@ -201,7 +200,7 @@ class SimpleParser(object):
                     scode = get_one(scode, default=default)
                 scode = parser(scode, *parse_args)
             # ensure result match n or 1 after parsing.
-            if parser in (self.objectpath_parser, ):
+            if parser in (self.objectpath_parser,):
                 # objectpath not need
                 continue
             if output_count == '1':
