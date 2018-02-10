@@ -201,7 +201,7 @@ class SimpleParser(object):
                     scode = get_one(scode, default=default)
                 scode = parser(scode, *parse_args)
             # ensure result match n or 1 after parsing.
-            if parser in (self.objectpath_parser,):
+            if parser in (self.objectpath_parser, ):
                 # objectpath not need
                 continue
             if output_count == '1':

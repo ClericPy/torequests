@@ -8,7 +8,7 @@ win32:
 rm dist/*&python3 setup.py bdist_wheel&python2 setup.py bdist_wheel&twine upload dist/*
 """
 
-# optional_requires: 
+# optional_requires:
 #    lxml jsonpath_rw_ext cssselect objectpath: for SimpleParser
 #    uvloop: fastest loop for python3.5+ on non-win32 system
 
@@ -24,8 +24,10 @@ if py_version.major == 3 and py_version.minor >= 5:
 setup(
     name='torequests',
     version='4.5.5',
-    keywords=('requests tomorrow async multi-thread aiohttp asyncio uvloop futures asynchronous'),
-    description='Asynchronous requests. Using concurrent.futures to make requests asynchronous, and some functions to make async-coding easy. Besides, add aiohttp+uvloop to enjoy python3.5+ coroutine. Read more: https://github.com/ClericPy/torequests.',
+    keywords=(
+        'requests async multi-thread aiohttp asyncio uvloop asynchronous'),
+    description=
+    'Asynchronous requests. Using concurrent.futures to make requests asynchronous, and some functions to make async-coding easy. Besides, add aiohttp+uvloop to enjoy python3.5+ coroutine. Read more: https://github.com/ClericPy/torequests.',
     license='MIT License',
     install_requires=install_requires,
     py_modules=['torequests'],

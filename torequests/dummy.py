@@ -49,6 +49,7 @@ class NewTask(asyncio.tasks.Task):
             future._callback_history.append(function)
             future._callback_result = function(future)
             return future._callback_result
+
         return wrapped
 
     @property
@@ -84,7 +85,6 @@ class NewTask(asyncio.tasks.Task):
 
 
 class Loop():
-
     def __init__(self, n=None, interval=0, default_callback=None, loop=None):
         try:
             self.loop = loop or asyncio.get_event_loop()
@@ -115,6 +115,7 @@ class Loop():
                 if interval:
                     await asyncio.sleep(interval)
                 return result
+
         return new_coro_func
 
     def run_in_executor(self, executor=None, func=None, *args):
@@ -149,6 +150,7 @@ class Loop():
                 if future.set_running_or_notify_cancel():
                     future.set_exception(exc)
                 raise
+
         loop.call_soon_threadsafe(callback_func)
         return future
 
@@ -176,6 +178,7 @@ class Loop():
         @wraps(f)
         def wrapped(*args, **kwargs):
             return self.submit(f(*args, **kwargs))
+
         return wrapped
 
     @property
@@ -185,13 +188,15 @@ class Loop():
     @property
     def todo_tasks(self):
         tasks = [
-            task for task in self.all_tasks if task._state == NewTask._PENDING]
+            task for task in self.all_tasks if task._state == NewTask._PENDING
+        ]
         return tasks
 
     @property
     def done_tasks(self):
         tasks = [
-            task for task in self.all_tasks if task._state != NewTask._PENDING]
+            task for task in self.all_tasks if task._state != NewTask._PENDING
+        ]
         return tasks
 
     def run(self, tasks=None, timeout=None):
@@ -199,7 +204,8 @@ class Loop():
             return self.wait_all_tasks_done(timeout)
         else:
             tasks = tasks or self.todo_tasks
-            return self.loop.run_until_complete(asyncio.gather(*tasks, loop=self.loop))
+            return self.loop.run_until_complete(
+                asyncio.gather(*tasks, loop=self.loop))
 
     def run_forever(self):
         self.loop.run_forever()
@@ -278,8 +284,8 @@ class Frequency:
         return self.__repr__()
 
     def __repr__(self):
-        return '<Frequency %s (sem=%s/%s, interval=%s)>' % (self.name, self.sem._value,
-                                                            self._init_sem_value, self.interval)
+        return '<Frequency %s (sem=%s/%s, interval=%s)>' % (
+            self.name, self.sem._value, self._init_sem_value, self.interval)
 
     def ensure_sem(self, sem):
         sem = self._ensure_sem(sem)
@@ -305,9 +311,15 @@ class Requests(Loop):
         frequencies: {host: Frequency obj} or {host: [n, interval]}
     """
 
-    def __init__(self, n=100, interval=0, session=None,
-                 return_exceptions=True, default_callback=None,
-                 frequencies=None, default_host_frequency=None, **kwargs):
+    def __init__(self,
+                 n=100,
+                 interval=0,
+                 session=None,
+                 return_exceptions=True,
+                 default_callback=None,
+                 frequencies=None,
+                 default_host_frequency=None,
+                 **kwargs):
         loop = kwargs.pop('loop', None)
         # for old version arg `catch_exception`
         catch_exception = kwargs.pop('catch_exception', None)
@@ -328,14 +340,16 @@ class Requests(Loop):
         else:
             self.session = aiohttp.ClientSession(loop=self.loop, **kwargs)
         self.session._connector._limit = n
-   
+
     def ensure_frequencies(self, frequencies):
         if not frequencies:
             return {}
         if not isinstance(frequencies, dict):
             raise ValueError('frequencies should be dict')
-        frequencies = {host: Frequency.ensure_frequency(
-            frequencies[host]) for host in frequencies}
+        frequencies = {
+            host: Frequency.ensure_frequency(frequencies[host])
+            for host in frequencies
+        }
         return frequencies
 
     def set_frequency(self, host, sem=None, interval=None):
@@ -366,7 +380,8 @@ class Requests(Loop):
         for retries in range(retry + 1):
             with await sem:
                 try:
-                    async with self.session.request(method, url, **kwargs) as resp:
+                    async with self.session.request(method, url,
+                                                    **kwargs) as resp:
                         resp.status_code = resp.status
                         resp.content = await resp.read()
                         resp.request_encoding = kwargs.get('encoding')
@@ -379,20 +394,19 @@ class Requests(Loop):
                         await asyncio.sleep(interval)
         else:
             kwargs['retry'] = retry
-            error_info = dict(url=url, kwargs=kwargs,
-                              type=type(error), error_msg=str(error))
-            error.args = (error_info,)
-            dummy_logger.debug(
-                'Retry %s & failed: %s.' %
-                (retry, error_info))
+            error_info = dict(
+                url=url, kwargs=kwargs, type=type(error), error_msg=str(error))
+            error.args = (error_info, )
+            dummy_logger.debug('Retry %s & failed: %s.' % (retry, error_info))
             if self.catch_exception:
                 return FailureException(error)
             raise error
 
     def request(self, method, url, callback=None, **kwargs):
         """submit the coro of self._request to self.loop"""
-        return self.submit(self._request(method, url, **kwargs),
-                           callback=(callback or self.default_callback))
+        return self.submit(
+            self._request(method, url, **kwargs),
+            callback=(callback or self.default_callback))
 
     def get(self, url, callback=None, **kwargs):
         return self.request('get', url, callback, **kwargs)
@@ -408,7 +422,7 @@ class Requests(Loop):
 
     def head(self, url, callback=None, **kwargs):
         return self.request('head', url, callback, **kwargs)
-    
+
     def options(self, url, callback=None, **kwargs):
         return self.request('options', url, callback, **kwargs)
 

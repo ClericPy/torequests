@@ -35,6 +35,7 @@ class NewExecutorPool(Executor):
         @wraps(function)
         def wrapped(*args, **kwargs):
             return self.submit(function, *args, **kwargs)
+
         return wrapped
 
     def close(self, wait=True):
@@ -85,8 +86,9 @@ class ProcessPool(NewExecutorPool, ProcessPoolExecutor):
 
         with self._shutdown_lock:
             if PY3 and self._broken:
-                raise BrokenProcessPool('A child process terminated '
-                                        'abruptly, the process pool is not usable anymore')
+                raise BrokenProcessPool(
+                    'A child process terminated '
+                    'abruptly, the process pool is not usable anymore')
             if self._shutdown_thread:
                 raise RuntimeError(
                     'cannot schedule new futures after shutdown')
@@ -110,8 +112,8 @@ class ProcessPool(NewExecutorPool, ProcessPoolExecutor):
 
 
 class NewFuture(Future):
-
     """add .x (property) and timeout args for original Future class
+    
     WARNING: Future thread will not stop running until function finished or pid killed.
     """
     if PY3:
@@ -137,6 +139,7 @@ class NewFuture(Future):
         def wrapped(future):
             future._callback_result = function(future)
             return future._callback_result
+
         return wrapped
 
     @property
@@ -185,9 +188,13 @@ def run_after_async(seconds, func, *args, **kwargs):
 
 
 class tPool(object):
-
-    def __init__(self, n=None, interval=0, timeout=None, session=None,
-                 catch_exception=True, default_callback=None):
+    def __init__(self,
+                 n=None,
+                 interval=0,
+                 timeout=None,
+                 session=None,
+                 catch_exception=True,
+                 default_callback=None):
         self.pool = Pool(n, timeout)
         self.session = session if session else Session()
         self.n = n or 10
@@ -225,26 +232,29 @@ class tPool(object):
                 return resp
             except Exception as e:
                 error = e
-                main_logger.debug('Retry %s for the %s time, Exception: %s . kwargs= %s' %
-                                  (url, _ + 1, e, kwargs))
+                main_logger.debug(
+                    'Retry %s for the %s time, Exception: %s . kwargs= %s' %
+                    (url, _ + 1, e, kwargs))
                 continue
             finally:
                 if self.interval:
                     time.sleep(self.interval)
         kwargs['retry'] = retry
-        error_info = dict(url=url, kwargs=kwargs,
-                          type=type(error), error_msg=str(error))
-        error.args = (error_info,)
-        main_logger.debug(
-            'Retry %s & failed: %s.' %
-            (retry, error_info))
+        error_info = dict(
+            url=url, kwargs=kwargs, type=type(error), error_msg=str(error))
+        error.args = (error_info, )
+        main_logger.debug('Retry %s & failed: %s.' % (retry, error_info))
         if self.catch_exception:
             return FailureException(error)
         raise error
 
     def request(self, method, url, callback=None, **kwargs):
-        return self.pool.submit(self._request, method, url,
-                                callback=callback or self.default_callback, **kwargs)
+        return self.pool.submit(
+            self._request,
+            method,
+            url,
+            callback=callback or self.default_callback,
+            **kwargs)
 
     def get(self, url, callback=None, **kwargs):
         return self.request('get', url, callback, **kwargs)

@@ -37,9 +37,15 @@ def simple_cmd():
     parser.add_argument('-f', '--func_name', default='main')
     parser.add_argument('-a', '--args', dest='args', nargs='*')
     parser.add_argument('-k', '--kwargs', dest='kwargs')
-    parser.add_argument('-i', '-s', '--info', '--show',
-                        '--status', dest='show', action='store_true',
-                        help='show the args, kwargs and function\'s source code.')
+    parser.add_argument(
+        '-i',
+        '-s',
+        '--info',
+        '--show',
+        '--status',
+        dest='show',
+        action='store_true',
+        help='show the args, kwargs and function\'s source code.')
     params = parser.parse_args()
     func_name = params.func_name
     func = globals().get(func_name)
@@ -73,8 +79,8 @@ class Curl(object):
     parser.add_argument('-d', '--data')
     parser.add_argument('--data-binary')
     parser.add_argument('--connect-timeout', type=float)
-    parser.add_argument('-H', '--header', action='append',
-                        default=[])  # key: value
+    parser.add_argument(
+        '-H', '--header', action='append', default=[])  # key: value
     parser.add_argument('--compressed', action='store_true')
 
     @classmethod
@@ -99,18 +105,19 @@ class Curl(object):
             requests_args['auth'] = tuple(
                 u for u in args.user.split(':', 1) + [''])[:2]
         # if args.proxy:
-            # pass
+        # pass
         data = args.data or args.data_binary
         if data:
             if data.startswith('$'):
                 data = data[1:]
             args.method = 'post'
-            if headers.get('content-type') == 'tpplication/x-www-form-urlencoded':
+            if headers.get(
+                    'content-type') == 'tpplication/x-www-form-urlencoded':
                 data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
                              for i in data.split('&')])
                 requests_args['data'] = data
             # elif headers.get('content-type', '') in ('application/json',):
-                # requests_args['json'] = json.loads(data)
+            # requests_args['json'] = json.loads(data)
             else:
                 data = data.encode(encode)
                 requests_args['data'] = data
@@ -122,7 +129,6 @@ curlparse = Curl.parse
 
 
 class Null(object):
-
     def __init__(self, *args, **kwargs):
         return
 
@@ -175,7 +181,7 @@ def slice_into_pieces(seq, n):
 def slice_by_size(seq, size):
     """return as a generation of chunks"""
     filling = null
-    for it in zip(*(itertools_chain(seq, [filling] * size),) * size):
+    for it in zip(*(itertools_chain(seq, [filling] * size), ) * size):
         if filling in it:
             it = tuple(i for i in it if i is not filling)
         if it:
@@ -198,7 +204,8 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
     timestamp = int(str(timestamp).split('.')[0][:10])
     try:
         timestamp = time.time() if timestamp is None else timestamp
-        return time.strftime(fmt, time.localtime(timestamp + time.timezone + tzone * 3600))
+        return time.strftime(
+            fmt, time.localtime(timestamp + time.timezone + tzone * 3600))
     except:
         return fail
 
@@ -213,22 +220,26 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestr = timestr or ttime()
     try:
-        return time.mktime(time.strptime(timestr, fmt)) - (time.timezone + tzone * 3600)
+        return time.mktime(time.strptime(timestr,
+                                         fmt)) - (time.timezone + tzone * 3600)
     except:
         return fail
 
 
-def timeago(seconds=None):
+def timeago(seconds=0, ms=False):
     'convert seconds to human readable'
-    mm, ss = divmod(seconds, 60)
-    hh, mm = divmod(mm, 60)
-    dd, hh = divmod(hh, 24)
-    s = "%02d:%02d:%02d" % (hh, mm, ss)
-    if dd:
-        def plural(n):
-            return n, abs(n) != 1 and "s" or ""
-        s = ("%d day%s, " % plural(dd)) + s
-    return s
+    millisecond = seconds * 1000
+    SS, MS = divmod(millisecond, 1000)
+    MM, SS = divmod(SS, 60)
+    HH, MM = divmod(MM, 60)
+    DD, HH = divmod(HH, 24)
+    string = "%02d:%02d:%02d" % (HH, MM, SS)
+    if DD:
+        string = '%s%s' % ("%d day%s, " % (DD, ''
+                                           if abs(DD) == 1 else 's'), string)
+    if ms:
+        string = '%s%s' % (string, "%s%03d" % (',', int(MS) if MS else 0))
+    return string
 
 
 # alias name
@@ -331,8 +342,8 @@ class Regex(object):
         self.ensure_mapping = ensure_mapping
 
     def register(self, patterns, obj=None, instances=None, **reg_kwargs):
-        patterns = patterns if isinstance(
-            patterns, (list, tuple, set)) else [patterns]
+        patterns = patterns if isinstance(patterns,
+                                          (list, tuple, set)) else [patterns]
         instances = instances or []
         instances = instances if isinstance(
             instances, (list, tuple, set)) else [instances]
@@ -350,9 +361,10 @@ class Regex(object):
 
     def register_function(self, patterns, instances=None, **reg_kwargs):
         def wrapper(function):
-            self.register(patterns, function,
-                          instances=instances, **reg_kwargs)
+            self.register(
+                patterns, function, instances=instances, **reg_kwargs)
             return function
+
         return wrapper
 
     def search(self, string, default=None):
@@ -393,8 +405,9 @@ class Regex(object):
         for item in self.container:
             key = str(item[0])[10:] if PY3 else item[0].pattern
             instances = item[2] or []
-            value = '%s "%s"' % (item[1].__name__, (item[1].__doc__ or '')) if callable(
-                item[1]) else str(item[1])
+            value = '%s "%s"' % (item[1].__name__,
+                                 (item[1].__doc__ or '')) if callable(
+                                     item[1]) else str(item[1])
             value = '%s %s' % (type(item[1]), value)
             result.append(' => '.join((','.join(instances), key, value)))
         return '\n'.join(result) if as_string else result
@@ -428,7 +441,9 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
     except ImportError:
         if warn:
             if warn is True:
-                print('Module `%s` not found. Install it to remove this warning' % module_name)
+                print(
+                    'Module `%s` not found. Install it to remove this warning'
+                    % module_name)
             else:
                 warn(module_name, names, default)
         module = ImportErrorModule(
@@ -442,6 +457,8 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
         if hasattr(module, name):
             result.append(module.__getattribute__(name))
         else:
-            result.append(ImportErrorModule('%s.%s' % (module_name, name))
-                          if default is ImportErrorModule else default)
+            result.append(
+                ImportErrorModule('%s.%s' % (
+                    module_name,
+                    name)) if default is ImportErrorModule else default)
     return result[0] if len(result) == 1 else result

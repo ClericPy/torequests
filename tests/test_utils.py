@@ -43,6 +43,12 @@ def test_ttime_ptime():
         ttime(tzone=0), tzone=0) < 2, 'fail: ttime / ptime'
 
 
+def test_timeago():
+    assert timeago(93245732.0032424,
+                   1) == '1079 days, 05:35:32,003' and timeago(
+                       93245732.0032424) == '1079 days, 05:35:32'
+
+
 def test_escape_unescape():
     assert escape('<>') == '&lt;&gt;' and unescape(
         '&lt;&gt;') == '<>', 'fail: escape'

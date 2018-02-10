@@ -5,9 +5,8 @@ import json
 import time
 import traceback
 
-from .utils import (Counts, curlparse, md5, parse_qsl,
-                    slice_by_size, timepass, ttime, unparse_qsl, urlparse,
-                    urlunparse)
+from .utils import (Counts, curlparse, md5, parse_qsl, slice_by_size, timepass,
+                    ttime, unparse_qsl, urlparse, urlunparse)
 from .versions import PY3, PY35_PLUS, PY2
 
 if PY3:
@@ -26,9 +25,18 @@ else:
 class StressTest(object):
     """changed_callback may be lambda x=None:os._exit(0)"""
 
-    def __init__(self, curl='', n=100, interval=0, stop=None, chunk=1,
-                 parser=None, logger_function=None, changed_callback=None,
-                 allow_changed=1, proc=True, **kwargs):
+    def __init__(self,
+                 curl='',
+                 n=100,
+                 interval=0,
+                 stop=None,
+                 chunk=1,
+                 parser=None,
+                 logger_function=None,
+                 changed_callback=None,
+                 allow_changed=1,
+                 proc=True,
+                 **kwargs):
         self.count = Counts()
         self.req = Requests(n, interval)
         self.init_parse_value = md5(time.time())
@@ -67,7 +75,8 @@ class StressTest(object):
         speed = int(count // passed)
         if self.proc:
             log_str = '[%s] response: %s, %s - %s (+%s), succ_rate: %s%%, %s req/s' % (
-                count, response, self.start_time, ttime(), timepass(passed), succ_rate, speed)
+                count, response, self.start_time, ttime(), timepass(passed),
+                succ_rate, speed)
             self.logger_function(log_str)
         if self.changed_callback \
                 and self.last_parse_value != self.init_parse_value \
@@ -86,14 +95,18 @@ class StressTest(object):
             tries = self.stop
         chunks = slice_by_size(range(self.stop), self.chunk)
         for chunk in chunks:
-            tasks = [self.req.request(callback=self.callback, **self.kwargs)
-                     for i in chunk]
+            tasks = [
+                self.req.request(callback=self.callback, **self.kwargs)
+                for i in chunk
+            ]
             self.req.x
 
     def _run_without_stop(self):
         while 1:
-            tasks = [self.req.request(callback=self.callback, **self.kwargs)
-                     for i in range(self.chunk)]
+            tasks = [
+                self.req.request(callback=self.callback, **self.kwargs)
+                for i in range(self.chunk)
+            ]
             self.req.x
 
     def run(self):
@@ -145,9 +158,13 @@ class Uptimer(object):
         while time.time() - start_at < duration or count < stop:
             try:
                 temp = self.req.request(
-                    callback=self.cb, timeout=self.timeout, retry=self.retry, **self.request).cx
+                    callback=self.cb,
+                    timeout=self.timeout,
+                    retry=self.retry,
+                    **self.request).cx
                 log_str = '[%s] response: %s, %s - %s (+%s), interval=%s, stop=%s' % (
-                    count, temp, start_at_time, ttime(), timepass(time.time() - start_at), interval, stop)
+                    count, temp, start_at_time, ttime(),
+                    timepass(time.time() - start_at), interval, stop)
                 print(log_str)
                 if not self.check_ok(temp):
                     return False
@@ -160,7 +177,11 @@ class Uptimer(object):
             self.last_cb_resp = temp
         return True
 
-    def guess_safe_interval(self, start_interval=60, step=-1, stop=0, duration=3600):
+    def guess_safe_interval(self,
+                            start_interval=60,
+                            step=-1,
+                            stop=0,
+                            duration=3600):
         for interval in range(start_interval, 0, step):
             ok = self.start(duration=duration, interval=interval, stop=stop)
             if not ok:
@@ -171,10 +192,17 @@ class Uptimer(object):
 
 
 class CleanRequest(object):
-
-    def __init__(self, request, ensure_responce=None, n=10, interval=0,
-                 include_cookie=True, retry=1, timeout=15, logger_function=None,
-                 encoding='utf-8', **kwargs):
+    def __init__(self,
+                 request,
+                 ensure_responce=None,
+                 n=10,
+                 interval=0,
+                 include_cookie=True,
+                 retry=1,
+                 timeout=15,
+                 logger_function=None,
+                 encoding='utf-8',
+                 **kwargs):
         """request: dict or curl-string."""
         if isinstance(request, (str, unicode)):
             request = curlparse(request)
@@ -187,12 +215,18 @@ class CleanRequest(object):
         self.include_cookie = include_cookie
         self.ensure_responce = ensure_responce or self._ensure_response
         self.init_responce = self.ensure_responce(
-            self.req.request(retry=self.retry, timeout=self.timeout, **self.request_args).x)
+            self.req.request(
+                retry=self.retry, timeout=self.timeout, **self.request_args).x)
         self.new_request = dict(self.request_args)
         self.tasks = []
         self.logger_function = logger_function or print
-        self.ignore = {'qsl': [], 'cookie': [], 'headers': [],
-                       'json_data': [], 'form_data': []}
+        self.ignore = {
+            'qsl': [],
+            'cookie': [],
+            'headers': [],
+            'json_data': [],
+            'form_data': []
+        }
 
     def _ensure_response(self, resp):
         return md5(resp.content, skip_encode=True) if resp else None
@@ -206,7 +240,6 @@ class CleanRequest(object):
     def speed(self):
         return self.req.interval / self.req.n
 
-
     @classmethod
     def sort_url_qsl(cls, raw_url, **kws):
         parsed_url = urlparse(raw_url)
@@ -214,22 +247,29 @@ class CleanRequest(object):
         return cls._join_url(parsed_url, sorted(qsl, **kws))
 
     def _check_request(self, key, value, request):
-        task = [key, value, self.req.request(retry=self.retry, timeout=self.timeout,
-                                             callback=self.check_response_same, **request)]
+        task = [
+            key, value,
+            self.req.request(
+                retry=self.retry,
+                timeout=self.timeout,
+                callback=self.check_response_same,
+                **request)
+        ]
         self.tasks.append(task)
 
     @classmethod
     def _join_url(cls, parsed_url, new_qsl):
-        return urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path,
-                           parsed_url.params, unparse_qsl(new_qsl), parsed_url.fragment))
+        return urlunparse((parsed_url.scheme, parsed_url.netloc,
+                           parsed_url.path, parsed_url.params,
+                           unparse_qsl(new_qsl), parsed_url.fragment))
 
     def clean_url(self):
         raw_url = self.request_args['url']
         parsed_url = urlparse(raw_url)
         qsl = parse_qsl(parsed_url.query)
         for qs in qsl:
-            new_url = self._join_url(
-                parsed_url, [i for i in qsl if i is not qs])
+            new_url = self._join_url(parsed_url,
+                                     [i for i in qsl if i is not qs])
             new_request_args = dict(self.request_args)
             new_request_args['url'] = new_url
             self._check_request('qsl', qs, new_request_args)
@@ -246,8 +286,8 @@ class CleanRequest(object):
                 new_request = dict(self.request_args)
                 new_json = dict(json_data)
                 new_json.pop(key)
-                new_request['data'] = json.dumps(
-                    new_json).encode(self.encoding)
+                new_request['data'] = json.dumps(new_json).encode(
+                    self.encoding)
                 self._check_request('json_data', key, new_request)
             return self
         except json.decoder.JSONDecodeError:
@@ -273,8 +313,8 @@ class CleanRequest(object):
         headers = {key.lower(): headers[key] for key in headers}
         cookies = SimpleCookie(headers['cookie'])
         for k, v in cookies.items():
-            new_cookie = '; '.join([i.OutputString()
-                                    for i in cookies.values() if i != v])
+            new_cookie = '; '.join(
+                [i.OutputString() for i in cookies.values() if i != v])
             new_request = dict(self.new_request)
             new_request['headers']['cookie'] = new_cookie
             self._check_request('cookie', k, new_request)
@@ -313,8 +353,10 @@ class CleanRequest(object):
             headers = {key.lower(): headers[key] for key in headers}
             if 'cookie' in headers:
                 cookies = SimpleCookie(headers['cookie'])
-                new_cookie = '; '.join([i[1].OutputString() for i in cookies.items(
-                ) if i[0] not in self.ignore['cookie']])
+                new_cookie = '; '.join([
+                    i[1].OutputString() for i in cookies.items()
+                    if i[0] not in self.ignore['cookie']
+                ])
                 self.new_request['headers']['cookie'] = new_cookie
 
         if self.new_request['method'] == 'post':
@@ -327,14 +369,15 @@ class CleanRequest(object):
                     json_data = json.loads(data.decode(self.encoding))
                     for key in self.ignore['json_data']:
                         json_data.pop(key)
-                    self.new_request['data'] = json.dumps(
-                        json_data).encode(self.encoding)
+                    self.new_request['data'] = json.dumps(json_data).encode(
+                        self.encoding)
 
     def clean_all(self):
         self.clean_url().clean_post_form().clean_post_json().clean_headers()
         tasks_length = len(self.tasks)
-        self.logger_function('%s tasks of request, will cost about %s seconds.' % (
-            tasks_length, round(self.speed * tasks_length, 2)))
+        self.logger_function(
+            '%s tasks of request, will cost about %s seconds.' %
+            (tasks_length, round(self.speed * tasks_length, 2)))
         self.req.x
         for task in self.tasks:
             key, value, fut = task
