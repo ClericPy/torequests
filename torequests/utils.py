@@ -1,5 +1,7 @@
 #! coding:utf-8
 # compatible for win32 / python 2 & 3
+from __future__ import print_function
+
 import argparse
 import hashlib
 import importlib
@@ -7,9 +9,13 @@ import os
 import re
 import shlex
 import signal
+import sys
 import time
+from timeit import default_timer
+from functools import wraps
 
 from .exceptions import ImportErrorModule
+from .configs import Config
 from .main import run_after_async
 from .versions import PY2, PY3
 
@@ -25,11 +31,10 @@ if PY3:
     from html import escape, unescape
 
 
-class Config:
-    TIMEZONE = 8
-
-
 def simple_cmd():
+    """
+    **Deprecated**. The best use of another: fire. pip install fire
+    """
     parser = argparse.ArgumentParser(
         prog='Simple command-line function toolkit.',
         description="""Input function name and args and kwargs.
@@ -50,7 +55,7 @@ def simple_cmd():
     func_name = params.func_name
     func = globals().get(func_name)
     if not (callable(func)):
-        print('invalid func_name: %s' % func_name)
+        Config.utils_logger.warn('invalid func_name: %s' % func_name)
         return
     args = params.args or []
     kwargs = params.kwargs or {}
@@ -60,8 +65,8 @@ def simple_cmd():
         kwargs = dict(items)
     if params.show:
         from inspect import getsource
-        print('args: %s; kwargs: %s' % (args, kwargs))
-        print(getsource(func))
+        Config.utils_logger.info('args: %s; kwargs: %s' % (args, kwargs))
+        Config.utils_logger.info(getsource(func))
         return
     func(*args, **kwargs)
 
@@ -191,14 +196,16 @@ def slice_by_size(seq, size):
 
 def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
     """
-    %z not work.
-    Translate timestamp into human readable: %Y-%m-%d %H:%M:%S.
+    Translate timestamp into human readable: %Y-%m-%d %H:%M:%S. %z not work.
+
     tzone: time compensation, by "+ time.timezone + tzone * 3600";
            eastern eight(+8) time zone by default(can be set with Config.TIMEZONE).
+
     fail: while raise an exception, return fail arg.
-    # example:
-    print(ttime())
-    print(ttime(1486572818.4218583298472936253)) # 2017-02-09 00:53:38
+
+    > print(ttime())
+
+    > print(ttime(1486572818.4218583298472936253)) # 2017-02-09 00:53:38
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestamp = timestamp if timestamp != None else time.time()
@@ -241,6 +248,10 @@ def timeago(seconds=0, ms=False):
     if ms:
         string = '%s%s' % (string, "%s%03d" % (',', int(MS) if MS else 0))
     return string
+
+
+def timepass_with_ms(seconds=0):
+    return timeago(seconds, ms=True)
 
 
 # alias name
@@ -442,8 +453,9 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
     except ImportError:
         if warn:
             if warn is True:
-                print('Module `%s` not found. Install it to remove this warning'
-                      % module_name)
+                Config.utils_logger.warn(
+                    'Module `%s` not found. Install it to remove this warning' %
+                    module_name)
             else:
                 warn(module_name, names, default)
         module = ImportErrorModule(
@@ -462,3 +474,136 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
                     module_name,
                     name)) if default is ImportErrorModule else default)
     return result[0] if len(result) == 1 else result
+
+
+class Timer(object):
+    """
+    Usage:
+        set a never_use_variable anywhere:
+        such as head of function, or head of module
+        def test():
+            never_use_variable = Timer()
+            ...
+        then it will show log after del it.
+
+    Args:
+        name: will used in log
+        log_func=print, or function like Config.utils_logger.info
+        default_timer=default_timer -> timeit.default_timer
+        rounding=None -> if setted, seconds will be round(xxx, rounding)
+        readable=timepass: readable(cost_seconds) -> 00:00:01,234
+    Attr:
+        self.tick() -> return the expect time_cost_string
+        self.string -> return self.tick()
+        self.x -> return self.string, and output it
+        self.passed -> return seconds passed after self.start
+        [staticmethod] watch: decorator for timer a function, args as same as Timer
+    Log format:
+        inner function:
+        WARNING 2018-02-12 00:02:52 torequests.utils: Finish test(a=1, b=2, c=4) cost 00:00:01, started at 2018-02-12 00:02:51.
+        function decorator:
+        WARNING 2018-02-12 00:02:52 torequests.utils: Finish test(1, 2, c=4) cost 00:00:01, started at 2018-02-12 00:02:51.
+        global:
+        WARNING 2018-02-12 00:02:52 torequests.utils: Finish <module>: __main__ (e:\github\torequests\temp_code.py) cost 00:00:01, started at 2018-02-12 00:02:51.
+    """
+
+    def __init__(self,
+                 name=None,
+                 log_func=None,
+                 default_timer=default_timer,
+                 rounding=None,
+                 readable=timepass,
+                 log_after_del=True,
+                 stack_level=1):
+        self._log_after_del = False
+        if not name:
+            f_name = sys._getframe(stack_level).f_code.co_name
+            f_local = sys._getframe(stack_level).f_locals
+            if f_name != '<module>':
+                f_vars = '(%s)' % ', '.join([
+                    '%s=%s' % (i, repr(f_local[i]))
+                    for i in sorted(f_local.keys())
+                ]) if f_local else '()'
+
+            else:
+                f_vars = ": %s (%s)" % (f_local.get('__name__'),
+                                        f_local.get('__file__'))
+            name = '%s%s' % (f_name, f_vars)
+        # for key in dir(sys._getframe(1)):
+        # print(key, getattr(sys._getframe(1), key))
+        self.name = name
+        self.start_at = time.time()
+        self.log_func = log_func
+        self.timer = default_timer
+        self.rounding = rounding
+        self.readable = readable
+        self.start_timer = self.timer()
+        self._log_after_del = log_after_del
+
+    @property
+    def string(self):
+        """
+        only return the expect_string
+        """
+        return self.tick()
+
+    @property
+    def x(self):
+        """
+        call self.log_func(self) and return expect_string
+        """
+        passed_string = self.string
+        if self.log_func:
+            self.log_func(self)
+        else:
+            Config.utils_logger.warn(
+                'Finish %(name)s cost %(passed)s, started at %(start)s.' %
+                (dict(
+                    name=self.name,
+                    start=ttime(self.start_at),
+                    passed=passed_string)))
+        return passed_string
+
+    @property
+    def passed(self):
+        """
+        return the cost_seconds after start
+        """
+        return self.timer() - self.start_timer
+
+    def tick(self):
+        """
+        return the time cost string as expect
+        """
+        string = self.passed
+        if self.rounding:
+            string = round(string)
+        if self.readable:
+            string = self.readable(string)
+        return string
+
+    @staticmethod
+    def watch(*timer_args, **timer_kwargs):
+
+        def wrapper(function):
+
+            @wraps(function)
+            def inner(*args, **kwargs):
+                args1 = ', '.join(map(repr, args)) if args else ''
+                kwargs1 = ', '.join([
+                    '%s=%s' % (i, repr(kwargs[i]))
+                    for i in sorted(kwargs.keys())
+                ])
+                arg = ', '.join(filter(None, [args1, kwargs1]))
+                name = '%s(%s)' % (function.__name__, arg)
+                _ = Timer(name=name, *timer_args, **timer_kwargs)
+                result = function(*args, **kwargs)
+                return result
+
+            return inner
+
+        return wrapper
+
+    def __del__(self):
+        if self._log_after_del:
+            self.x
