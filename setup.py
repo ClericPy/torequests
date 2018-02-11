@@ -3,9 +3,9 @@ from setuptools import setup, find_packages
 import sys
 """
 linux:
-rm dist/*;python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload dist/*
+rm -rf "dist/*";rm -rf "build/*";python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload "dist/*"
 win32:
-rm dist/*&python3 setup.py bdist_wheel&python2 setup.py bdist_wheel&twine upload dist/*
+rm -rf dist&&rm -rf build&python3 setup.py bdist_wheel&python2 setup.py bdist_wheel&twine upload "dist/*"
 """
 
 # optional_requires:
@@ -23,7 +23,7 @@ if py_version.major == 3 and py_version.minor >= 5:
 
 setup(
     name='torequests',
-    version='4.5.5',
+    version='4.5.6',
     keywords=(
         'requests async multi-thread aiohttp asyncio uvloop asynchronous'),
     description=
