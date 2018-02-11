@@ -1,9 +1,6 @@
 #! coding:utf-8
 import logging
 
-dummy_logger = logging.getLogger('torequests.dummy')
-main_logger = logging.getLogger('torequests.main')
-
 
 def init_logger(name='',
                 handler_path_levels=None,
@@ -13,12 +10,16 @@ def init_logger(name='',
                 datefmt="%Y-%m-%d %H:%M:%S"):
     """Args:
     name = '' or logger obj.
+
     handler_path_levels = [['loggerfile.log',13],['','DEBUG'],['','info'],['','notSet']] # [[path,level]]
-    level : the least level for the logger.
+
+    level = the least level for the logger.
+
     formatter = logging.Formatter(
-            '%(levelname)-8s  %(asctime)s  %(name)s (%(filename)s: %(lineno)s): %(message)s',
+            '%(levelname)-7s %(asctime)s %(name)s (%(filename)s: %(lineno)s): %(message)s',
              "%Y-%m-%d %H:%M:%S")
-    formatter_str = '%(levelname)-8s  %(asctime)s  %(name)s (%(funcName)s: %(lineno)s): %(message)s'
+
+    formatter_str = '%(levelname)-7s %(asctime)s  %(name)s (%(funcName)s: %(lineno)s): %(message)s'
 
     custom formatter:
         %(asctime)s  %(created)f  %(filename)s  %(funcName)s  %(levelname)s  %(levelno)s  %(lineno)s   %(message)s   %(module)s    %(name)s   %(pathname)s   %(process)s   %(relativeCreated)s   %(thread)s  %(threadName)s  
@@ -35,7 +36,7 @@ def init_logger(name='',
         if formatter_str:
             formatter_str = formatter_str
         else:
-            formatter_str = '%(levelname)-8s  %(asctime)s  %(name)s (%(filename)s: %(lineno)s): %(message)s'
+            formatter_str = '%(levelname)-7s %(asctime)s %(name)s (%(filename)s: %(lineno)s): %(message)s'
         formatter = logging.Formatter(formatter_str, datefmt=datefmt)
     logger = name if isinstance(name, logging.Logger) else logging.getLogger(
         str(name))
@@ -51,3 +52,7 @@ def init_logger(name='',
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     return logger
+
+dummy_logger = init_logger('torequests.dummy', formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
+main_logger = init_logger('torequests.main', formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
+utils_logger = init_logger('torequests.utils', formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')

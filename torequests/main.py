@@ -1,6 +1,5 @@
 #! coding:utf-8
 # python2 requires: pip install futures
-import sys
 import time
 from weakref import WeakSet
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed, wait
@@ -12,7 +11,7 @@ from requests import Session
 from requests.adapters import HTTPAdapter
 
 from .exceptions import FailureException
-from .logs import main_logger
+from .configs import Config
 from .versions import PY2, PY3
 
 if PY3:
@@ -230,12 +229,12 @@ class tPool(object):
         for _ in range(retry + 1):
             try:
                 resp = self.session.request(method, url, **kwargs)
-                main_logger.debug('%s done, %s' % (url, kwargs))
+                Config.main_logger.debug('%s done, %s' % (url, kwargs))
 
                 return resp
             except Exception as e:
                 error = e
-                main_logger.debug(
+                Config.main_logger.debug(
                     'Retry %s for the %s time, Exception: %s . kwargs= %s' %
                     (url, _ + 1, e, kwargs))
                 continue
@@ -246,7 +245,7 @@ class tPool(object):
         error_info = dict(
             url=url, kwargs=kwargs, type=type(error), error_msg=str(error))
         error.args = (error_info,)
-        main_logger.debug('Retry %s & failed: %s.' % (retry, error_info))
+        Config.main_logger.debug('Retry %s & failed: %s.' % (retry, error_info))
         if self.catch_exception:
             return FailureException(error)
         raise error

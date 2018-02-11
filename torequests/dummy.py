@@ -10,15 +10,15 @@ from urllib.parse import urlparse
 import aiohttp
 from aiohttp.client_reqrep import ClientResponse
 
+from .configs import Config
 from .exceptions import FailureException
-from .logs import dummy_logger
 from .main import NewFuture, Pool, ProcessPool
 
 try:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
-    dummy_logger.debug('Not found uvloop, using default_event_loop.')
+    Config.dummy_logger.debug('Not found uvloop, using default_event_loop.')
 
 # conver ClientResponse attribute into Requests-like
 ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
@@ -94,7 +94,8 @@ class Loop():
                 raise NotImplementedError("Cannot use aioutils in "
                                           "asynchroneous environment")
         except Exception as e:
-            dummy_logger.debug("Rebuilding a new loop for exception: %s" % e)
+            Config.dummy_logger.debug(
+                "Rebuilding a new loop for exception: %s" % e)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
         self.default_callback = default_callback
@@ -237,7 +238,7 @@ class Loop():
         try:
             self.loop.stop()
         except Exception as e:
-            dummy_logger.error('can not stop loop for: %s' % e)
+            Config.dummy_logger.error('can not stop loop for: %s' % e)
 
     @property
     def all_tasks(self):
@@ -399,7 +400,8 @@ class Requests(Loop):
             error_info = dict(
                 url=url, kwargs=kwargs, type=type(error), error_msg=str(error))
             error.args = (error_info,)
-            dummy_logger.debug('Retry %s & failed: %s.' % (retry, error_info))
+            Config.dummy_logger.debug('Retry %s & failed: %s.' % (retry,
+                                                                  error_info))
             if self.catch_exception:
                 return FailureException(error)
             raise error
@@ -437,7 +439,7 @@ class Requests(Loop):
         try:
             self.session.close()
         except Exception as e:
-            dummy_logger.error('can not close session for: %s' % e)
+            Config.dummy_logger.error('can not close session for: %s' % e)
 
     def __del__(self):
         self.close()
