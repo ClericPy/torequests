@@ -48,6 +48,10 @@ def test_timeago():
                        93245732.0032424) == '1079 days, 05:35:32'
 
 
+def test_read_second():
+    assert read_second(6666666, 2) == '2 months 17 days'
+
+
 def test_escape_unescape():
     assert escape('<>') == '&lt;&gt;' and unescape(
         '&lt;&gt;') == '<>', 'fail: escape'
@@ -89,8 +93,10 @@ def test_clean_request():
 
     c = CleanRequest(request)
     assert (c.x == {
-        'url': 'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2',
-        'method': 'get'
+        'url':
+        'http://www.ip138.com/ips1388.asp?ip=123.125.114.144&action=2',
+        'method':
+        'get'
     })
 
 

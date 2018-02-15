@@ -53,6 +53,13 @@ def init_logger(name='',
         logger.addHandler(handler)
     return logger
 
-dummy_logger = init_logger('torequests.dummy', formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
-main_logger = init_logger('torequests.main', formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
-utils_logger = init_logger('torequests.utils', formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
+
+dummy_logger = init_logger(
+    'torequests.dummy',
+    formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
+main_logger = init_logger(
+    'torequests.main',
+    formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
+utils_logger = init_logger(
+    'torequests.utils',
+    formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')

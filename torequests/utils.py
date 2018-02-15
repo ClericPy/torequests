@@ -29,6 +29,7 @@ if PY2:
 if PY3:
     from urllib.parse import parse_qs, parse_qsl, urlparse, quote, quote_plus, unquote, unquote_plus, urljoin, urlsplit, urlunparse
     from html import escape, unescape
+    unicode = str
 
 
 def simple_cmd():
@@ -72,8 +73,9 @@ def simple_cmd():
 
 
 class Curl(object):
-
-    # def __init__(self):
+    """
+    translate curl string into a dict of requests kwargs.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('curl')
     parser.add_argument('url')
@@ -196,16 +198,14 @@ def slice_by_size(seq, size):
 
 def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
     """
-    Translate timestamp into human readable: %Y-%m-%d %H:%M:%S. %z not work.
+    Translate timestamp into human-readable: %Y-%m-%d %H:%M:%S. %z not work.
 
     tzone: time compensation, by "+ time.timezone + tzone * 3600";
            eastern eight(+8) time zone by default(can be set with Config.TIMEZONE).
 
     fail: while raise an exception, return fail arg.
-
     > print(ttime())
-
-    > print(ttime(1486572818.4218583298472936253)) # 2017-02-09 00:53:38
+    > print(ttime(1486572818.421858323)) # 2017-02-09 00:53:38
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestamp = timestamp if timestamp != None else time.time()
@@ -220,22 +220,21 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
 
 def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
     """
-    %z not work.
-    Translate time string like %Y-%m-%d %H:%M:%S into timestamp.
-    tzone: time compensation, by " - time.timezone - tzone * 3600";
-           eastern eight(+8) time zone by default(can be set with Config.TIMEZONE).
+    %Y-%m-%d %H:%M:%S -> timestamp. %z not work.
+    tzone: timestamp compensation, by " - time.timezone - tzone * 3600";
+           local time zone by default(can be set with Config.TIMEZONE).
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestr = timestr or ttime()
     try:
-        return time.mktime(time.strptime(timestr, fmt)) - (
-            time.timezone + tzone * 3600)
+        return time.mktime(time.strptime(timestr,
+                                         fmt)) - (time.timezone + tzone * 3600)
     except:
         return fail
 
 
 def timeago(seconds=0, ms=False):
-    'convert seconds to human readable'
+    """translate seconds into human-readable"""
     millisecond = seconds * 1000
     SS, MS = divmod(millisecond, 1000)
     MM, SS = divmod(SS, 60)
@@ -258,9 +257,48 @@ def timepass_with_ms(seconds=0):
 timepass = timeago
 
 
+def read_second(seconds=None, accuracy=6, lang='en', sep=' '):
+    """
+    seconds: time.time() if seconds is None else seconds
+    accuracy: 6 by default (means second), determine the length of elements.
+    lang: en or cn.
+    sep: join by sep, if sep=None, return a original list.
+    ```
+    print(read_second(6666))
+    # 1 hours 51 mins 6 s
+    print(read_second(66666666, accuracy=3))
+    # 2 years 1 months 11 days
+    print(read_second(666666666, 'cn'))
+    # 21 年 1 月 21 天 1 小时 11 分钟 6 秒
+    print(read_second(666666666, sep=None))
+    # ['21 years', '1 months', '21 days', '1 hours', '11 mins', '6 s']
+    ```
+    """
+    time_list = []
+    seconds = time.time() if seconds is None else seconds
+    readable = (u'年', u'月', u'天', u'小时', u'分钟',
+                u'秒') if lang == 'cn' else ('years', 'months', 'days', 'hours',
+                                            'mins', 's')
+    if seconds <= 0:
+        time_list.append(u'0 %s' % readable[-1])
+    else:
+        for i in zip((31536000, 2592000, 86400, 3600, 60, 1), readable):
+            new = seconds // i[0]
+            if new:
+                time_list.append('%s %s' % (new, i[1]))
+            seconds = seconds - new * i[0]
+    result = time_list[:accuracy]
+    if sep is None:
+        return result
+    else:
+        return sep.join(result)
+
+
 def md5(string, n=32, encoding='utf-8', skip_encode=False):
-    str_func = unicode if PY2 else str
-    todo = string if skip_encode else str_func(string).encode(encoding)
+    """
+    obj -> str
+    """
+    todo = string if skip_encode else unicode(string).encode(encoding)
     if n == 32:
         return hashlib.md5(todo).hexdigest()
     if n == 16:
