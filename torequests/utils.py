@@ -208,7 +208,7 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
     > print(ttime(1486572818.421858323)) # 2017-02-09 00:53:38
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
-    timestamp = timestamp if timestamp != None else time.time()
+    timestamp = timestamp if timestamp is not None else time.time()
     timestamp = int(str(timestamp).split('.')[0][:10])
     try:
         timestamp = time.time() if timestamp is None else timestamp
@@ -341,8 +341,8 @@ class Counts(object):
 
 
 def unique(seq, return_as=None):
-    """Unique the seq in order. 
-    Instead of the slow way: 
+    """Unique the seq in order.
+    Instead of the slow way:
         lambda seq: (x for index, x in enumerate(seq) if seq.index(x)==index)
     return_as: generator for default, or list / set / str..."""
     seen = set()
@@ -385,8 +385,8 @@ class Regex(object):
 
     def __init__(self, ensure_mapping=False):
         """
-        ensure_mapping: ensure mapping one to one, 
-                        if False, will return all(more than 1) 
+        ensure_mapping: ensure mapping one to one,
+                        if False, will return all(more than 1)
                         mapped object list."""
         self.container = []
         self.ensure_mapping = ensure_mapping
@@ -484,7 +484,7 @@ class UA:
 def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
     """
     Try import module_name, except ImportError and return default.
-    Sometimes be used for lazy-import, 
+    Sometimes be used for lazy-import,
     """
     try:
         module = importlib.import_module(module_name)

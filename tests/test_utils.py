@@ -102,7 +102,7 @@ def test_clean_request():
 
 def test_failure():
     from torequests.exceptions import FailureException
-    assert bool(FailureException(BaseException())) == False
+    assert bool(FailureException(BaseException())) is False
 
 
 def test_parsers():
@@ -138,7 +138,7 @@ def test_parsers():
     result = parser.parse(scode, [['1-n', 're', '<.*?>', '']])
     assert result == [' hello world ']
     scode = u'''<?xml version='1.0' encoding='utf-8'?>
-    <slideshow 
+    <slideshow
         title="Sample Slide Show"
         date="Date of publication"
         author="Yours Truly"

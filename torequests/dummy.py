@@ -308,7 +308,7 @@ class Frequency:
 class Requests(Loop):
     """
         The `kwargs` is same as kwargs of aiohttp.ClientSession.
-        Sometimes the performance is limited by too large "n", 
+        Sometimes the performance is limited by too large "n",
             or raise ValueError: too many file descriptors on select() (win32),
             so n=100 by default.
         frequencies: {host: Frequency obj} or {host: [n, interval]}
