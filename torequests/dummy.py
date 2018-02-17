@@ -1,7 +1,6 @@
 # python3.5+ # pip install uvloop aiohttp.
 
 import asyncio
-import json
 import threading
 import time
 from functools import partial, wraps
@@ -10,24 +9,18 @@ from urllib.parse import urlparse
 import aiohttp
 from aiohttp.client_reqrep import ClientResponse
 
+from ._py3_patch import aiohttp_response_patch
 from .configs import Config
 from .exceptions import FailureException
 from .main import NewFuture, Pool, ProcessPool
+
+aiohttp_response_patch(ClientResponse)
 
 try:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
     Config.dummy_logger.debug('Not found uvloop, using default_event_loop.')
-
-# conver ClientResponse attribute into Requests-like
-ClientResponse.text = property(lambda self: self.content.decode(self.encoding))
-ClientResponse.url_string = property(lambda self: str(self._url))
-ClientResponse.ok = property(lambda self: self.status in range(200, 300))
-ClientResponse.encoding = property(
-    lambda self: self.request_encoding or self._get_encoding())
-ClientResponse.json = lambda self, encoding=None, loads=json.loads: loads(
-    self.content.decode(encoding or self.encoding))
 
 
 class NewTask(asyncio.tasks.Task):
@@ -385,7 +378,6 @@ class Requests(Loop):
                 try:
                     async with self.session.request(method, url,
                                                     **kwargs) as resp:
-                        resp.status_code = resp.status
                         resp.content = await resp.read()
                         resp.request_encoding = kwargs.get('encoding')
                         return resp
