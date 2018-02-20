@@ -22,7 +22,11 @@ def get_one(seq, default=None, skip_string_iter=True):
     """
     if skip_string_iter and isinstance(seq, (str, unicode, bytes, bytearray)):
         return seq
-    return next(iter(seq)) if seq and hasattr(seq, '__iter__') else default
+    try:
+        return next(iter(seq))
+    except TypeError:
+        # not hasattr __iter__/__getitem__
+        return default
 
 
 class SimpleParser(object):
@@ -76,7 +80,7 @@ class SimpleParser(object):
             return []
         elif isinstance(obj, (str, unicode, bytes, bytearray)):
             return [obj]
-        elif hasattr(obj, '__iter__'):
+        elif hasattr(obj, '__iter__') or hasattr(obj, '__getitem__'):
             return list(obj)
         else:
             return [obj]
