@@ -131,10 +131,11 @@ def test_parsers():
     assert result == [{'title': 'b'}, {'title': 'b'}], 'test object fail.'
 
     scode = '<p> hello world </p>'
-    result = parser.parse(scode, [['1-n', 're', '<.*?>']])
-    assert result == ['<p>', '</p>'], 'test re fail.'
-    result = parser.parse(scode, [['1-n', 're', '<.*?>', '']])
-    assert result == [' hello world ']
+    result = parser.parse(scode, [['1-n', 're', '<(.*?)>', '@<\\1art>']])
+    assert result == ['<part> hello world </part>'], 'test re.sub fail.'
+    result = parser.parse(scode, [['1-n', 're', '<(.*?)>', '$1']])
+    assert result == ['p', '/p'], 'test re.finditer fail.'
+
     scode = u'''<?xml version='1.0' encoding='utf-8'?>
     <slideshow
         title="Sample Slide Show"

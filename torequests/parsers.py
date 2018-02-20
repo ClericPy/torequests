@@ -110,15 +110,27 @@ class SimpleParser(object):
         
         arg[0] = a valid regex pattern
 
-        arg[1] : if exist, call sub, else call findall
+        arg[1] : if startswith('@') call sub; if startswith('$') call finditer,
+                 $0, $1 means group index.
 
         return an ensure_list
         """
-        # py2 not support * unpack
+
+        def gen_match(matches, num):
+            for match in matches:
+                yield match.group(num)
+
         scode = self.ensure_str(scode)
-        function = getattr(self._re, 'sub' if len(args) > 1 else 'findall')
-        result = function(string=scode, *args)
-        return self.ensure_list(result)
+        assert re.match('^@|^\$\d+',
+                        args[1]), ValueError('args1 should match ^@|^\$\d+')
+        arg1, arg2 = args[1][0], args[1][1:]
+        com = self._re.compile(args[0])
+        if arg1 == '@':
+            result = com.sub(arg2, scode)
+            return self.ensure_list(result)
+        else:
+            result = com.finditer(scode)
+            return gen_match(result, int(arg2))
 
     def html_parser(self, scode, *args):
         """
