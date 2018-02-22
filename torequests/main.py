@@ -1,31 +1,40 @@
 #! coding:utf-8
 # python2 requires: pip install futures
+
 import time
-from weakref import WeakSet
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed, wait
-from concurrent.futures._base import Future, TimeoutError, Executor
+from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
+                                as_completed, wait)
+from concurrent.futures._base import Executor, Future, TimeoutError
 from concurrent.futures.thread import _WorkItem
 from functools import wraps
+from weakref import WeakSet
 
 from requests import Session
 from requests.adapters import HTTPAdapter
 
-from .exceptions import FailureException
 from .configs import Config
+from .exceptions import FailureException
 from .versions import PY2, PY3
 
 if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
 
+def get_cpu_count():
+    try:
+        from multiprocessing import cpu_count
+        return cpu_count()
+    except Exception as e:
+        Config.main_logger.error('get_cpu_count failed for %s' % e)
+
+
 class NewExecutorPool(Executor):
     """add async_func(function decorator) for submitting called-function into NewExecutorPool obj."""
 
-    def __init__(self, n=None, timeout=None, default_callback=None):
-        if n is None and (not isinstance(range, type)):
-            # python2 n!=None
-            n = 20
-        super(NewExecutorPool, self).__init__(n)
+    def __init__(self, max_workers=None, timeout=None, default_callback=None):
+
+        # trace the next node of NewExecutorPool.__mro__
+        super(NewExecutorPool, self).__init__(max_workers)
         self._timeout = timeout
         self.default_callback = default_callback
         self._all_futures = WeakSet()
@@ -54,8 +63,12 @@ class NewExecutorPool(Executor):
 
 class Pool(NewExecutorPool, ThreadPoolExecutor):
 
-    def __init__(self, *args, **kwargs):
-        super(Pool, self).__init__(*args, **kwargs)
+    def __init__(self, n=None, *args, **kwargs):
+        n = n or kwargs.pop('max_workers', None)
+        if PY2 and n is None:
+            # python2 n!=None
+            n = (get_cpu_count() or 1) * 5
+        super(Pool, self).__init__(n, *args, **kwargs)
 
     def submit(self, func, *args, **kwargs):
         """self.submit(function,arg1,arg2,arg3=3)"""
@@ -79,8 +92,12 @@ class Pool(NewExecutorPool, ThreadPoolExecutor):
 
 class ProcessPool(NewExecutorPool, ProcessPoolExecutor):
 
-    def __init__(self, *args, **kwargs):
-        super(ProcessPool, self).__init__(*args, **kwargs)
+    def __init__(self, n=None, *args, **kwargs):
+        n = n or kwargs.pop('max_workers', None)
+        if PY2 and n is None:
+            # python2 n!=None
+            n = get_cpu_count() or 1
+        super(ProcessPool, self).__init__(n, *args, **kwargs)
 
     def submit(self, func, *args, **kwargs):
         """self.submit(function,arg1,arg2,arg3=3)"""
