@@ -28,16 +28,8 @@ def get_cpu_count():
         Config.main_logger.error('get_cpu_count failed for %s' % e)
 
 
-class NewExecutorPool(Executor):
-    """add async_func(function decorator) for submitting called-function into NewExecutorPool obj."""
-
-    def __init__(self, max_workers=None, timeout=None, default_callback=None):
-
-        # trace the next node of NewExecutorPool.__mro__
-        super(NewExecutorPool, self).__init__(max_workers)
-        self._timeout = timeout
-        self.default_callback = default_callback
-        self._all_futures = WeakSet()
+class NewExecutorPoolMixin(Executor):
+    """add async_func(function decorator) for submitting."""
 
     def async_func(self, function):
 
@@ -61,14 +53,22 @@ class NewExecutorPool(Executor):
         return fs
 
 
-class Pool(NewExecutorPool, ThreadPoolExecutor):
+class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
 
-    def __init__(self, n=None, *args, **kwargs):
+    def __init__(self,
+                 n=None,
+                 timeout=None,
+                 default_callback=None,
+                 *args,
+                 **kwargs):
         n = n or kwargs.pop('max_workers', None)
         if PY2 and n is None:
             # python2 n!=None
             n = (get_cpu_count() or 1) * 5
         super(Pool, self).__init__(n, *args, **kwargs)
+        self._timeout = timeout
+        self.default_callback = default_callback
+        self._all_futures = WeakSet()
 
     def submit(self, func, *args, **kwargs):
         """self.submit(function,arg1,arg2,arg3=3)"""
@@ -90,14 +90,22 @@ class Pool(NewExecutorPool, ThreadPoolExecutor):
             return future
 
 
-class ProcessPool(NewExecutorPool, ProcessPoolExecutor):
+class ProcessPool(ProcessPoolExecutor, NewExecutorPoolMixin):
 
-    def __init__(self, n=None, *args, **kwargs):
+    def __init__(self,
+                 n=None,
+                 timeout=None,
+                 default_callback=None,
+                 *args,
+                 **kwargs):
         n = n or kwargs.pop('max_workers', None)
         if PY2 and n is None:
             # python2 n!=None
             n = get_cpu_count() or 1
         super(ProcessPool, self).__init__(n, *args, **kwargs)
+        self._timeout = timeout
+        self.default_callback = default_callback
+        self._all_futures = WeakSet()
 
     def submit(self, func, *args, **kwargs):
         """self.submit(function,arg1,arg2,arg3=3)"""
