@@ -108,23 +108,14 @@ def test_parsers():
 
     scode = parser
     result = parser.parse(scode, [['1-1', 'py', 'alias']])
-    assert isinstance(result, dict), 'test json fail.'
+    assert isinstance(result, dict), 'test py parser fail.'
 
-    scode = {'items': [{'title': 'a'}, {'title': 'b'}, {'title': u'中文'}]}
+    scode = u'{"items": [{"title": "a"}, {"title": "b"}, {"title": "中文"}]}'
     result = parser.parse(
         scode, [['1-n', 'json', '$.items[*]'], ['n-n', 'json', '$.title']])
     assert result == ['a', 'b', u'中文'], 'test json fail.'
 
-    scode = {
-        'a': '1',
-        'items': [{
-            'title': 'b'
-        }, {
-            'title': 'b'
-        }, {
-            'title': u'中文'
-        }]
-    }
+    scode = u'{"a": "1", "items": [{"title": "b"}, {"title": "b"}, {"title": "中文"}]}'
     result = parser.parse(
         scode,
         [['1-n', 'object', '$.items[@.title is b]'], ['n-n', 'object', '$.*']])

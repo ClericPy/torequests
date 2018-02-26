@@ -72,6 +72,14 @@ def simple_cmd():
     func(*args, **kwargs)
 
 
+def print_mem():
+    try:
+        import psutil
+        print("total: %.2f(MB)" %
+            (float(psutil.Process(os.getpid()).memory_info().vms) / 1024 / 1024))
+    except ImportError:
+        print('pip install psutil.')
+
 class Curl(object):
     """
     translate curl string into a dict of requests kwargs.

@@ -13,7 +13,7 @@ if not PY2:
 JP = try_import('jsonpath_rw_ext', 'parse')
 HTMLParser, XHTMLParser, fromstring, tostring = try_import(
     'lxml.html', ['HTMLParser', 'XHTMLParser', 'fromstring', 'tostring'])
-OTree = try_import('objectpath', 'Tree')
+Tree = try_import('objectpath', 'Tree')
 
 
 def get_one(seq, default=None, skip_string_iter=True):
@@ -22,6 +22,8 @@ def get_one(seq, default=None, skip_string_iter=True):
     """
     if skip_string_iter and isinstance(seq, (str, unicode, bytes, bytearray)):
         return seq
+    if not seq:
+        return ''
     try:
         return next(iter(seq))
     except TypeError:
@@ -49,12 +51,12 @@ class SimpleParser(object):
     }
 
     def __init__(self,
-                 encoding='utf-8',
+                 encoding=None,
                  json_parser=None,
                  regex_parser=None,
                  html_parser=None,
                  xml_parser=None):
-        self._encoding = encoding
+        self._encoding = encoding or 'utf-8'
         self._json = json_parser or json
         self._re = regex_parser or re
         self._html_parser = html_parser or HTMLParser()
@@ -85,8 +87,7 @@ class SimpleParser(object):
         else:
             return [obj]
 
-    @staticmethod
-    def ensure_json(obj):
+    def ensure_json(self, obj):
         if isinstance(obj, (str, unicode, bytes, bytearray)):
             return self._json.loads(obj, encoding=self._encoding)
         return obj
@@ -121,8 +122,8 @@ class SimpleParser(object):
                 yield match.group(num)
 
         scode = self.ensure_str(scode)
-        assert re.match('^@|^\$\d+',
-                        args[1]), ValueError('args1 should match ^@|^\$\d+')
+        assert self._re.match(
+            '^@|^\$\d+', args[1]), ValueError('args1 should match ^@|^\$\d+')
         arg1, arg2 = args[1][0], args[1][1:]
         com = self._re.compile(args[0])
         if arg1 == '@':
@@ -181,7 +182,7 @@ class SimpleParser(object):
 
     def objectpath_parser(self, scode, object_path):
         scode = self.ensure_json(scode)
-        tree = OTree(scode)
+        tree = Tree(scode)
         result = tree.execute(object_path)
         if isinstance(result, GeneratorType):
             result = list(result)
@@ -198,6 +199,11 @@ class SimpleParser(object):
             [['1-n', 're', 'search', '(<.*?>)', '\\1']]
             [['1-n', 'html', 'p', 'html'], ['n-n', 'html', 'p', 'text']]
         """
+        assert args_chain and isinstance(
+            args_chain, (list, tuple)
+        ) and isinstance(args_chain[0], (list, tuple)), ValueError(
+            'args_chain type should be list of list, like: [["1-n", "html", "p", "html"], ["n-n", "html", "p", "text"]].'
+        )
         for arg in args_chain:
             # py2 not support * unpack
             one_to_many, parser_name, parse_args = (arg[0], arg[1], arg[2:])
