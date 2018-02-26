@@ -335,7 +335,7 @@ class Requests(Loop):
             self.session = session
         else:
             self.session = aiohttp.ClientSession(loop=self.loop, **kwargs)
-        self.session._connector._limit = n
+        self.session.connector._limit = n
 
     def ensure_frequencies(self, frequencies):
         if not frequencies:
@@ -429,7 +429,7 @@ class Requests(Loop):
         """Should be closed[explicit] while using external session or connector,
         instead of close by self.__del__."""
         try:
-            self.session.close()
+            self.session.connector.close()
         except Exception as e:
             Config.dummy_logger.error('can not close session for: %s' % e)
 
