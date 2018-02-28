@@ -75,10 +75,11 @@ def simple_cmd():
 def print_mem():
     try:
         import psutil
-        print("total: %.2f(MB)" %
-            (float(psutil.Process(os.getpid()).memory_info().vms) / 1024 / 1024))
+        print("total: %.2f(MB)" % (
+            float(psutil.Process(os.getpid()).memory_info().vms) / 1024 / 1024))
     except ImportError:
         print('pip install psutil.')
+
 
 class Curl(object):
     """
@@ -287,7 +288,7 @@ def read_second(seconds=None, accuracy=6, lang='en', sep=' '):
     readable = (u'年', u'月', u'天', u'小时', u'分钟',
                 u'秒') if lang == 'cn' else ('years', 'months', 'days', 'hours',
                                             'mins', 's')
-    if seconds <= 0:
+    if seconds < 1:
         time_list.append(u'0 %s' % readable[-1])
     else:
         for i in zip((31536000, 2592000, 86400, 3600, 60, 1), readable):
@@ -525,15 +526,32 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
 class Timer(object):
     """
     Usage:
-        set a never_use_variable anywhere:
-        such as head of function, or head of module
-        def test():
-            never_use_variable = Timer()
-            ...
-        then it will show log after del it.
-
+        init Timer anywhere:
+            such as head of function, or head of module
+        ```python
+        from torequests.utils import Timer, md5
+        import time
+        Timer()
+        @Timer.watch()
+        def test(a=1):
+            Timer()
+            time.sleep(1)
+            def test_inner():
+                t = Timer('test_non_del')
+                time.sleep(1)
+                t.x
+            test_inner()
+        test(3)
+        time.sleep(1)
+        # [Timer] 2018-03-01 00:31:14 => 2018-03-01 00:31:15 [+00:00:01]: test_non_del.
+        # [Timer] 2018-03-01 00:31:13 => 2018-03-01 00:31:15 [+00:00:02]: test(a=3).
+        # [Timer] 2018-03-01 00:31:13 => 2018-03-01 00:31:15 [+00:00:02]: test(3).
+        # [Timer] 2018-03-01 00:31:13 => 2018-03-01 00:31:16 [+00:00:03]: <module>: __main__ (/tmp/test/temp_code.py).
+        ```
+        then it will show log after del it by gc.
+    ```
     Args:
-        name: will used in log
+        name: be used in log
         log_func=print, or function like Config.utils_logger.info
         default_timer=default_timer -> timeit.default_timer
         rounding=None -> if setted, seconds will be round(xxx, rounding)
@@ -546,11 +564,12 @@ class Timer(object):
         [staticmethod] watch: decorator for timer a function, args as same as Timer
     Log format:
         inner function:
-        WARNING 2018-02-12 00:02:52 torequests.utils: Finish test(a=1, b=2, c=4) cost 00:00:01, started at 2018-02-12 00:02:51.
+        [Timer] 2018-03-01 00:30:23 => 2018-03-01 00:30:25 [+00:00:02]: test(a=3).
         function decorator:
-        WARNING 2018-02-12 00:02:52 torequests.utils: Finish test(1, 2, c=4) cost 00:00:01, started at 2018-02-12 00:02:51.
+        [Timer] 2018-03-01 00:23:38 => 2018-03-01 00:23:40 [+00:00:02]: test(3).
         global:
-        WARNING 2018-02-12 00:02:52 torequests.utils: Finish <module>: __main__ (e:\github\torequests\temp_code.py) cost 00:00:01, started at 2018-02-12 00:02:51.
+        [Timer] 2018-03-01 00:23:38 => 2018-03-01 00:23:41 [+00:00:03]: <module>: __main__ (/tmp/test/temp_code.py).
+    ```
     """
 
     def __init__(self,
@@ -562,23 +581,24 @@ class Timer(object):
                  log_after_del=True,
                  stack_level=1):
         self._log_after_del = False
+        self.start_at = time.time()
+        uid = md5('%s%s' % (self.start_at, id(self)))
         if not name:
             f_name = sys._getframe(stack_level).f_code.co_name
             f_local = sys._getframe(stack_level).f_locals
-            if f_name != '<module>':
+            if f_name == '<module>':
+                f_vars = ": %s (%s)" % (f_local.get('__name__'),
+                                        f_local.get('__file__'))
+            else:
                 f_vars = '(%s)' % ', '.join([
                     '%s=%s' % (i, repr(f_local[i]))
                     for i in sorted(f_local.keys())
                 ]) if f_local else '()'
-
-            else:
-                f_vars = ": %s (%s)" % (f_local.get('__name__'),
-                                        f_local.get('__file__'))
+            if self not in f_local.values():
+                # add self to name space for __del__ way.
+                sys._getframe(stack_level).f_locals.update(**{uid: self})
             name = '%s%s' % (f_name, f_vars)
-        # for key in dir(sys._getframe(1)):
-        # print(key, getattr(sys._getframe(1), key))
         self.name = name
-        self.start_at = time.time()
         self.log_func = log_func
         self.timer = default_timer
         self.rounding = rounding
@@ -598,16 +618,17 @@ class Timer(object):
         """
         call self.log_func(self) and return expect_string
         """
+        self._log_after_del = False
         passed_string = self.string
         if self.log_func:
             self.log_func(self)
         else:
-            Config.utils_logger.warn(
-                'Finish %(name)s cost %(passed)s, started at %(start)s.' %
-                (dict(
-                    name=self.name,
-                    start=ttime(self.start_at),
-                    passed=passed_string)))
+            print('[Timer] %(start)s => %(now)s [+%(passed)s]: %(name)s.' %
+                  (dict(
+                      name=self.name,
+                      start=ttime(self.start_at),
+                      now=ttime(),
+                      passed=passed_string)))
         return passed_string
 
     @property
@@ -652,4 +673,5 @@ class Timer(object):
 
     def __del__(self):
         if self._log_after_del:
+            # not be called by self.x yet.
             self.x
