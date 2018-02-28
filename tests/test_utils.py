@@ -43,13 +43,9 @@ def test_ttime_ptime():
 
 
 def test_timeago():
-    assert timeago(93245732.0032424,
-                   1) == '1079 days, 05:35:32,003' and timeago(
-                       93245732.0032424) == '1079 days, 05:35:32'
-
-
-def test_read_second():
-    assert read_second(6666666, 2) == '2 months 17 days'
+    assert timeago(
+        93245732.0032424, 5) == '1079 days, 05:35:32,003' and timeago(
+            93245732.0032424, 4, 1) == '1079 days 5 hours 35 minutes 32 seconds'
 
 
 def test_escape_unescape():

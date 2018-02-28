@@ -242,9 +242,57 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
         return fail
 
 
-def timeago(seconds=0, ms=False):
-    """translate seconds into human-readable"""
+def split_seconds(seconds):
+    """divisor: 1, 24, 60, 60, 1000
+    units: day, hour, minute, second, millisecond"""
     millisecond = seconds * 1000
+    divisors = (1, 24, 60, 60, 1000)
+    quotient, result = millisecond, []
+    for divisor in divisors[::-1]:
+        quotient, remainder = divmod(quotient, divisor)
+        result.append(quotient) if divisor == 1 else result.append(remainder)
+    return result[::-1]
+
+
+def timeago(seconds=0, accuracy=4, format=0, lang='en'):
+    """translate seconds into human-readable
+    seconds: abs(seconds)
+    accuracy: 4 by default (units[:accuracy]), determine the length of elements.
+    format: index of [led, literal, dict]
+    lang: cn or en
+    units: day, hour, minute, second, millisecond"""
+    seconds = abs(seconds)
+    if lang == 'en':
+        units = ('day', 'hour', 'minute', 'second', 'millisecond')
+    elif lang == 'cn':
+        units = (u'天', u'小时', u'分钟', u'秒', u'毫秒')
+    times = split_seconds(seconds)
+    if format == 2:
+        return dict(zip(units, times))
+
+    day, hour, minute, second, millisecond = times
+
+    if format == 0:
+        day_str = "%d %s%s, " % (
+            day, units[0], 's'
+            if day > 1 and lang == 'en' else '') if day else ''
+        mid_str = ':'.join(("%02d" % i for i in (hour, minute, second)))
+        if accuracy > 4:
+            mid_str += ',%03d' % millisecond
+        return day_str + mid_str
+    elif format == 1:
+        # find longest valid fields index (non-zero in front)
+        valid_index = 0
+        for x, i in enumerate(times):
+            if i > 0:
+                valid_index = x
+                break
+        result_str = [
+            "%d %s%s" % (num, unit, 's' if num > 1 and lang == 'en' else '')
+            for num, unit in zip(times, units)
+        ][valid_index:][:accuracy]
+        result_str = ' '.join(result_str)
+        return result_str
     SS, MS = divmod(millisecond, 1000)
     MM, SS = divmod(SS, 60)
     HH, MM = divmod(MM, 60)
@@ -258,49 +306,8 @@ def timeago(seconds=0, ms=False):
     return string
 
 
-def timepass_with_ms(seconds=0):
-    return timeago(seconds, ms=True)
-
-
 # alias name
 timepass = timeago
-
-
-def read_second(seconds=None, accuracy=6, lang='en', sep=' '):
-    """
-    seconds: time.time() if seconds is None else seconds
-    accuracy: 6 by default (means second), determine the length of elements.
-    lang: en or cn.
-    sep: join by sep, if sep=None, return a original list.
-    ```
-    print(read_second(6666))
-    # 1 hours 51 mins 6 s
-    print(read_second(66666666, accuracy=3))
-    # 2 years 1 months 11 days
-    print(read_second(666666666, 'cn'))
-    # 21 年 1 月 21 天 1 小时 11 分钟 6 秒
-    print(read_second(666666666, sep=None))
-    # ['21 years', '1 months', '21 days', '1 hours', '11 mins', '6 s']
-    ```
-    """
-    time_list = []
-    seconds = time.time() if seconds is None else seconds
-    readable = (u'年', u'月', u'天', u'小时', u'分钟',
-                u'秒') if lang == 'cn' else ('years', 'months', 'days', 'hours',
-                                            'mins', 's')
-    if seconds < 1:
-        time_list.append(u'0 %s' % readable[-1])
-    else:
-        for i in zip((31536000, 2592000, 86400, 3600, 60, 1), readable):
-            new = seconds // i[0]
-            if new:
-                time_list.append('%s %s' % (new, i[1]))
-            seconds = seconds - new * i[0]
-    result = time_list[:accuracy]
-    if sep is None:
-        return result
-    else:
-        return sep.join(result)
 
 
 def md5(string, n=32, encoding='utf-8', skip_encode=False):
