@@ -34,6 +34,16 @@ class NewTask(asyncio.tasks.Task):
         super().__init__(coro, loop=loop)
         self._callback_result = None
         self._callback_history = []
+        self.task_start_time = time.time()
+        self.task_end_time = 0
+
+    def _set_task_end_time(self):
+        self.task_end_time = time.time()
+        return self.task_end_time
+
+    @property
+    def task_cost_time(self):
+        return self.task_end_time - self.task_start_time
 
     @staticmethod
     def wrap_callback(function):
@@ -55,15 +65,19 @@ class NewTask(asyncio.tasks.Task):
         if self._state == self._PENDING:
             self._loop.run_until_complete(self)
         if self._callback_history:
-            return self._callback_result
+            result = self._callback_result
         else:
-            return self.x
+            result = self.x
+        self._set_task_end_time()
+        return result
 
     @property
     def x(self):
         if self._state == self._PENDING:
             self._loop.run_until_complete(self)
-        return self.result()
+        result = self.result()
+        self._set_task_end_time()
+        return result
 
     def __getattr__(self, name):
         try:
