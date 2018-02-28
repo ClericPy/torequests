@@ -67,8 +67,7 @@ class NewTask(asyncio.tasks.Task):
         if self._callback_history:
             result = self._callback_result
         else:
-            result = self.x
-        self._set_task_end_time()
+            result = self.result()
         return result
 
     @property
@@ -76,8 +75,11 @@ class NewTask(asyncio.tasks.Task):
         if self._state == self._PENDING:
             self._loop.run_until_complete(self)
         result = self.result()
-        self._set_task_end_time()
         return result
+
+    def _schedule_callbacks(self):
+        self._set_task_end_time()
+        super()._schedule_callbacks()
 
     def __getattr__(self, name):
         try:
