@@ -1,6 +1,7 @@
 # here for python3 patch avoid of python2 SyntaxError
 import asyncio
 import json
+from functools import wraps
 
 
 def new_future_await(self):
@@ -12,7 +13,7 @@ def new_future_await(self):
 
 
 def aiohttp_response_patch(ClientResponse):
-    # conver ClientResponse attribute into requests-like, for py3.5+
+    # convert ClientResponse attribute into requests-like, for py3.5+
     ClientResponse.encoding = property(
         lambda self: self.request_encoding or self.get_encoding())
     ClientResponse.text = property(
@@ -22,3 +23,18 @@ def aiohttp_response_patch(ClientResponse):
     ClientResponse.ok = property(lambda self: self.status in range(200, 300))
     ClientResponse.json = lambda self, encoding=None, loads=json.loads: loads(
         self.content.decode(encoding or self.encoding))
+
+
+def aiohttp_unclosed_connection_patch(Connection):
+    # avoid the Unclosed connection issue for aiohttp
+    def wrapper(function):
+
+        @wraps(function)
+        def wrapped(self, *args, **kwargs):
+            if self._protocol is not None:
+                self.close()
+            return function(self, *args, **kwargs)
+
+        return wrapped
+
+    Connection.__del__ = wrapper(Connection.__del__)

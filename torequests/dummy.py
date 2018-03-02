@@ -8,13 +8,16 @@ from urllib.parse import urlparse
 
 import aiohttp
 from aiohttp.client_reqrep import ClientResponse
+from aiohttp.connector import Connection
 
-from ._py3_patch import aiohttp_response_patch
+from ._py3_patch import (aiohttp_response_patch,
+                         aiohttp_unclosed_connection_patch)
 from .configs import Config
 from .exceptions import FailureException
 from .main import NewFuture, Pool, ProcessPool
 
 aiohttp_response_patch(ClientResponse)
+aiohttp_unclosed_connection_patch(Connection)
 
 try:
     import uvloop
@@ -445,7 +448,10 @@ class Requests(Loop):
         """Should be closed[explicit] while using external session or connector,
         instead of close by self.__del__."""
         try:
-            self.session.connector.close()
+            if not self.session.closed:
+                if self.session._connector_owner:
+                    self.session._connector.close()
+                self.session._connector = None
         except Exception as e:
             Config.dummy_logger.error('can not close session for: %s' % e)
 
