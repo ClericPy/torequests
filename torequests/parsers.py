@@ -69,6 +69,19 @@ class SimpleParser(object):
             raise ValueError('BadParser name %s' % name)
         return getattr(self, func_name)
 
+    @classmethod
+    def prepare_response(cls, r, name, encoding=None):
+        name = cls.alias.get(name, name)
+        if not r or isinstance(r, unicode) or name == 'python':
+            return r
+        elif name in ('html', 're'):
+            return r.content.decode(encoding) if encoding else r.text
+        elif name in ('jsonpath', 'objectpath'):
+            return r.content
+        elif name == 'xml':
+            return r.content
+        return r
+
     @staticmethod
     def ensure_list(obj):
         """
@@ -108,7 +121,7 @@ class SimpleParser(object):
     def re_parser(self, scode, *args):
         """
         args: [arg1, arg2]
-        
+
         arg[0] = a valid regex pattern
 
         arg[1] : if startswith('@') call sub; if startswith('$') call finditer,

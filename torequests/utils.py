@@ -11,12 +11,12 @@ import shlex
 import signal
 import sys
 import time
-from timeit import default_timer
 from functools import wraps
+from timeit import default_timer
 
-from .exceptions import ImportErrorModule
 from .configs import Config
-from .main import run_after_async
+from .exceptions import ImportErrorModule
+from .main import run_after_async, threads
 from .versions import PY2, PY3
 
 if PY2:
@@ -702,3 +702,46 @@ def ensure_dict_key_title(dict_obj):
     if not all((isinstance(i, unicode) for i in dict_obj.keys())):
         return dict_obj
     return {key.title(): value for key, value in dict_obj.items()}
+
+
+class ClipboardWatcher(object):
+    """watch clipboard, run callback while changed"""
+    pyperclip = try_import('pyperclip')
+
+    def __init__(self, interval=0.5, callback=None):
+        self.interval = interval
+        self.callback = callback or self.default_callback
+        self.temp = self.current
+
+    def read(self):
+        return self.pyperclip.paste()
+
+    def write(self, text):
+        return self.pyperclip.copy(text)
+
+    @property
+    def current(self):
+        return self.read()
+
+    def default_callback(self, text):
+        # clean text
+        text = text.replace('\r\n', '\n')
+        print(text, flush=1)
+        return text
+
+    def watch(self, limit=None, timeout=None):
+        return self.watch_async(limit, timeout).x
+
+    @threads(1)
+    def watch_async(self, limit=None, timeout=None):
+        start_time = time.time()
+        count = 0
+        while not timeout or time.time() - start_time < timeout:
+            new = self.read()
+            if new != self.temp:
+                count += 1
+                self.callback(new)
+                if count == limit:
+                    break
+            self.temp = new
+            time.sleep(self.interval)
