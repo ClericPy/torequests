@@ -161,3 +161,43 @@ def test_try_import():
     assert try_import('re', 'findall')
     assert not try_import('fake_re')
     assert not try_import('fake_re', 'findall')
+
+
+def test_ensure_request():
+    assert (ensure_request({
+        'method': 'get',
+        'url': 'http://github.com'
+    }) == {
+        'method': 'get',
+        'url': 'http://github.com'
+    })
+    assert (ensure_request('http://github.com') == {
+        'method': 'get',
+        'url': 'http://github.com'
+    })
+    assert (ensure_request(
+        '''curl 'https://github.com/' -H 'Pragma: no-cache' -H 'Accept-Encoding: gzip, deflate, br' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Cache-Control: no-cache' -H 'Cookie: logged_in=no; ' -H 'Connection: keep-alive' --compressed'''
+    ) == {
+        'url': 'https://github.com/',
+        'headers': {
+            'Pragma':
+            'no-cache',
+            'Accept-Encoding':
+            'gzip, deflate, br',
+            'Accept-Language':
+            'zh-CN,zh;q=0.9,en;q=0.8',
+            'Upgrade-Insecure-Requests':
+            '1',
+            'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36',
+            'Accept':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Cache-Control':
+            'no-cache',
+            'Cookie':
+            'logged_in=no;',
+            'Connection':
+            'keep-alive'
+        },
+        'method': 'get'
+    })

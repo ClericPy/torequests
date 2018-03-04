@@ -112,7 +112,7 @@ class Curl(object):
         requests_args['url'] = args.url
         for header in args.header:
             key, value = header.split(":", 1)
-            headers[key.lower()] = value.strip()
+            headers[key.title()] = value.strip()
         if args.user_agent:
             headers['user-agent'] = args.user_agent
         if headers:
@@ -530,6 +530,20 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
     return result[0] if len(result) == 1 else result
 
 
+def ensure_request(request):
+    """used for requests.request / Requests.request with **ensure_request(request)
+    request: dict or curl-string or url"""
+    if isinstance(request, dict):
+        return request
+    if isinstance(request, (unicode, str)):
+        request = request.strip()
+        if request.startswith('http'):
+            return {'method': 'get', 'url': request}
+        elif request.startswith('curl '):
+            return curlparse(request)
+    raise ValueError('request should be dict or str.')
+
+
 class Timer(object):
     """
     Usage:
@@ -682,3 +696,9 @@ class Timer(object):
         if self._log_after_del:
             # not be called by self.x yet.
             self.x
+
+
+def ensure_dict_key_title(dict_obj):
+    if not all((isinstance(i, unicode) for i in dict_obj.keys())):
+        return dict_obj
+    return {key.title(): value for key, value in dict_obj.items()}

@@ -4,10 +4,12 @@ from __future__ import print_function
 import json
 import time
 import traceback
+from copy import deepcopy
 
 from .parsers import SimpleParser
-from .utils import (Counts, curlparse, md5, parse_qsl, slice_by_size, timepass,
-                    ttime, unparse_qsl, urlparse, urlunparse)
+from .utils import (Counts, curlparse, ensure_dict_key_title, ensure_request,
+                    md5, parse_qsl, slice_by_size, timepass, ttime, unparse_qsl,
+                    urlparse, urlunparse)
 from .versions import PY2, PY3, PY35_PLUS
 
 if PY3:
@@ -30,44 +32,67 @@ class CleanRequest(object):
                  ensure_response=None,
                  n=10,
                  interval=0,
-                 include_cookie=True,
                  retry=1,
                  timeout=15,
                  logger_function=None,
                  encoding='utf-8',
                  **kwargs):
-        """request: dict or curl-string."""
-        if isinstance(request, (str, unicode)):
-            request = curlparse(request)
-        assert isinstance(request, dict), 'request should be dict.'
-        self.req = Requests(n=n, interval=interval, **kwargs)
-        self.encoding = encoding
-        self.request_args = request
-        self.retry = retry
-        self.timeout = timeout
-        self.include_cookie = include_cookie
-        self.ensure_response = ensure_response or self._ensure_response
-        self.init_response = self.ensure_response(
-            self.req.request(
-                retry=self.retry, timeout=self.timeout, **self.request_args).x)
-        self.new_request = dict(self.request_args)
+        """request: dict or curl-string or url.
+        Cookie need to be set in headers."""
         self.tasks = []
         self.logger_function = logger_function or print
         self.ignore = {
             'qsl': [],
-            'cookie': [],
+            'Cookie': [],
             'headers': [],
             'json_data': [],
             'form_data': []
         }
+        request = ensure_request(request)
+        self.req = Requests(n=n, interval=interval, **kwargs)
+        self.encoding = encoding
+        if 'headers' in request:
+            request['headers'] = ensure_dict_key_title(request['headers'])
+        # self.request_args should not be modified
+        self.request_args = request
+        self.retry = retry
+        self.timeout = timeout
+        self.ensure_response = ensure_response or self._ensure_response
+        self.init_original_response()
+        self.new_request = deepcopy(self.request_args)
+
+    def init_original_response(self):
+        """get the original response for comparing, and confirm is_cookie_necessary"""
+        no_cookie_resp = None
+        self.is_cookie_necessary = True
+        if 'json' in self.request_args:
+            self.request_args['data'] = json.dumps(
+                self.request_args.pop('json')).encode(self.encoding)
+        r1 = self.req.request(
+            retry=self.retry, timeout=self.timeout, **self.request_args)
+        if 'headers' in self.request_args:
+            # test is_cookie_necessary
+            cookie = self.request_args['headers'].get('Cookie', None)
+            if cookie:
+                r2 = self.req.request(
+                    retry=self.retry, timeout=self.timeout, **self.request_args)
+                no_cookie_resp = self.ensure_response(r2.x)
+        if not r1.x:
+            raise ValueError('original_response should not be failed. %s' %
+                             self.request_args)
+        self.original_response = self.ensure_response(r1.x)
+        if no_cookie_resp == self.original_response:
+            self.ignore['headers'].append('Cookie')
+            self.is_cookie_necessary = False
 
     def _ensure_response(self, resp):
-        return md5(resp.content, skip_encode=True) if resp else None
+        if resp:
+            return md5(resp.content, skip_encode=True)
 
-    def check_response_same(self, task):
+    def check_response_unchanged(self, task):
         if hasattr(task, 'x'):
             task = task.x
-        return self.ensure_response(task) == self.init_response
+        return self.ensure_response(task) == self.original_response
 
     @property
     def speed(self):
@@ -79,13 +104,13 @@ class CleanRequest(object):
         qsl = parse_qsl(parsed_url.query)
         return cls._join_url(parsed_url, sorted(qsl, **kws))
 
-    def _check_request(self, key, value, request):
+    def _add_task(self, key, value, request):
         task = [
             key, value,
             self.req.request(
                 retry=self.retry,
                 timeout=self.timeout,
-                callback=self.check_response_same,
+                callback=self.check_response_unchanged,
                 **request)
         ]
         self.tasks.append(task)
@@ -103,9 +128,9 @@ class CleanRequest(object):
         for qs in qsl:
             new_url = self._join_url(parsed_url,
                                      [i for i in qsl if i is not qs])
-            new_request_args = dict(self.request_args)
-            new_request_args['url'] = new_url
-            self._check_request('qsl', qs, new_request_args)
+            new_request = deepcopy(self.request_args)
+            new_request['url'] = new_url
+            self._add_task('qsl', qs, new_request)
         return self
 
     def clean_post_json(self):
@@ -116,11 +141,11 @@ class CleanRequest(object):
             data = self.request_args['data']
             json_data = json.loads(data.decode(self.encoding))
             for key in json_data:
-                new_request = dict(self.request_args)
-                new_json = dict(json_data)
+                new_request = deepcopy(self.request_args)
+                new_json = deepcopy(json_data)
                 new_json.pop(key)
                 new_request['data'] = json.dumps(new_json).encode(self.encoding)
-                self._check_request('json_data', key, new_request)
+                self._add_task('json_data', key, new_request)
             return self
         except json.decoder.JSONDecodeError:
             return self
@@ -131,39 +156,41 @@ class CleanRequest(object):
             return self
         form_data = self.request_args['data']
         for key in form_data:
-            new_request = dict(self.request_args)
-            new_form = dict(form_data)
+            new_request = deepcopy(self.request_args)
+            new_form = deepcopy(form_data)
             new_form.pop(key)
             new_request['data'] = new_form
-            self._check_request('form_data', key, new_request)
+            self._add_task('form_data', key, new_request)
             return self
 
     def clean_cookie(self):
-        headers = self.request_args.get('headers', {})
-        if 'cookie' not in map(lambda x: x.lower(), headers.keys()):
+        if not self.is_cookie_necessary:
             return self
-        headers = {key.lower(): headers[key] for key in headers}
-        cookies = SimpleCookie(headers['cookie'])
+        headers = self.request_args.get('headers', {})
+        cookies = SimpleCookie(headers['Cookie'])
         for k, v in cookies.items():
             new_cookie = '; '.join(
                 [i.OutputString() for i in cookies.values() if i != v])
-            new_request = dict(self.new_request)
-            new_request['headers']['cookie'] = new_cookie
-            self._check_request('cookie', k, new_request)
+            new_request = deepcopy(self.request_args)
+            new_request['headers']['Cookie'] = new_cookie
+            self._add_task('Cookie', k, new_request)
         return self
 
     def clean_headers(self):
-        if self.include_cookie:
-            self.clean_cookie()
         if not isinstance(self.request_args.get('headers'), dict):
             return self
         headers = self.request_args['headers']
+        if 'Cookie' in headers:
+            self.clean_cookie()
         for key in headers:
-            new_request = dict(self.request_args)
-            new_headers = dict(headers)
+            # cookie will be checked in other methods.
+            if key == 'Cookie':
+                continue
+            new_request = deepcopy(self.request_args)
+            new_headers = deepcopy(headers)
             new_headers.pop(key)
             new_request['headers'] = new_headers
-            self._check_request('headers', key, new_request)
+            self._add_task('headers', key, new_request)
         return self
 
     def reset_new_request(self):
@@ -180,17 +207,17 @@ class CleanRequest(object):
         if not self.new_request.get('headers'):
             self.new_request.pop('headers', None)
 
-        if self.ignore['cookie'] and 'cookie' not in self.ignore['headers']:
+        if self.ignore['Cookie'] and 'Cookie' not in self.ignore['headers']:
             headers = self.new_request['headers']
             headers = {key.lower(): headers[key] for key in headers}
-            if 'cookie' in headers:
-                cookies = SimpleCookie(headers['cookie'])
+            if 'Cookie' in headers:
+                cookies = SimpleCookie(headers['Cookie'])
                 new_cookie = '; '.join([
                     i[1].OutputString()
                     for i in cookies.items()
-                    if i[0] not in self.ignore['cookie']
+                    if i[0] not in self.ignore['Cookie']
                 ])
-                self.new_request['headers']['cookie'] = new_cookie
+                self.new_request['headers']['Cookie'] = new_cookie
 
         if self.new_request['method'] == 'post':
             data = self.new_request.get('data')
@@ -206,7 +233,12 @@ class CleanRequest(object):
                         self.encoding)
 
     def clean_all(self):
-        self.clean_url().clean_post_form().clean_post_json().clean_headers()
+        return self.clean_url().clean_post_form().clean_post_json(
+        ).clean_headers()
+
+    def result(self):
+        if not self.tasks:
+            self.clean_all()
         tasks_length = len(self.tasks)
         self.logger_function(
             '%s tasks of request, will cost about %s seconds.' %
@@ -223,9 +255,6 @@ class CleanRequest(object):
             self.ignore[key].append(value)
         self.reset_new_request()
         return self.new_request
-
-    def result(self):
-        return self.clean_all()
 
     @property
     def x(self):
