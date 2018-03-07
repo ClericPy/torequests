@@ -534,14 +534,18 @@ def ensure_request(request):
     """used for requests.request / Requests.request with **ensure_request(request)
     request: dict or curl-string or url"""
     if isinstance(request, dict):
-        return request
-    if isinstance(request, (unicode, str)):
+        result = request
+    elif isinstance(request, (unicode, str)):
         request = request.strip()
         if request.startswith('http'):
-            return {'method': 'get', 'url': request}
+            result = {'method': 'get', 'url': request}
         elif request.startswith('curl '):
-            return curlparse(request)
-    raise ValueError('request should be dict or str.')
+            result = curlparse(request)
+    else:
+        raise ValueError('request should be dict or str.')
+    assert 'method' in result, ValueError('no `method` in request.')
+    result['method'] = result['method'].lower()
+    return result
 
 
 class Timer(object):
@@ -706,9 +710,9 @@ def ensure_dict_key_title(dict_obj):
 
 class ClipboardWatcher(object):
     """watch clipboard, run callback while changed"""
-    pyperclip = try_import('pyperclip')
 
     def __init__(self, interval=0.5, callback=None):
+        self.pyperclip = try_import('pyperclip')
         self.interval = interval
         self.callback = callback or self.default_callback
         self.temp = self.current
