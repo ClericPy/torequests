@@ -14,8 +14,20 @@ def new_future_await(self):
 
 def aiohttp_response_patch(ClientResponse):
     # convert ClientResponse attribute into requests-like, for py3.5+
+    def _encoding_setter(self, value):
+        self.request_encoding = value
+        return
+
+    def _encoding_deleter(self):
+        self.request_encoding = None
+        return
+
+    ClientResponse._json = ClientResponse.json
+    ClientResponse._text = ClientResponse.text
     ClientResponse.encoding = property(
         lambda self: self.request_encoding or self.get_encoding())
+    ClientResponse.encoding = ClientResponse.encoding.setter(_encoding_setter)
+    ClientResponse.encoding = ClientResponse.encoding.deleter(_encoding_deleter)
     ClientResponse.text = property(
         lambda self: self.content.decode(self.encoding))
     ClientResponse.url_string = property(lambda self: str(self._url))

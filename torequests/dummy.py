@@ -389,6 +389,7 @@ class Requests(Loop):
             frequency = self.global_frequency
         sem, interval = frequency.sem, frequency.interval
         proxies = kwargs.pop('proxies', None)
+        encoding = kwargs.pop('encoding', None)
         if proxies:
             proxy = '://'.join(proxies.popitem())
             kwargs['proxy'] = proxy
@@ -398,7 +399,7 @@ class Requests(Loop):
                     async with self.session.request(method, url,
                                                     **kwargs) as resp:
                         resp.content = await resp.read()
-                        resp.request_encoding = kwargs.get('encoding')
+                        resp.request_encoding = encoding
                         return resp
                 except Exception as err:
                     error = err
