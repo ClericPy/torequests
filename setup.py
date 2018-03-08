@@ -23,7 +23,7 @@ if py_version.major == 3 and py_version.minor >= 5:
 
 setup(
     name='torequests',
-    version='4.5.11',
+    version='4.6.0',
     keywords=(
         'requests async multi-thread aiohttp asyncio uvloop asynchronous'),
     description=

@@ -63,3 +63,6 @@ main_logger = init_logger(
 utils_logger = init_logger(
     'torequests.utils',
     formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
+print_logger = init_logger(
+    'torequests.print', formatter_str='[%(asctime)s]: %(message)s')
+print_info = print_logger.info

@@ -18,6 +18,7 @@ from .configs import Config
 from .exceptions import ImportErrorModule
 from .main import run_after_async, threads
 from .versions import PY2, PY3
+from .logs import print_info
 
 if PY2:
     from urllib import quote, quote_plus, unquote_plus
@@ -75,10 +76,10 @@ def simple_cmd():
 def print_mem():
     try:
         import psutil
-        print("total: %.2f(MB)" % (
+        print_info("total: %.2f(MB)" % (
             float(psutil.Process(os.getpid()).memory_info().vms) / 1024 / 1024))
     except ImportError:
-        print('pip install psutil.')
+        print_info('pip install psutil.')
 
 
 class Curl(object):
@@ -568,16 +569,16 @@ class Timer(object):
             test_inner()
         test(3)
         time.sleep(1)
-        # [Timer] 2018-03-01 00:31:14 => 2018-03-01 00:31:15 [+00:00:01]: test_non_del.
-        # [Timer] 2018-03-01 00:31:13 => 2018-03-01 00:31:15 [+00:00:02]: test(a=3).
-        # [Timer] 2018-03-01 00:31:13 => 2018-03-01 00:31:15 [+00:00:02]: test(3).
-        # [Timer] 2018-03-01 00:31:13 => 2018-03-01 00:31:16 [+00:00:03]: <module>: __main__ (/tmp/test/temp_code.py).
+        # [2018-03-09 03:23:58]: Timer start at 2018-03-09 03:23:57 [+00:00:01]: test_non_del.
+        # [2018-03-09 03:23:58]: Timer start at 2018-03-09 03:23:56 [+00:00:02]: test(a=3).
+        # [2018-03-09 03:23:58]: Timer start at 2018-03-09 03:23:56 [+00:00:02]: test(3).
+        # [2018-03-09 03:23:59]: Timer start at 2018-03-09 03:23:56 [+00:00:03]: <module>: __main__ (/tmp/temp_code.py).
         ```
         then it will show log after del it by gc.
     ```
     Args:
         name: be used in log
-        log_func=print, or function like Config.utils_logger.info
+        log_func=print_info, or function like Config.utils_logger.info
         default_timer=default_timer -> timeit.default_timer
         rounding=None -> if setted, seconds will be round(xxx, rounding)
         readable=timepass: readable(cost_seconds) -> 00:00:01,234
@@ -589,11 +590,11 @@ class Timer(object):
         [staticmethod] watch: decorator for timer a function, args as same as Timer
     Log format:
         inner function:
-        [Timer] 2018-03-01 00:30:23 => 2018-03-01 00:30:25 [+00:00:02]: test(a=3).
+        [2018-03-09 03:21:02]: Timer start at 2018-03-09 03:21:02 [+00:00:00]: test(a=3).
         function decorator:
-        [Timer] 2018-03-01 00:23:38 => 2018-03-01 00:23:40 [+00:00:02]: test(3).
+        [2018-03-09 03:21:02]: Timer start at 2018-03-09 03:21:02 [+00:00:00]: test(3).
         global:
-        [Timer] 2018-03-01 00:23:38 => 2018-03-01 00:23:41 [+00:00:03]: <module>: __main__ (/tmp/test/temp_code.py).
+        [2018-03-09 03:21:02]: Timer start at 2018-03-09 03:21:02 [+00:00:00]: <module>: __main__ (/tmp/test/temp_code.py).
     ```
     """
 
@@ -648,12 +649,11 @@ class Timer(object):
         if self.log_func:
             self.log_func(self)
         else:
-            print('[Timer] %(start)s => %(now)s [+%(passed)s]: %(name)s.' %
-                  (dict(
-                      name=self.name,
-                      start=ttime(self.start_at),
-                      now=ttime(),
-                      passed=passed_string)))
+            print_info('Timer start at %(start)s [+%(passed)s]: %(name)s.' %
+                       (dict(
+                           name=self.name,
+                           start=ttime(self.start_at),
+                           passed=passed_string)))
         return passed_string
 
     @property
@@ -730,7 +730,7 @@ class ClipboardWatcher(object):
     def default_callback(self, text):
         # clean text
         text = text.replace('\r\n', '\n')
-        print(text, flush=1)
+        print_info(text, flush=1)
         return text
 
     def watch(self, limit=None, timeout=None):

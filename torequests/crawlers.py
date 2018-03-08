@@ -1,5 +1,4 @@
 #! coding:utf-8
-from __future__ import print_function
 
 import json
 import os
@@ -13,6 +12,7 @@ from .utils import (Counts, curlparse, ensure_dict_key_title, ensure_request,
                     md5, parse_qsl, slice_by_size, timepass, ttime, unparse_qsl,
                     urlparse, urlunparse)
 from .versions import PY2, PY3, PY35_PLUS
+from .logs import print_info
 
 if PY3:
     unicode = str
@@ -43,7 +43,7 @@ class CommonRequests(object):
                  **kwargs):
         """request: dict or curl-string or url.
         Cookie need to be set in headers."""
-        self.logger_function = logger_function or print
+        self.logger_function = logger_function or print_info
         self.req = Requests(n=n, interval=interval, **kwargs)
         self.encoding = encoding
         request = ensure_request(request)
@@ -354,9 +354,10 @@ class StressTest(CommonRequests):
     """
     example: 
     >>> StressTest('http://p.3.cn').x
-    [1] response: f3f97a64-612, 2018-03-09 02:57:21 - 2018-03-09 02:57:21 (+00:00:00), 13.0 req/s
-    [2] response: f3f97a64-612, 2018-03-09 02:57:21 - 2018-03-09 02:57:21 (+00:00:00), 27.0 req/s
-    [3] response: f3f97a64-612, 2018-03-09 02:57:21 - 2018-03-09 02:57:21 (+00:00:00), 38.0 req/s
+    "[2018-03-09 03:18:04]: [178] response: f3f97a64-612, start at 2018-03-09 03:18:03 (+00:00:01), 147.0 req/s"
+    "[2018-03-09 03:18:04]: [179] response: f3f97a64-612, start at 2018-03-09 03:18:03 (+00:00:01), 145.0 req/s"
+    "[2018-03-09 03:18:04]: [180] response: f3f97a64-612, start at 2018-03-09 03:18:03 (+00:00:01), 145.0 req/s"
+    "[2018-03-09 03:18:04]: [181] response: f3f97a64-612, start at 2018-03-09 03:18:03 (+00:00:01), 146.0 req/s"
     """
 
     def __init__(self,
@@ -408,10 +409,10 @@ class StressTest(CommonRequests):
         return time.time() - self.start_time
 
     def _logger_function(self, text):
-        log_str = '[%s] response: %s, %s - %s (+%s), %s req/s' % (
-            self.counter.x, text, ttime(self.start_time), ttime(),
-            timepass(self.passed), self.speed)
-        print(log_str)
+        log_str = '[%s] response: %s, start at %s (+%s), %s req/s' % (
+            self.counter.x, text, ttime(self.start_time), timepass(self.passed),
+            self.speed)
+        print_info(log_str)
 
     def pt_callback_wrapper(self, func):
         """add shutdown checker for callback function."""
@@ -421,14 +422,14 @@ class StressTest(CommonRequests):
             # if tries end or timeout or shutdown_changed => shutdown
             result = func(r)
             if self.counter.now >= self.total_tries:
-                print('shutdown for: total_tries:', self.total_time)
+                print_info('shutdown for: total_tries: %s' % self.total_time)
                 self.shutdown()
             if self.passed >= self.total_time:
-                print('shutdown for: total_time:', self.total_time)
+                print_info('shutdown for: total_time: %s' % self.total_time)
                 self.shutdown()
             if self.shutdown_changed and result != self.original_response:
-                print('shutdown for: shutdown_changed:', self.original_response,
-                      '=>', result)
+                print_info('shutdown for: shutdown_changed: %s => %s' %
+                           (self.original_response, result))
                 self.shutdown()
             self.logger_function(result)
             return result
@@ -439,10 +440,10 @@ class StressTest(CommonRequests):
         while 1:
             tasks = [
                 self.req.request(
-                    **self.request,
                     callback=self.pt_callback,
                     retry=self.retry,
-                    timeout=self.timeout) for _ in range(self.chunk_size)
+                    timeout=self.timeout,
+                    **self.request) for _ in range(self.chunk_size)
             ]
             self.req.x
 

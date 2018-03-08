@@ -4,6 +4,7 @@ import time
 
 from torequests import *
 from torequests.dummy import *
+from torequests.logs import print_info
 
 # with capsys.disabled():
 
@@ -26,12 +27,12 @@ def test_dummy_Requests_time_interval_sem_run_forever(capsys):
     with capsys.disabled():
         trequests = Requests(frequencies={'p.3.cn': (2, 1)})
         trequests.async_run_forever()
-        print()
+        print_info('\n')
         ss = [
             trequests.get(
                 'http://p.3.cn/prices/mgets?skuIds=J_1273500',
                 callback=
-                lambda x: (len(x.content), print(trequests.frequencies)))
+                lambda x: (len(x.content), print_info(trequests.frequencies)))
             for i in range(4)
         ]
         trequests.x
@@ -63,11 +64,11 @@ def test_coros(capsys):
 
         @coros(2, 1)
         async def testcoro():
-            print('testcoro 2 ops/s')
+            print_info('testcoro 2 ops/s')
             await asyncio.sleep(0)
             return 'testcoro result'
 
-        print()
+        print_info('\n')
         task = [testcoro() for i in range(4)]
         tasks = [i.x for i in task]
         assert tasks == [
@@ -80,11 +81,11 @@ def test_asyncme(capsys):
     with capsys.disabled():
 
         async def test():
-            print('testAsyncme 2 ops/s')
+            print_info('testAsyncme 2 ops/s')
             await asyncio.sleep(0)
             return 'testAsyncme result'
 
-        print()
+        print_info('\n')
         testAsyncme = Asyncme(test, 2, 1)
         task = [testAsyncme() for i in range(4)]
         tasks = [i.x for i in task]
