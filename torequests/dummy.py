@@ -36,7 +36,7 @@ class NewTask(asyncio.tasks.Task):
         assert asyncio.coroutines.iscoroutine(coro), repr(coro)
         super().__init__(coro, loop=loop)
         self._callback_result = None
-        self._callback_history = []
+        self._done_callbacks = []
         self.task_start_time = time.time()
         self.task_end_time = 0
 
@@ -50,12 +50,12 @@ class NewTask(asyncio.tasks.Task):
 
     @staticmethod
     def wrap_callback(function):
+        """setting callback result as self._callback_result"""
 
         @wraps(function)
-        def wrapped(future):
-            future._callback_history.append(function)
-            future._callback_result = function(future)
-            return future._callback_result
+        def wrapped(task):
+            task._callback_result = function(task)
+            return task._callback_result
 
         return wrapped
 
@@ -67,7 +67,7 @@ class NewTask(asyncio.tasks.Task):
     def callback_result(self):
         if self._state == self._PENDING:
             self._loop.run_until_complete(self)
-        if self._callback_history:
+        if self._done_callbacks:
             result = self._callback_result
         else:
             result = self.result()
@@ -184,6 +184,7 @@ class Loop():
                 if not isinstance(callback, (list, tuple)):
                     callback = [callback]
                 for fn in callback:
+                    task._done_callbacks.append(fn)
                     task.add_done_callback(task.wrap_callback(fn))
             return task
 
