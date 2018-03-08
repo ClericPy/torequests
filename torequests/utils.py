@@ -317,9 +317,9 @@ def md5(string, n=32, encoding='utf-8', skip_encode=False):
     todo = string if skip_encode else unicode(string).encode(encoding)
     if n == 32:
         return hashlib.md5(todo).hexdigest()
-    if n == 16:
-        return hashlib.md5(todo).hexdigest()[8:-8]
-    if isinstance(n, (tuple, list)):
+    elif isinstance(n, (int, float)):
+        return hashlib.md5(todo).hexdigest()[(32 - n) // 2:(n - 32) // 2]
+    elif isinstance(n, (tuple, list)):
         return hashlib.md5(todo).hexdigest()[n[0]:n[1]]
 
 
