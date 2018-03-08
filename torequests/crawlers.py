@@ -37,7 +37,7 @@ class CommonRequests(object):
                  interval=0,
                  ensure_response=None,
                  retry=0,
-                 timeout=15,
+                 timeout=10,
                  logger_function=None,
                  encoding=None,
                  **kwargs):
@@ -56,9 +56,14 @@ class CommonRequests(object):
         self.ensure_response = ensure_response or self._ensure_response
         self.init_original_response()
 
-    def _ensure_response(self, resp):
-        if resp:
-            return md5(resp.content, skip_encode=True)
+    def _ensure_response(self, r):
+        if hasattr(r, 'x'):
+            r = r.x
+        if r:
+            # r.content is not need to be encode.
+            return '%s-%s' % (md5(r.content, n=8, skip_encode=True),
+                              len(r.content))
+        return r
 
     def init_original_response(self):
         """get the original response for comparing, and confirm is_cookie_necessary"""
@@ -71,7 +76,7 @@ class CommonRequests(object):
         assert resp, ValueError(
             'original_response should not be failed. %s' % self.request)
         self.encoding = self.encoding or resp.encoding
-        self.original_response = self.ensure_response(resp)
+        self.original_response = self.ensure_response(r1)
         return self.original_response
 
     def check_response_unchanged(self, resp):
@@ -88,7 +93,7 @@ class CleanRequest(CommonRequests):
                  interval=0,
                  ensure_response=None,
                  retry=0,
-                 timeout=15,
+                 timeout=10,
                  logger_function=None,
                  encoding='utf-8',
                  **kwargs):
@@ -131,11 +136,11 @@ class CleanRequest(CommonRequests):
             if cookie:
                 r2 = self.req.request(
                     retry=self.retry, timeout=self.timeout, **self.request)
-                no_cookie_resp = self.ensure_response(r2.x)
+                no_cookie_resp = self.ensure_response(r2)
         resp = r1.x
         assert resp, ValueError(
             'original_response should not be failed. %s' % self.request)
-        self.original_response = self.ensure_response(resp)
+        self.original_response = self.ensure_response(r1)
         self.encoding = self.encoding or resp.encoding
         if no_cookie_resp == self.original_response:
             self.ignore['headers'].append('Cookie')
@@ -343,3 +348,104 @@ class Seed(object):
 
     def __repr__(self):
         return 'Seed(%s)' % self.as_json
+
+
+class StressTest(CommonRequests):
+    """
+    example: 
+    >>> StressTest('http://p.3.cn').x
+    [1] response: f3f97a64-612, 2018-03-09 02:57:21 - 2018-03-09 02:57:21 (+00:00:00), 13.0 req/s
+    [2] response: f3f97a64-612, 2018-03-09 02:57:21 - 2018-03-09 02:57:21 (+00:00:00), 27.0 req/s
+    [3] response: f3f97a64-612, 2018-03-09 02:57:21 - 2018-03-09 02:57:21 (+00:00:00), 38.0 req/s
+    """
+
+    def __init__(self,
+                 request,
+                 n=10,
+                 interval=0,
+                 ensure_response=None,
+                 retry=0,
+                 timeout=10,
+                 logger_function=None,
+                 encoding=None,
+                 total_tries=None,
+                 total_time=None,
+                 shutdown=None,
+                 shutdown_changed=True,
+                 chunk_size=1000,
+                 **kwargs):
+        """request: dict or curl-string or url.
+        Cookie need to be set in headers."""
+        logger_function = logger_function or self._logger_function
+        super(StressTest, self).__init__(
+            request=request,
+            n=n,
+            interval=interval,
+            ensure_response=ensure_response,
+            retry=retry,
+            timeout=timeout,
+            logger_function=logger_function,
+            encoding=encoding,
+            **kwargs)
+        self.counter = Counts()
+        self.start_time = time.time()
+        self.total_tries = total_tries or float('inf')
+        self.total_time = total_time or float('inf')
+        self.shutdown = shutdown or self._shutdown
+        self.shutdown_changed = shutdown_changed
+        self.chunk_size = chunk_size
+        self.pt_callback = self.pt_callback_wrapper(self.ensure_response)
+
+    def _shutdown(self):
+        return os._exit(0)
+
+    @property
+    def speed(self):
+        return self.counter.now // self.passed
+
+    @property
+    def passed(self):
+        return time.time() - self.start_time
+
+    def _logger_function(self, text):
+        log_str = '[%s] response: %s, %s - %s (+%s), %s req/s' % (
+            self.counter.x, text, ttime(self.start_time), ttime(),
+            timepass(self.passed), self.speed)
+        print(log_str)
+
+    def pt_callback_wrapper(self, func):
+        """add shutdown checker for callback function."""
+
+        @wraps(func)
+        def wrapper(r):
+            # if tries end or timeout or shutdown_changed => shutdown
+            result = func(r)
+            if self.counter.now >= self.total_tries:
+                print('shutdown for: total_tries:', self.total_time)
+                self.shutdown()
+            if self.passed >= self.total_time:
+                print('shutdown for: total_time:', self.total_time)
+                self.shutdown()
+            if self.shutdown_changed and result != self.original_response:
+                print('shutdown for: shutdown_changed:', self.original_response,
+                      '=>', result)
+                self.shutdown()
+            self.logger_function(result)
+            return result
+
+        return wrapper
+
+    def start(self):
+        while 1:
+            tasks = [
+                self.req.request(
+                    **self.request,
+                    callback=self.pt_callback,
+                    retry=self.retry,
+                    timeout=self.timeout) for _ in range(self.chunk_size)
+            ]
+            self.req.x
+
+    @property
+    def x(self):
+        return self.start()
