@@ -569,10 +569,11 @@ class Timer(object):
             test_inner()
         test(3)
         time.sleep(1)
-        # [2018-03-09 03:23:58]: Timer start at 2018-03-09 03:23:57 [+00:00:01]: test_non_del.
-        # [2018-03-09 03:23:58]: Timer start at 2018-03-09 03:23:56 [+00:00:02]: test(a=3).
-        # [2018-03-09 03:23:58]: Timer start at 2018-03-09 03:23:56 [+00:00:02]: test(3).
-        # [2018-03-09 03:23:59]: Timer start at 2018-03-09 03:23:56 [+00:00:03]: <module>: __main__ (/tmp/temp_code.py).
+        # [2018-03-10 02:16:48]: Timer [00:00:01]: test_non_del, start at 2018-03-10 02:16:47.
+        # [2018-03-10 02:16:48]: Timer [00:00:02]: test(a=3), start at 2018-03-10 02:16:46.
+        # [2018-03-10 02:16:48]: Timer [00:00:02]: test(3), start at 2018-03-10 02:16:46.
+        # [2018-03-10 02:16:49]: Timer [00:00:03]: <module>: __main__ (/tmp/temp_code.py), start at 2018-03-10 02:16:46.
+
         ```
         then it will show log after del it by gc.
     ```
@@ -588,13 +589,6 @@ class Timer(object):
         self.x -> return self.string, and output it
         self.passed -> return seconds passed after self.start
         [staticmethod] watch: decorator for timer a function, args as same as Timer
-    Log format:
-        inner function:
-        [2018-03-09 03:21:02]: Timer start at 2018-03-09 03:21:02 [+00:00:00]: test(a=3).
-        function decorator:
-        [2018-03-09 03:21:02]: Timer start at 2018-03-09 03:21:02 [+00:00:00]: test(3).
-        global:
-        [2018-03-09 03:21:02]: Timer start at 2018-03-09 03:21:02 [+00:00:00]: <module>: __main__ (/tmp/test/temp_code.py).
     ```
     """
 
@@ -649,7 +643,7 @@ class Timer(object):
         if self.log_func:
             self.log_func(self)
         else:
-            print_info('Timer start at %(start)s [+%(passed)s]: %(name)s.' %
+            print_info('Timer [%(passed)s]: %(name)s, start at %(start)s.' %
                        (dict(
                            name=self.name,
                            start=ttime(self.start_at),
