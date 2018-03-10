@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import importlib
 import os
+import pickle
 import re
 import shlex
 import signal
@@ -572,7 +573,7 @@ class Timer(object):
         # [2018-03-10 02:16:48]: Timer [00:00:01]: test_non_del, start at 2018-03-10 02:16:47.
         # [2018-03-10 02:16:48]: Timer [00:00:02]: test(a=3), start at 2018-03-10 02:16:46.
         # [2018-03-10 02:16:48]: Timer [00:00:02]: test(3), start at 2018-03-10 02:16:46.
-        # [2018-03-10 02:16:49]: Timer [00:00:03]: <module>: __main__ (/tmp/temp_code.py), start at 2018-03-10 02:16:46.
+        # [2018-03-10 02:16:49]: Timer [00:00:03]: <module>: (/tmp/temp_code.py), start at 2018-03-10 02:16:46.
 
         ```
         then it will show log after del it by gc.
@@ -609,6 +610,7 @@ class Timer(object):
             if f_name == '<module>':
                 f_vars = ": %s (%s)" % (f_local.get('__name__'),
                                         f_local.get('__file__'))
+                f_vars = f_vars.replace(' __main__', '')
             else:
                 f_vars = '(%s)' % ', '.join([
                     '%s=%s' % (i, repr(f_local[i]))
@@ -743,3 +745,122 @@ class ClipboardWatcher(object):
                     break
             self.temp = new
             time.sleep(self.interval)
+
+
+class Saver(object):
+    """
+    Small object persistent toolkit with pickle, if only you don't care the performance.
+    """
+
+    def __init__(self, path=None, **pickle_args):
+        """
+        path: if not set, will be ~/_saver.pickle. print(self._path) to show it.
+        pickle's protocol < 3 for compatibility between python2/3, 
+                use -1 for performance and some other optimizations.
+        """
+        super(Saver, self).__init__()
+        super(Saver, self).__setattr__('_path', path or self.__default_path)
+        super(Saver, self).__setattr__('_pickle_args', pickle_args)
+        super(Saver, self).__setattr__('_conflict_keys', set(dir(self)))
+        super(Saver, self).__setattr__('_cache', self._load())
+
+    @property
+    def __default_path(self):
+        home = os.path.expanduser('~')
+        file_name = '_saver.pickle'
+        path = os.path.join(home, file_name)
+        return path
+
+    def _save_obj(self, obj):
+        with open(self._path, 'wb') as f:
+            pickle.dump(obj, f, **self._pickle_args)
+        return obj
+
+    def _save(self):
+        return self._save_obj(self._cache)
+
+    def _load(self):
+        if not os.path.isfile(self._path):
+            self._save_obj({})
+        with open(self._path, 'rb') as f:
+            return pickle.load(f)
+
+    def _set(self, key, value):
+        assert isinstance(
+            key, unicode
+        ) and key not in self._conflict_keys and not key.startswith('__')
+        self._cache[key] = value
+        self._save()
+
+    def _get(self, key, default=None):
+        return self._cache.get(key, default)
+
+    def __setattr__(self, key, value):
+        self._set(key, value)
+
+    def __getattr__(self, key):
+        if key in self._conflict_keys:
+            return object.__getattribute__(self, key)
+        return self._get(key)
+
+    def __contain__(self, key):
+        return key in self._cache
+
+    def __delattr__(self, key):
+        self._cache.pop(key, None)
+        self._save()
+
+    def __dir__(self):
+        return dir(object)
+
+    def __len__(self):
+        return len(self._cache)
+
+    def _clear(self):
+        self._cache = {}
+        self._save()
+
+    def _shutdown(self):
+        return (os.remove(self._path))
+
+    def _keys(self):
+        return self._cache.keys()
+
+    def _items(self):
+        return self._cache.items()
+
+    def _values(self):
+        return self._cache.values()
+
+    def _pop(self, key, default=None):
+        result = self._cache.pop(key, default)
+        self._save()
+        return result
+
+    def _popitem(self):
+        result = self._cache.popitem()
+        self._save()
+        return result
+
+    def _update(self, *args, **kwargs):
+        self._cache.update(*args, **kwargs)
+        self._save()
+
+    def __getitem__(self, key):
+        if key in self._cache:
+            return self._get(key)
+        return result
+
+    def __setitem__(self, key, value):
+        self._set(key, value)
+
+    def __delitem__(self, key):
+        self._cache.pop(key, None)
+        self._save()
+
+    def __str__(self):
+        return self._cache.__str__()
+
+    def __repr__(self):
+        return 'Saver(path="%s", pickle_args=%s)' % (self._path,
+                                                     self._pickle_args)
