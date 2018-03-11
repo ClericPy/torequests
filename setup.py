@@ -17,13 +17,13 @@ install_requires = ['requests']
 if py_version.major == 2:
     install_requires.append('futures')
 if py_version.major == 3 and py_version.minor >= 5:
-    install_requires.append('aiohttp>=3.0.4')
+    install_requires.append('aiohttp>=3.0.5')
     # if  'Windows' not in .system():
     #     install_requires.append('uvloop')
 
 setup(
     name='torequests',
-    version='4.6.0',
+    version='4.6.1',
     keywords=(
         'requests async multi-thread aiohttp asyncio uvloop asynchronous'),
     description=
