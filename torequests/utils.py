@@ -749,8 +749,14 @@ class ClipboardWatcher(object):
 
 class Saver(object):
     """
-    Small object persistent toolkit with pickle, if only you don't care the performance.
+    Simple object persistent toolkit with pickle, if only you don't care the performance.
     """
+    _instances = {}
+
+    def __new__(cls, path=None, **pickle_args):
+        # BORG
+        path = path or cls._get_home_path()
+        return cls._instances.setdefault(path, super(Saver, cls).__new__(cls))
 
     def __init__(self, path=None, **pickle_args):
         """
@@ -759,13 +765,13 @@ class Saver(object):
                 use -1 for performance and some other optimizations.
         """
         super(Saver, self).__init__()
-        super(Saver, self).__setattr__('_path', path or self.__default_path)
+        super(Saver, self).__setattr__('_path', path or self._get_home_path())
         super(Saver, self).__setattr__('_pickle_args', pickle_args)
         super(Saver, self).__setattr__('_conflict_keys', set(dir(self)))
         super(Saver, self).__setattr__('_cache', self._load())
 
-    @property
-    def __default_path(self):
+    @classmethod
+    def _get_home_path(cls):
         home = os.path.expanduser('~')
         file_name = '_saver.pickle'
         path = os.path.join(home, file_name)
