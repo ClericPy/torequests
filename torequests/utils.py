@@ -565,7 +565,7 @@ class Timer(object):
         # [2018-03-10 02:16:48]: Timer [00:00:01]: test_non_del, start at 2018-03-10 02:16:47.
         # [2018-03-10 02:16:48]: Timer [00:00:02]: test(a=3), start at 2018-03-10 02:16:46.
         # [2018-03-10 02:16:48]: Timer [00:00:02]: test(3), start at 2018-03-10 02:16:46.
-        # [2018-03-10 02:16:49]: Timer [00:00:03]: <module>: (/tmp/temp_code.py), start at 2018-03-10 02:16:46.
+        # [2018-03-10 02:16:49]: Timer [00:00:03]: <module>: __main__ (temp_code.py), start at 2018-03-10 02:16:46.
 
         ```
         then it will show log after del it by gc.
@@ -601,8 +601,8 @@ class Timer(object):
             f_local = sys._getframe(stack_level).f_locals
             if f_name == '<module>':
                 f_vars = ": %s (%s)" % (f_local.get('__name__'),
-                                        f_local.get('__file__'))
-                f_vars = f_vars.replace(' __main__', '')
+                                        os.path.split(f_local.get('__file__'))[-1])
+                # f_vars = f_vars.replace(' __main__', '')
             else:
                 f_vars = '(%s)' % ', '.join([
                     '%s=%s' % (i, repr(f_local[i]))
