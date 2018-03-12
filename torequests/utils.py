@@ -341,12 +341,12 @@ class Counts(object):
     def now(self):
         return self.current
 
-    def add(self):
-        self.current += self.step
+    def add(self, num=None):
+        self.current += num or self.step
         return self.current
 
-    def sub(self):
-        self.current -= self.step
+    def sub(self, num=None):
+        self.current -= num or self.step
         return self.current
 
 

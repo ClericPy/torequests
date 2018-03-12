@@ -1,5 +1,7 @@
 #! coding:utf-8
 
+from __future__ import division
+
 import json
 import os
 import time
@@ -7,12 +9,12 @@ import traceback
 from copy import deepcopy
 from functools import wraps
 
+from .logs import print_info
 from .parsers import SimpleParser
 from .utils import (Counts, curlparse, ensure_dict_key_title, ensure_request,
                     md5, parse_qsl, slice_by_size, timepass, ttime, unparse_qsl,
                     urlparse, urlunparse)
 from .versions import PY2, PY3, PY35_PLUS
-from .logs import print_info
 
 if PY3:
     unicode = str
@@ -389,7 +391,9 @@ class StressTest(CommonRequests):
             encoding=encoding,
             **kwargs)
         self.counter = Counts()
+        self.succ_counter = Counts()
         self.start_time = time.time()
+        self.start_time_readable = ttime(self.start_time)
         self.total_tries = total_tries or float('inf')
         self.total_time = total_time or float('inf')
         self.shutdown = shutdown or self._shutdown
@@ -405,13 +409,17 @@ class StressTest(CommonRequests):
         return self.counter.now // self.passed
 
     @property
+    def succ_rate(self):
+        return '%.2f %%' % (self.succ_counter.now * 100 / self.counter.now)
+
+    @property
     def passed(self):
         return time.time() - self.start_time
 
     def _logger_function(self, text):
-        log_str = '[%s] response: %s, start at %s (+%s), %s req/s' % (
-            self.counter.x, text, ttime(self.start_time), timepass(self.passed),
-            self.speed)
+        log_str = '[%s] response: %s, start at %s (+%s), %s req/s [%s]' % (
+            self.counter.now, text, self.start_time_readable,
+            timepass(self.passed), self.speed, self.succ_rate)
         print_info(log_str)
 
     def pt_callback_wrapper(self, func):
@@ -421,15 +429,19 @@ class StressTest(CommonRequests):
         def wrapper(r):
             # if tries end or timeout or shutdown_changed => shutdown
             result = func(r)
+            self.counter.x
+            succ = result == self.original_response
             if self.counter.now >= self.total_tries:
                 print_info('shutdown for: total_tries: %s' % self.total_time)
                 self.shutdown()
             if self.passed >= self.total_time:
                 print_info('shutdown for: total_time: %s' % self.total_time)
                 self.shutdown()
-            if self.shutdown_changed and result != self.original_response:
+            if succ:
+                self.succ_counter.x
+            elif self.shutdown_changed:
                 print_info('shutdown for: shutdown_changed: %s => %s' %
-                           (self.original_response, result))
+                            (self.original_response, result))
                 self.shutdown()
             self.logger_function(result)
             return result
