@@ -300,8 +300,9 @@ class Frequency:
         return self.__repr__()
 
     def __repr__(self):
-        return 'Frequency(sem=<%s/%s>, interval=%s, name=%s)' % (
-            self.sem._value, self._init_sem_value, self.interval, self.name)
+        return 'Frequency(sem=<%s/%s>, interval=%s%s)' % (
+            self.sem._value, self._init_sem_value, self.interval,
+            ', name=%s' % self.name if self.name else '')
 
     def ensure_sem(self, sem):
         sem = self._ensure_sem(sem)
