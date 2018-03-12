@@ -263,6 +263,9 @@ def timeago(seconds=0, accuracy=4, format=0, lang='en'):
     format: index of [led, literal, dict]
     lang: cn or en
     units: day, hour, minute, second, millisecond"""
+    assert format in [0, 1,
+                      2], ValueError('format arg should be one of 0, 1, 2')
+    negative = '-' if seconds < 0 else ''
     seconds = abs(seconds)
     if lang == 'en':
         units = ('day', 'hour', 'minute', 'second', 'millisecond')
@@ -281,7 +284,7 @@ def timeago(seconds=0, accuracy=4, format=0, lang='en'):
         mid_str = ':'.join(("%02d" % i for i in (hour, minute, second)))
         if accuracy > 4:
             mid_str += ',%03d' % millisecond
-        return day_str + mid_str
+        return negative + day_str + mid_str
     elif format == 1:
         # find longest valid fields index (non-zero in front)
         valid_index = 0
@@ -294,18 +297,7 @@ def timeago(seconds=0, accuracy=4, format=0, lang='en'):
             for num, unit in zip(times, units)
         ][valid_index:][:accuracy]
         result_str = ' '.join(result_str)
-        return result_str
-    SS, MS = divmod(millisecond, 1000)
-    MM, SS = divmod(SS, 60)
-    HH, MM = divmod(MM, 60)
-    DD, HH = divmod(HH, 24)
-    string = "%02d:%02d:%02d" % (HH, MM, SS)
-    if DD:
-        string = '%s%s' % ("%d day%s, " % (DD, ''
-                                           if abs(DD) == 1 else 's'), string)
-    if ms:
-        string = '%s%s' % (string, "%s%03d" % (',', int(MS) if MS else 0))
-    return string
+        return negative + result_str
 
 
 # alias name
