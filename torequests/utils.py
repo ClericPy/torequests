@@ -39,7 +39,7 @@ if PY3:
 
 def simple_cmd():
     """
-    **Deprecated**. The best use of another: fire. pip install fire
+    **Deprecated**. Not better than fire => pip install fire
     """
     parser = argparse.ArgumentParser(
         prog='Simple command-line function toolkit.',
@@ -78,6 +78,7 @@ def simple_cmd():
 
 
 def print_mem():
+    """show the mem taken by this process"""
     try:
         import psutil
         print_info("total: %.2f(MB)" % (
@@ -86,7 +87,7 @@ def print_mem():
         print_info('pip install psutil.')
 
 
-class Curl(object):
+class Curl:
     """
     translate curl string into a dict of requests kwargs.
     """
@@ -104,52 +105,52 @@ class Curl(object):
         '-H', '--header', action='append', default=[])  # key: value
     parser.add_argument('--compressed', action='store_true')
 
-    @classmethod
-    def parse(cls, cmd, encode='utf-8'):
-        """requests.request(**Curl.parse(curl_bash));
-           curl_bash sometimes should use r'...' """
-        assert '\n' not in cmd, 'curl_bash should not contain \\n, try r"...".'
-        if cmd.startswith('http'):
-            return {'url': cmd, 'method': 'get'}
-        args, unknown = cls.parser.parse_known_args(shlex.split(cmd.strip()))
-        requests_args = {}
-        headers = {}
-        requests_args['url'] = args.url
-        for header in args.header:
-            key, value = header.split(":", 1)
-            headers[key.title()] = value.strip()
-        if args.user_agent:
-            headers['user-agent'] = args.user_agent
-        if headers:
-            requests_args['headers'] = headers
-        if args.user:
-            requests_args['auth'] = tuple(
-                u for u in args.user.split(':', 1) + [''])[:2]
-        # if args.proxy:
-        # pass
-        data = args.data or args.data_binary
-        if data:
-            if data.startswith('$'):
-                data = data[1:]
-            args.method = 'post'
-            if headers.get(
-                    'content-type') == 'tpplication/x-www-form-urlencoded':
-                data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
-                             for i in data.split('&')])
-                requests_args['data'] = data
-            # elif headers.get('content-type', '') in ('application/json',):
-            # requests_args['json'] = json.loads(data)
-            else:
-                data = data.encode(encode)
-                requests_args['data'] = data
-        requests_args['method'] = args.method.lower()
-        return requests_args
 
-
-curlparse = Curl.parse
+def curlparse(string, encode='utf-8'):
+    """
+    Input: curl-string; output: dict of request.
+        requests.request(**Curl.parse(curl_string));
+        curl-string sometimes should use r'''...''' 
+    """
+    assert '\n' not in string, 'curl-string should not contain \\n, try r"...".'
+    if string.startswith('http'):
+        return {'url': string, 'method': 'get'}
+    args, unknown = Curl.parser.parse_known_args(shlex.split(string.strip()))
+    requests_args = {}
+    headers = {}
+    requests_args['url'] = args.url
+    for header in args.header:
+        key, value = header.split(":", 1)
+        headers[key.title()] = value.strip()
+    if args.user_agent:
+        headers['user-agent'] = args.user_agent
+    if headers:
+        requests_args['headers'] = headers
+    if args.user:
+        requests_args['auth'] = tuple(
+            u for u in args.user.split(':', 1) + [''])[:2]
+    # if args.proxy:
+    # pass
+    data = args.data or args.data_binary
+    if data:
+        if data.startswith('$'):
+            data = data[1:]
+        args.method = 'post'
+        if headers.get('content-type') == 'tpplication/x-www-form-urlencoded':
+            data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
+                         for i in data.split('&')])
+            requests_args['data'] = data
+        # elif headers.get('content-type', '') in ('application/json',):
+        # requests_args['json'] = json.loads(data)
+        else:
+            data = data.encode(encode)
+            requests_args['data'] = data
+    requests_args['method'] = args.method.lower()
+    return requests_args
 
 
 class Null(object):
+    """Null object will return self when be called."""
 
     def __init__(self, *args, **kwargs):
         return
@@ -181,18 +182,19 @@ class Null(object):
     def __nonzero__(self):
         return False
 
+
 null = Null()
 
 
 def itertools_chain(*iterables):
-    """From itertools import chain."""
+    """Python3: from itertools import chain."""
     for it in iterables:
         for element in it:
             yield element
 
 
 def slice_into_pieces(seq, n):
-    """return a generation of pieces"""
+    """return a generation of n pieces"""
     length = len(seq)
     if length % n == 0:
         size = length // n
@@ -203,7 +205,7 @@ def slice_into_pieces(seq, n):
 
 
 def slice_by_size(seq, size):
-    """return as a generation of chunks"""
+    """return as a generation of chunks with size."""
     filling = null
     for it in zip(*(itertools_chain(seq, [filling] * size),) * size):
         if filling in it:
@@ -215,13 +217,11 @@ def slice_by_size(seq, size):
 def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
     """
     Translate timestamp into human-readable: %Y-%m-%d %H:%M:%S. %z not work.
-
-    tzone: time compensation, by "+ time.timezone + tzone * 3600";
-           eastern eight(+8) time zone by default(can be set with Config.TIMEZONE).
-
-    fail: while raise an exception, return fail arg.
-    > print(ttime())
-    > print(ttime(1486572818.421858323)) # 2017-02-09 00:53:38
+        print(ttime()) # 2018-03-15 01:24:35
+        print(ttime(1486572818.421858323)) # 2017-02-09 00:53:38
+        tzone: time compensation, int(-time.timezone / 3600) by default, 
+                (can be set with Config.TIMEZONE).
+        fail: while raise an exception, return fail arg.
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestamp = timestamp if timestamp is not None else time.time()
@@ -236,9 +236,10 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
 
 def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
     """
-    %Y-%m-%d %H:%M:%S -> timestamp. %z not work.
-    tzone: timestamp compensation, by " - time.timezone - tzone * 3600";
-           local time zone by default(can be set with Config.TIMEZONE).
+    input %Y-%m-%d %H:%M:%S and return timestamp.
+        print(ptime('2018-03-15 01:27:56')) # 1521048476.0
+        %z doesn't work.
+        tzone: timestamp compensation, local time zone by default (can be set with Config.TIMEZONE).
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestr = timestr or ttime()
@@ -250,8 +251,12 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
 
 
 def split_seconds(seconds):
-    """divisor: 1, 24, 60, 60, 1000
-    units: day, hour, minute, second, millisecond"""
+    """
+    split seconds into [day, hour, minute, second, millisecond]
+        print(split_seconds(6666666)) -> [77, 3, 51, 6, 0]
+        divisor: 1, 24, 60, 60, 1000
+        units: day, hour, minute, second, millisecond
+    """
     millisecond = seconds * 1000
     divisors = (1, 24, 60, 60, 1000)
     quotient, result = millisecond, []
@@ -262,12 +267,14 @@ def split_seconds(seconds):
 
 
 def timeago(seconds=0, accuracy=4, format=0, lang='en'):
-    """translate seconds into human-readable
-    seconds: abs(seconds)
-    accuracy: 4 by default (units[:accuracy]), determine the length of elements.
-    format: index of [led, literal, dict]
-    lang: cn or en
-    units: day, hour, minute, second, millisecond"""
+    """
+    Translate seconds into human-readable
+        seconds: abs(seconds)
+        accuracy: 4 by default (units[:accuracy]), determine the length of elements.
+        format: index of [led, literal, dict]
+        lang: cn or en
+        units: day, hour, minute, second, millisecond
+    """
     assert format in [0, 1,
                       2], ValueError('format arg should be one of 0, 1, 2')
     negative = '-' if seconds < 0 else ''
@@ -323,6 +330,11 @@ def md5(string, n=32, encoding='utf-8', skip_encode=False):
 
 
 class Counts(object):
+    """
+    Counter for counts the times been called
+        count.x -> current+step and return current
+        count.now -> return current
+    """
     __slots__ = ('start', 'step', 'current')
 
     def __init__(self, start=0, step=1):
@@ -396,7 +408,9 @@ def unparse_qsl(qsl, sort=False, reverse=False):
 
 
 class Regex(object):
-    """Input string, return a list of mapping object"""
+    """
+    Register some objects(like functions) to the regular expression
+    """
 
     def __init__(self, ensure_mapping=False):
         """
@@ -479,6 +493,7 @@ class Regex(object):
 
 
 def kill_after(seconds, timeout=2):
+    """Kill self after seconds"""
     pid = os.getpid()
     kill = os.kill
     run_after_async(seconds, kill, pid, signal.SIGTERM)
@@ -486,6 +501,7 @@ def kill_after(seconds, timeout=2):
 
 
 class UA:
+    """some common User-Agents for crawler"""
     __slots__ = ()
     Android = 'Mozilla/5.0 (Linux; Android 5.1.1; Nexus 6 Build/LYZ28E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Mobile Safari/537.36'
     iPhone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1'
@@ -498,8 +514,8 @@ class UA:
 
 def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
     """
-    Try import module_name, except ImportError and return default.
-    Sometimes be used for lazy-import,
+    Try import module_name, except ImportError and return default,
+        sometimes to be used for lazy-import.
     """
     try:
         module = importlib.import_module(module_name)
@@ -697,6 +713,7 @@ class Timer(object):
 
 
 def ensure_dict_key_title(dict_obj):
+    """set the dict key as key.title(); keys should be str"""
     if not all((isinstance(i, unicode) for i in dict_obj.keys())):
         return dict_obj
     return {key.title(): value for key, value in dict_obj.items()}
@@ -724,7 +741,7 @@ class ClipboardWatcher(object):
     def default_callback(self, text):
         # clean text
         text = text.replace('\r\n', '\n')
-        print_info(text, flush=1)
+        print(text, flush=1)
         return text
 
     def watch(self, limit=None, timeout=None):
@@ -747,7 +764,8 @@ class ClipboardWatcher(object):
 
 class Saver(object):
     """
-    Simple object persistent toolkit with pickle, if only you don't care the performance.
+    Simple object persistent toolkit with pickle,
+        if only you don't care the performance and security.
     """
     _instances = {}
 
