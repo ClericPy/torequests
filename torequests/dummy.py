@@ -420,32 +420,49 @@ class Requests(Loop):
                 return FailureException(error)
             raise error
 
-    def request(self, method, url, callback=None, **kwargs):
+    def request(self, method, url, callback=None, retry=0, **kwargs):
         """submit the coro of self._request to self.loop"""
         return self.submit(
-            self._request(method, url, **kwargs),
+            self._request(method, url=url, retry=retry, **kwargs),
             callback=(callback or self.default_callback))
 
-    def get(self, url, callback=None, **kwargs):
-        return self.request('get', url, callback, **kwargs)
+    def get(self, url, params=None, callback=None, retry=0, **kwargs):
+        return self.request(
+            'get',
+            url=url,
+            params=params,
+            callback=callback,
+            retry=retry,
+            **kwargs)
 
-    def post(self, url, callback=None, **kwargs):
-        return self.request('post', url, callback, **kwargs)
+    def post(self, url, data=None, callback=None, retry=0, **kwargs):
+        return self.request(
+            'post',
+            url=url,
+            data=data,
+            callback=callback,
+            retry=retry,
+            **kwargs)
 
-    def delete(self, url, callback=None, **kwargs):
-        return self.request('delete', url, callback, **kwargs)
+    def delete(self, url, callback=None, retry=0, **kwargs):
+        return self.request(
+            'delete', url=url, callback=callback, retry=retry, **kwargs)
 
-    def put(self, url, callback=None, **kwargs):
-        return self.request('put', url, callback, **kwargs)
+    def put(self, url, data=None, callback=None, retry=0, **kwargs):
+        return self.request(
+            'put', url=url, data=data, callback=callback, retry=retry, **kwargs)
 
-    def head(self, url, callback=None, **kwargs):
-        return self.request('head', url, callback, **kwargs)
+    def head(self, url, callback=None, retry=0, **kwargs):
+        return self.request(
+            'head', url=url, callback=callback, retry=retry, **kwargs)
 
-    def options(self, url, callback=None, **kwargs):
-        return self.request('options', url, callback, **kwargs)
+    def options(self, url, callback=None, retry=0, **kwargs):
+        return self.request(
+            'options', url=url, callback=callback, retry=retry, **kwargs)
 
-    def patch(self, url, callback=None, **kwargs):
-        return self.request('patch', url, callback, **kwargs)
+    def patch(self, url, callback=None, retry=0, **kwargs):
+        return self.request(
+            'patch', url=url, callback=callback, retry=retry, **kwargs)
 
     def close(self):
         """Should be closed[explicit] while using external session or connector,

@@ -5,6 +5,7 @@ from __future__ import print_function
 import argparse
 import hashlib
 import importlib
+import json
 import os
 import pickle
 import re
@@ -22,6 +23,7 @@ from .versions import PY2, PY3
 from .logs import print_info
 
 if PY2:
+    import repr as reprlib
     from urllib import quote, quote_plus, unquote_plus
     from urlparse import parse_qs, parse_qsl, urlparse, unquote, urljoin, urlsplit, urlunparse
     from cgi import escape
@@ -29,6 +31,7 @@ if PY2:
     unescape = HTMLParser.HTMLParser().unescape
 
 if PY3:
+    import reprlib
     from urllib.parse import parse_qs, parse_qsl, urlparse, quote, quote_plus, unquote, unquote_plus, urljoin, urlsplit, urlunparse
     from html import escape, unescape
     unicode = str
@@ -175,6 +178,8 @@ class Null(object):
     def __bool__(self):
         return False
 
+    def __nonzero__(self):
+        return False
 
 null = Null()
 
@@ -600,8 +605,9 @@ class Timer(object):
             f_name = sys._getframe(stack_level).f_code.co_name
             f_local = sys._getframe(stack_level).f_locals
             if f_name == '<module>':
-                f_vars = ": %s (%s)" % (f_local.get('__name__'),
-                                        os.path.split(f_local.get('__file__'))[-1])
+                f_vars = ": %s (%s)" % (
+                    f_local.get('__name__'),
+                    os.path.split(f_local.get('__file__'))[-1])
                 # f_vars = f_vars.replace(' __main__', '')
             else:
                 f_vars = '(%s)' % ', '.join([
@@ -857,8 +863,7 @@ class Saver(object):
         self._save()
 
     def __str__(self):
-        return self._cache.__str__()
+        return json.dumps(self._cache, ensure_ascii=0)
 
     def __repr__(self):
-        return 'Saver(path="%s", pickle_args=%s)' % (self._path,
-                                                     self._pickle_args)
+        return 'Saver(path="%s")%s' % (self._path, reprlib.repr(self._cache))
