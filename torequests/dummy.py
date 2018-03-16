@@ -39,14 +39,7 @@ class NewTask(asyncio.tasks.Task):
         self._done_callbacks = []
         self.task_start_time = time.time()
         self.task_end_time = 0
-
-    def _set_task_end_time(self):
-        self.task_end_time = time.time()
-        return self.task_end_time
-
-    @property
-    def task_cost_time(self):
-        return self.task_end_time - self.task_start_time
+        self.task_cost_time = 0
 
     @staticmethod
     def wrap_callback(function):
@@ -81,7 +74,8 @@ class NewTask(asyncio.tasks.Task):
         return result
 
     def _schedule_callbacks(self):
-        self._set_task_end_time()
+        self.task_end_time = time.time()
+        self.task_cost_time = self.task_end_time - self.task_start_time
         super()._schedule_callbacks()
 
     def __getattr__(self, name):

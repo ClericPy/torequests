@@ -151,12 +151,20 @@ class NewFuture(Future):
         self._args = args or ()
         self._kwargs = kwargs or {}
         self._callback_result = None
+        self.task_start_time = time.time()
+        self.task_end_time = 0
+        self.task_cost_time = 0
 
     def __getattr__(self, name):
         try:
             object.__getattribute__(self, name)
         except AttributeError:
             return self.x.__getattribute__(name)
+
+    def _invoke_callbacks(self):
+        self.task_end_time = time.time()
+        self.task_cost_time = self.task_end_time - self.task_start_time
+        super(NewFuture, self)._invoke_callbacks()
 
     @staticmethod
     def wrap_callback(function):
@@ -237,7 +245,7 @@ class tPool(object):
     def x(self):
         return self.pool.x
 
-    def close(self, wait=True):
+    def close(self, wait=False):
         self.session.close()
         self.pool.shutdown(wait=wait)
 

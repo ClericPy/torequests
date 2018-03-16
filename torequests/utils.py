@@ -764,52 +764,69 @@ class ClipboardWatcher(object):
 
 class Saver(object):
     """
-    Simple object persistent toolkit with pickle,
+    Simple object persistent toolkit with pickle/json,
         if only you don't care the performance and security.
     """
     _instances = {}
 
-    def __new__(cls, path=None, **pickle_args):
+    def __new__(cls, path=None, save_mode='pickle', **saver_args):
         # BORG
-        path = path or cls._get_home_path()
+        path = path or cls._get_home_path(save_mode=save_mode)
         return cls._instances.setdefault(path, super(Saver, cls).__new__(cls))
 
-    def __init__(self, path=None, **pickle_args):
+    def __init__(self, path=None, save_mode='pickle', **saver_args):
         """
-        path: if not set, will be ~/_saver.pickle. print(self._path) to show it.
+        path: if not set, will be ~/_saver.db. print(self._path) to show it.
         pickle's protocol < 3 for compatibility between python2/3, 
                 use -1 for performance and some other optimizations.
+        save_mode: pickle/json. TODO: tinydb, sqlitedict
         """
         super(Saver, self).__init__()
-        super(Saver, self).__setattr__('_path', path or self._get_home_path())
-        super(Saver, self).__setattr__('_pickle_args', pickle_args)
+        super(Saver, self).__setattr__(
+            '_path', path or self._get_home_path(save_mode=save_mode))
+        super(Saver, self).__setattr__('_saver_args', saver_args)
+        super(Saver, self).__setattr__('_save_mode', save_mode)
         super(Saver, self).__setattr__('_conflict_keys', set(dir(self)))
         super(Saver, self).__setattr__('_cache', self._load())
 
     @classmethod
-    def _get_home_path(cls):
+    def _get_home_path(cls, save_mode=None):
         home = os.path.expanduser('~')
-        file_name = '_saver.pickle'
+        if save_mode == 'json':
+            ext = 'json'
+        elif save_mode == 'pickle':
+            ext = 'pkl'
+        else:
+            ext = 'db'
+        file_name = '_saver.%s' % ext
         path = os.path.join(home, file_name)
         return path
 
     def _save_obj(self, obj):
-        with open(self._path, 'wb') as f:
-            pickle.dump(obj, f, **self._pickle_args)
+        mode = 'wb' if self._save_mode == 'pickle' else 'w'
+        with open(self._path, mode) as f:
+            if self._save_mode == 'json':
+                json.dump(obj, f, **self._saver_args)
+            if self._save_mode == 'pickle':
+                pickle.dump(obj, f, **self._saver_args)
         return obj
-
-    def _save(self):
-        return self._save_obj(self._cache)
 
     def _load(self):
         if not os.path.isfile(self._path):
             self._save_obj({})
-        with open(self._path, 'rb') as f:
-            return pickle.load(f)
+        mode = 'rb' if self._save_mode == 'pickle' else 'r'
+        with open(self._path, mode) as f:
+            if self._save_mode == 'json':
+                return json.load(f)
+            if self._save_mode == 'pickle':
+                return pickle.load(f)
+
+    def _save(self):
+        return self._save_obj(self._cache)
 
     def _set(self, key, value):
         assert isinstance(
-            key, unicode
+            key, (unicode, str)
         ) and key not in self._conflict_keys and not key.startswith('__')
         self._cache[key] = value
         self._save()
@@ -881,7 +898,7 @@ class Saver(object):
         self._save()
 
     def __str__(self):
-        return json.dumps(self._cache, ensure_ascii=0)
+        return 'Saver(path="%s")%s' % (self._path, reprlib.repr(self._cache))
 
     def __repr__(self):
         return 'Saver(path="%s")%s' % (self._path, reprlib.repr(self._cache))
