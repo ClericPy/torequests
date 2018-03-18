@@ -46,6 +46,31 @@ print(future.x, ', %s s passed' % (int(time.time() - start)))
 # test1 ok , 1 s passed
 ```
 #### 2. tPool - thread pool for async-requests
+
+```python
+from torequests.main import tPool
+from torequests.logs import print_info
+
+trequests = tPool()
+test_url = 'http://p.3.cn'
+ss = [
+    trequests.get(
+        test_url,
+        retry=2,
+        callback=lambda x: (len(x.content), print_info(len(x.content))))
+    for i in range(3)
+]
+# or [i.x for i in ss]
+trequests.x
+ss = [i.cx for i in ss]
+print_info(ss)
+
+# [2018-03-18 21:18:09]: 612
+# [2018-03-18 21:18:09]: 612
+# [2018-03-18 21:18:09]: 612
+# [2018-03-18 21:18:09]: [(612, None), (612, None), (612, None)]
+```
+> Test the performance, slower than gevent and aiohttp.
 ```python
 from torequests import tPool
 import time
@@ -64,6 +89,31 @@ print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
 ```
 
 #### 3. Requests - aiohttp-wrapper
+
+```python
+from torequests.main import tPool
+from torequests.logs import print_info
+
+trequests = tPool()
+test_url = 'http://p.3.cn'
+ss = [
+    trequests.get(
+        test_url,
+        retry=2,
+        callback=lambda x: (len(x.content), print_info(len(x.content))))
+    for i in range(3)
+]
+# or [i.x for i in ss]
+trequests.x
+ss = [i.cx for i in ss]
+print_info(ss)
+
+# [2018-03-18 21:18:09]: 612
+# [2018-03-18 21:18:09]: 612
+# [2018-03-18 21:18:09]: 612
+# [2018-03-18 21:18:09]: [(612, None), (612, None), (612, None)]
+```
+
 > uvloop cost about 3.8s per 5000 requests; win32 5.78s per 5000 requests.
 ```python
 from torequests.dummy import Requests
@@ -105,10 +155,10 @@ app.run(server='gevent', port=5000)
 
 
 ### Documentation
-> [Document & Usage](obsolete/doc/document.md)
+> [Document & Usage](https://torequests.readthedocs.io/en/latest/)
 
 ### License
 > [MIT license](LICENSE)
 
 ### Benchmarks
-> to be continued
+> to be continued......

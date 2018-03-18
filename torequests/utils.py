@@ -66,7 +66,6 @@ def simple_cmd():
     args = params.args or []
     kwargs = params.kwargs or {}
     if kwargs:
-        import re
         items = [re.split('[:=]', i) for i in re.split('[,;]+', kwargs)]
         kwargs = dict(items)
     if params.show:

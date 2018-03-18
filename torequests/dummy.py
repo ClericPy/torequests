@@ -70,7 +70,7 @@ class NewTask(asyncio.Task):
         return wrapped
 
     def _schedule_callbacks(self, clear_cb=False):
-        """Recording the task_end_time and task_cost_time, 
+        """Recording the task_end_time and task_cost_time,
             and prevent super()._schedule_callbacks to clean self._callbacks."""
         self.task_end_time = time.time()
         self.task_cost_time = self.task_end_time - self.task_start_time
@@ -124,10 +124,7 @@ class NewTask(asyncio.Task):
 
 
 class Loop():
-    """Handle the event loop like a thread pool.
-    
-    
-    """
+    """Handle the event loop like a thread pool."""
 
     def __init__(self, n=None, interval=0, default_callback=None, loop=None):
         try:
@@ -220,7 +217,6 @@ class Loop():
 
             # <NewTask pending coro=<new_coro_func() running at torequests/torequests/dummy.py:154>>
             # (Frequency(sem=<0/0>, interval=0, name=loop_sem), 1)
-        
         """
         args = args or ()
         kwargs = kwargs or {}
@@ -229,7 +225,7 @@ class Loop():
 
     def submit(self, coro, callback=None):
         """Submit a coro as NewTask to self.loop without loop.frequncy control.
-        
+
         ::
 
             from torequests.dummy import Loop
