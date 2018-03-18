@@ -1,0 +1,151 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>torequests.logs &#8212; torequests 4.6.5 documentation</title>
+    <link rel="stylesheet" href="../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">torequests 4.6.5 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for torequests.logs</h1><div class="highlight"><pre>
+<span></span><span class="ch">#! coding:utf-8</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+
+<div class="viewcode-block" id="init_logger"><a class="viewcode-back" href="../../torequests.html#torequests.logs.init_logger">[docs]</a><span class="k">def</span> <span class="nf">init_logger</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="n">handler_path_levels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+                <span class="n">formatter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">formatter_str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">datefmt</span><span class="o">=</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add a default handler for logger.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+
+<span class="sd">    name = &#39;&#39; or logger obj.</span>
+
+<span class="sd">    handler_path_levels = [[&#39;loggerfile.log&#39;,13],[&#39;&#39;,&#39;DEBUG&#39;],[&#39;&#39;,&#39;info&#39;],[&#39;&#39;,&#39;notSet&#39;]] # [[path,level]]</span>
+
+<span class="sd">    level = the least level for the logger.</span>
+
+<span class="sd">    formatter = logging.Formatter(</span>
+<span class="sd">            &#39;%(levelname)-7s %(asctime)s %(name)s (%(filename)s: %(lineno)s): %(message)s&#39;,</span>
+<span class="sd">             &quot;%Y-%m-%d %H:%M:%S&quot;)</span>
+
+<span class="sd">    formatter_str = &#39;%(levelname)-7s %(asctime)s  %(name)s (%(funcName)s: %(lineno)s): %(message)s&#39;</span>
+
+<span class="sd">    custom formatter:</span>
+<span class="sd">        %(asctime)s  %(created)f  %(filename)s  %(funcName)s  %(levelname)s  %(levelno)s  %(lineno)s   %(message)s   %(module)s    %(name)s   %(pathname)s   %(process)s   %(relativeCreated)s   %(thread)s  %(threadName)s  </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;NOTSET&#39;</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">NOTSET</span><span class="p">,</span>
+        <span class="s1">&#39;DEBUG&#39;</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span>
+        <span class="s1">&#39;INFO&#39;</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+        <span class="s1">&#39;WARNING&#39;</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
+        <span class="s1">&#39;ERROR&#39;</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">,</span>
+        <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">CRITICAL</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">formatter</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">formatter_str</span><span class="p">:</span>
+            <span class="n">formatter_str</span> <span class="o">=</span> <span class="n">formatter_str</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">formatter_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(levelname)-7s</span><span class="s1"> </span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(name)s</span><span class="s1"> (</span><span class="si">%(filename)s</span><span class="s1">: </span><span class="si">%(lineno)s</span><span class="s1">): </span><span class="si">%(message)s</span><span class="s1">&#39;</span>
+        <span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="n">formatter_str</span><span class="p">,</span> <span class="n">datefmt</span><span class="o">=</span><span class="n">datefmt</span><span class="p">)</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">name</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">)</span> <span class="k">else</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+    <span class="n">handler_path_levels</span> <span class="o">=</span> <span class="n">handler_path_levels</span> <span class="ow">or</span> <span class="p">[[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;INFO&#39;</span><span class="p">]]</span>
+    <span class="c1"># ---------------------------------------</span>
+    <span class="k">for</span> <span class="n">each_handler</span> <span class="ow">in</span> <span class="n">handler_path_levels</span><span class="p">:</span>
+        <span class="n">path</span><span class="p">,</span> <span class="n">handler_level</span> <span class="o">=</span> <span class="n">each_handler</span>
+        <span class="n">handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">FileHandler</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">path</span> <span class="k">else</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>
+        <span class="n">handler</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span>
+            <span class="n">levels</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">handler_level</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">handler_level</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">handler_level</span><span class="p">)</span>
+        <span class="n">handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">formatter</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">logger</span>
+
+
+<span class="n">dummy_logger</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+    <span class="s1">&#39;torequests.dummy&#39;</span><span class="p">,</span>
+    <span class="n">formatter_str</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(levelname)-7s</span><span class="s1"> </span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(name)s</span><span class="s1">: </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="n">main_logger</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+    <span class="s1">&#39;torequests.main&#39;</span><span class="p">,</span>
+    <span class="n">formatter_str</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(levelname)-7s</span><span class="s1"> </span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(name)s</span><span class="s1">: </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="n">utils_logger</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+    <span class="s1">&#39;torequests.utils&#39;</span><span class="p">,</span>
+    <span class="n">formatter_str</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(levelname)-7s</span><span class="s1"> </span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(name)s</span><span class="s1">: </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="n">print_logger</span> <span class="o">=</span> <span class="n">init_logger</span><span class="p">(</span>
+    <span class="s1">&#39;torequests.print&#39;</span><span class="p">,</span> <span class="n">formatter_str</span><span class="o">=</span><span class="s1">&#39;[</span><span class="si">%(asctime)s</span><span class="s1">]: </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="n">print_info</span> <span class="o">=</span> <span class="n">print_logger</span><span class="o">.</span><span class="n">info</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">torequests 4.6.5 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Clericpy.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>

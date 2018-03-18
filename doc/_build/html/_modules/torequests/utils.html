@@ -1,0 +1,1141 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>torequests.utils &#8212; torequests 4.6.5 documentation</title>
+    <link rel="stylesheet" href="../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">torequests 4.6.5 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for torequests.utils</h1><div class="highlight"><pre>
+<span></span><span class="ch">#! coding:utf-8</span>
+<span class="c1"># compatible for win32 / python 2 &amp; 3</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">shlex</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">wraps</span>
+<span class="kn">from</span> <span class="nn">timeit</span> <span class="k">import</span> <span class="n">default_timer</span>
+
+<span class="kn">from</span> <span class="nn">.configs</span> <span class="k">import</span> <span class="n">Config</span>
+<span class="kn">from</span> <span class="nn">.exceptions</span> <span class="k">import</span> <span class="n">ImportErrorModule</span>
+<span class="kn">from</span> <span class="nn">.main</span> <span class="k">import</span> <span class="n">run_after_async</span><span class="p">,</span> <span class="n">threads</span>
+<span class="kn">from</span> <span class="nn">.versions</span> <span class="k">import</span> <span class="n">PY2</span><span class="p">,</span> <span class="n">PY3</span>
+<span class="kn">from</span> <span class="nn">.logs</span> <span class="k">import</span> <span class="n">print_info</span>
+
+<span class="k">if</span> <span class="n">PY2</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">repr</span> <span class="k">as</span> <span class="nn">reprlib</span>
+    <span class="kn">from</span> <span class="nn">urllib</span> <span class="k">import</span> <span class="n">quote</span><span class="p">,</span> <span class="n">quote_plus</span><span class="p">,</span> <span class="n">unquote_plus</span>
+    <span class="kn">from</span> <span class="nn">urlparse</span> <span class="k">import</span> <span class="n">parse_qs</span><span class="p">,</span> <span class="n">parse_qsl</span><span class="p">,</span> <span class="n">urlparse</span><span class="p">,</span> <span class="n">unquote</span><span class="p">,</span> <span class="n">urljoin</span><span class="p">,</span> <span class="n">urlsplit</span><span class="p">,</span> <span class="n">urlunparse</span>
+    <span class="kn">from</span> <span class="nn">cgi</span> <span class="k">import</span> <span class="n">escape</span>
+    <span class="kn">import</span> <span class="nn">HTMLParser</span>
+    <span class="n">unescape</span> <span class="o">=</span> <span class="n">HTMLParser</span><span class="o">.</span><span class="n">HTMLParser</span><span class="p">()</span><span class="o">.</span><span class="n">unescape</span>
+
+<span class="k">if</span> <span class="n">PY3</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">reprlib</span>
+    <span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">parse_qs</span><span class="p">,</span> <span class="n">parse_qsl</span><span class="p">,</span> <span class="n">urlparse</span><span class="p">,</span> <span class="n">quote</span><span class="p">,</span> <span class="n">quote_plus</span><span class="p">,</span> <span class="n">unquote</span><span class="p">,</span> <span class="n">unquote_plus</span><span class="p">,</span> <span class="n">urljoin</span><span class="p">,</span> <span class="n">urlsplit</span><span class="p">,</span> <span class="n">urlunparse</span>
+    <span class="kn">from</span> <span class="nn">html</span> <span class="k">import</span> <span class="n">escape</span><span class="p">,</span> <span class="n">unescape</span>
+    <span class="n">unicode</span> <span class="o">=</span> <span class="nb">str</span>
+
+
+<div class="viewcode-block" id="simple_cmd"><a class="viewcode-back" href="../../torequests.html#torequests.utils.simple_cmd">[docs]</a><span class="k">def</span> <span class="nf">simple_cmd</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ``Deprecated``: Not better than ``fire`` -&gt; pip install fire</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">prog</span><span class="o">=</span><span class="s1">&#39;Simple command-line function toolkit.&#39;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Input function name and args and kwargs.</span>
+<span class="s2">        python xxx.py main -a 1 2 3 -k a=1,b=2,c=3&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="s1">&#39;--func_name&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;main&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-a&#39;</span><span class="p">,</span> <span class="s1">&#39;--args&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-k&#39;</span><span class="p">,</span> <span class="s1">&#39;--kwargs&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;kwargs&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;-i&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;-s&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;--info&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;--show&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;--status&#39;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;show&#39;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;show the args, kwargs and function</span><span class="se">\&#39;</span><span class="s1">s source code.&#39;</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">func_name</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">func_name</span>
+    <span class="n">func</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">func_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">callable</span><span class="p">(</span><span class="n">func</span><span class="p">)):</span>
+        <span class="n">Config</span><span class="o">.</span><span class="n">utils_logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;invalid func_name: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">func_name</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">args</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">re</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;[:=]&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;[,;]+&#39;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)]</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">show</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">getsource</span>
+        <span class="n">Config</span><span class="o">.</span><span class="n">utils_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;args: </span><span class="si">%s</span><span class="s1">; kwargs: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span>
+        <span class="n">Config</span><span class="o">.</span><span class="n">utils_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">getsource</span><span class="p">(</span><span class="n">func</span><span class="p">))</span>
+        <span class="k">return</span></div>
+    <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="print_mem"><a class="viewcode-back" href="../../torequests.html#torequests.utils.print_mem">[docs]</a><span class="k">def</span> <span class="nf">print_mem</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="s1">&#39;MB&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Show the proc-mem-cost with psutil, use this only for lazinesssss.</span>
+<span class="sd">    </span>
+<span class="sd">    :param unit: B, KB, MB, GB.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">psutil</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">vms</span><span class="p">)</span>
+        <span class="n">KB</span> <span class="o">=</span> <span class="n">B</span> <span class="o">/</span> <span class="mi">1024</span>
+        <span class="n">MB</span> <span class="o">=</span> <span class="n">KB</span> <span class="o">/</span> <span class="mi">1024</span>
+        <span class="n">GB</span> <span class="o">=</span> <span class="n">MB</span> <span class="o">/</span> <span class="mi">1024</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">()[</span><span class="n">unit</span><span class="p">]</span>
+        <span class="n">print_info</span><span class="p">(</span><span class="s2">&quot;memory usage: </span><span class="si">%.2f</span><span class="s2">(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">unit</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span></div>
+        <span class="n">print_info</span><span class="p">(</span><span class="s1">&#39;pip install psutil first.&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Curl"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Curl">[docs]</a><span class="k">class</span> <span class="nc">Curl</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Curl args parser.</span>
+<span class="sd">    </span>
+<span class="sd">    **Use curlparse function directly.**</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;curl&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-X&#39;</span><span class="p">,</span> <span class="s1">&#39;--method&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;get&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-A&#39;</span><span class="p">,</span> <span class="s1">&#39;--user-agent&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-u&#39;</span><span class="p">,</span> <span class="s1">&#39;--user&#39;</span><span class="p">)</span>  <span class="c1"># &lt;user[:password]&gt;</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-x&#39;</span><span class="p">,</span> <span class="s1">&#39;--proxy&#39;</span><span class="p">)</span>  <span class="c1"># proxy.com:port</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-d&#39;</span><span class="p">,</span> <span class="s1">&#39;--data&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--data-binary&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--connect-timeout&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;-H&#39;</span><span class="p">,</span> <span class="s1">&#39;--header&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;append&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[])</span>  <span class="c1"># key: value</span></div>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--compressed&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="curlparse"><a class="viewcode-back" href="../../torequests.html#torequests.utils.curlparse">[docs]</a><span class="k">def</span> <span class="nf">curlparse</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Translate curl-string into dict of request.</span>
+<span class="sd">        :param string: standard curl-string, like `r&#39;&#39;&#39;curl ...&#39;&#39;&#39;`.</span>
+<span class="sd">        :param encoding: encoding for post-data encoding.</span>
+
+<span class="sd">    Basic Usage::</span>
+
+<span class="sd">      &gt;&gt;&gt; from torequests.utils import curlparse</span>
+<span class="sd">      &gt;&gt;&gt; curl_string = &#39;&#39;&#39;curl &#39;https://p.3.cn?skuIds=1&amp;nonsense=1&amp;nonce=0&#39; -H &#39;Pragma: no-cache&#39; -H &#39;DNT: 1&#39; -H &#39;Accept-Encoding: gzip, deflate&#39; -H &#39;Accept-Language: zh-CN,zh;q=0.9&#39; -H &#39;Upgrade-Insecure-Requests: 1&#39; -H &#39;User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36&#39; -H &#39;Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8&#39; -H &#39;Cache-Control: no-cache&#39; -H &#39;Referer: https://p.3.cn?skuIds=1&amp;nonsense=1&amp;nonce=0&#39; -H &#39;Cookie: ASPSESSIONIDSQRRSADB=MLHDPOPCAMBDGPFGBEEJKLAF&#39; -H &#39;Connection: keep-alive&#39; --compressed&#39;&#39;&#39;</span>
+<span class="sd">      &gt;&gt;&gt; request_args = curlparse(curl_string)</span>
+<span class="sd">      &gt;&gt;&gt; request_args</span>
+<span class="sd">      {&#39;url&#39;: &#39;https://p.3.cn?skuIds=1&amp;nonsense=1&amp;nonce=0&#39;, &#39;headers&#39;: {&#39;Pragma&#39;: &#39;no-cache&#39;, &#39;Dnt&#39;: &#39;1&#39;, &#39;Accept-Encoding&#39;: &#39;gzip, deflate&#39;, &#39;Accept-Language&#39;: &#39;zh-CN,zh;q=0.9&#39;, &#39;Upgrade-Insecure-Requests&#39;: &#39;1&#39;, &#39;User-Agent&#39;: &#39;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36&#39;, &#39;Accept&#39;: &#39;text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8&#39;, &#39;Cache-Control&#39;: &#39;no-cache&#39;, &#39;Referer&#39;: &#39;https://p.3.cn?skuIds=1&amp;nonsense=1&amp;nonce=0&#39;, &#39;Cookie&#39;: &#39;ASPSESSIONIDSQRRSADB=MLHDPOPCAMBDGPFGBEEJKLAF&#39;, &#39;Connection&#39;: &#39;keep-alive&#39;}, &#39;method&#39;: &#39;get&#39;}</span>
+<span class="sd">      &gt;&gt;&gt; import requests</span>
+<span class="sd">      &gt;&gt;&gt; requests.request(**request_args)</span>
+<span class="sd">      &lt;Response [200]&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">string</span><span class="p">,</span> <span class="s1">&#39;curl-string should not contain </span><span class="se">\\</span><span class="s1">n, try r&quot;...&quot;.&#39;</span>
+    <span class="k">if</span> <span class="n">string</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">string</span><span class="p">,</span> <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="s1">&#39;get&#39;</span><span class="p">}</span>
+    <span class="n">args</span><span class="p">,</span> <span class="n">unknown</span> <span class="o">=</span> <span class="n">Curl</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span>
+    <span class="n">requests_args</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">requests_args</span><span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">url</span>
+    <span class="k">for</span> <span class="n">header</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">header</span><span class="p">:</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">headers</span><span class="p">[</span><span class="n">key</span><span class="o">.</span><span class="n">title</span><span class="p">()]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">user_agent</span><span class="p">:</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s1">&#39;user-agent&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">user_agent</span>
+    <span class="k">if</span> <span class="n">headers</span><span class="p">:</span>
+        <span class="n">requests_args</span><span class="p">[</span><span class="s1">&#39;headers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">headers</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">user</span><span class="p">:</span>
+        <span class="n">requests_args</span><span class="p">[</span><span class="s1">&#39;auth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">u</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">])[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="c1"># if args.proxy:</span>
+    <span class="c1"># pass</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">data_binary</span>
+    <span class="k">if</span> <span class="n">data</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;$&#39;</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;post&#39;</span>
+        <span class="k">if</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content-type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;tpplication/x-www-form-urlencoded&#39;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">unquote_plus</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]))</span>
+                         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&amp;&#39;</span><span class="p">)])</span>
+            <span class="n">requests_args</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="c1"># elif headers.get(&#39;content-type&#39;, &#39;&#39;) in (&#39;application/json&#39;,):</span>
+        <span class="c1"># requests_args[&#39;json&#39;] = json.loads(data)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+            <span class="n">requests_args</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="n">requests_args</span><span class="p">[</span><span class="s1">&#39;method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span></div>
+    <span class="k">return</span> <span class="n">requests_args</span>
+
+
+<div class="viewcode-block" id="Null"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Null">[docs]</a><span class="k">class</span> <span class="nc">Null</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Null instance will return self when be called, it will alway be False.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mname</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__nonzero__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
+        <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="n">null</span> <span class="o">=</span> <span class="n">Null</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="itertools_chain"><a class="viewcode-back" href="../../torequests.html#torequests.utils.itertools_chain">[docs]</a><span class="k">def</span> <span class="nf">itertools_chain</span><span class="p">(</span><span class="o">*</span><span class="n">iterables</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;For the shortage of Python2&#39;s, Python3: `from itertools import chain`.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">iterables</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span></div>
+            <span class="k">yield</span> <span class="n">element</span>
+
+
+<div class="viewcode-block" id="slice_into_pieces"><a class="viewcode-back" href="../../torequests.html#torequests.utils.slice_into_pieces">[docs]</a><span class="k">def</span> <span class="nf">slice_into_pieces</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Slice a sequence into `n` pieces, return a generation of n pieces&quot;&quot;&quot;</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">length</span> <span class="o">%</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">length</span> <span class="o">//</span> <span class="n">n</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">length</span> <span class="o">//</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">slice_by_size</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span></div>
+        <span class="k">yield</span> <span class="n">it</span>
+
+
+<div class="viewcode-block" id="slice_by_size"><a class="viewcode-back" href="../../torequests.html#torequests.utils.slice_by_size">[docs]</a><span class="k">def</span> <span class="nf">slice_by_size</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Slice a sequence into chunks, return as a generation of chunks with `size`.&quot;&quot;&quot;</span>
+    <span class="n">filling</span> <span class="o">=</span> <span class="n">null</span>
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">itertools_chain</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="p">[</span><span class="n">filling</span><span class="p">]</span> <span class="o">*</span> <span class="n">size</span><span class="p">),)</span> <span class="o">*</span> <span class="n">size</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filling</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+            <span class="n">it</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">it</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">filling</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">it</span><span class="p">:</span></div>
+            <span class="k">yield</span> <span class="n">it</span>
+
+
+<div class="viewcode-block" id="ttime"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ttime">[docs]</a><span class="k">def</span> <span class="nf">ttime</span><span class="p">(</span><span class="n">timestamp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tzone</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fail</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Translate timestamp into human-readable: %Y-%m-%d %H:%M:%S.</span>
+
+<span class="sd">    :param timestamp: the timestamp float, or `time.time()` by default.</span>
+<span class="sd">    :param tzone: time compensation, int(-time.timezone / 3600) by default, </span>
+<span class="sd">                (can be set with Config.TIMEZONE).</span>
+<span class="sd">    :param fail: while raising an exception, return it.</span>
+<span class="sd">    :param fmt: %Y-%m-%d %H:%M:%S, %z not work.</span>
+
+<span class="sd">    &gt;&gt;&gt; ttime()</span>
+<span class="sd">    2018-03-15 01:24:35</span>
+<span class="sd">    &gt;&gt;&gt; ttime(1486572818.421858323)</span>
+<span class="sd">    2017-02-09 00:53:38</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tzone</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">TIMEZONE</span> <span class="k">if</span> <span class="n">tzone</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tzone</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">timestamp</span> <span class="k">if</span> <span class="n">timestamp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">10</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">if</span> <span class="n">timestamp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">timestamp</span>
+        <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span>
+            <span class="n">fmt</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="n">timestamp</span> <span class="o">+</span> <span class="n">time</span><span class="o">.</span><span class="n">timezone</span> <span class="o">+</span> <span class="n">tzone</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">))</span>
+    <span class="k">except</span><span class="p">:</span></div>
+        <span class="k">return</span> <span class="n">fail</span>
+
+
+<div class="viewcode-block" id="ptime"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ptime">[docs]</a><span class="k">def</span> <span class="nf">ptime</span><span class="p">(</span><span class="n">timestr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tzone</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fail</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Translate %Y-%m-%d %H:%M:%S into timestamp.</span>
+
+<span class="sd">    :param timestr: string like 2018-03-15 01:27:56, or time.time() if not set.</span>
+<span class="sd">    :param tzone: time compensation, int(-time.timezone / 3600) by default, </span>
+<span class="sd">                (can be set with Config.TIMEZONE).</span>
+<span class="sd">    :param fail: while raising an exception, return it.</span>
+<span class="sd">    :param fmt: %Y-%m-%d %H:%M:%S, %z not work.</span>
+
+<span class="sd">        &gt;&gt;&gt; ptime(&#39;2018-03-15 01:27:56&#39;)</span>
+<span class="sd">        1521048476.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tzone</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">TIMEZONE</span> <span class="k">if</span> <span class="n">tzone</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tzone</span>
+    <span class="c1">#: str(timestr) for datetime.datetime object</span>
+    <span class="n">timestr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">timestr</span> <span class="ow">or</span> <span class="n">ttime</span><span class="p">())</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">mktime</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">timestr</span><span class="p">,</span>
+                                         <span class="n">fmt</span><span class="p">))</span> <span class="o">-</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">timezone</span> <span class="o">+</span> <span class="n">tzone</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span></div>
+        <span class="k">return</span> <span class="n">fail</span>
+
+
+<div class="viewcode-block" id="split_seconds"><a class="viewcode-back" href="../../torequests.html#torequests.utils.split_seconds">[docs]</a><span class="k">def</span> <span class="nf">split_seconds</span><span class="p">(</span><span class="n">seconds</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Split seconds into [day, hour, minute, second, millisecond]</span>
+
+<span class="sd">        `divisor: 1, 24, 60, 60, 1000`</span>
+
+<span class="sd">        `units: day, hour, minute, second, millisecond`</span>
+
+<span class="sd">    &gt;&gt;&gt; split_seconds(6666666)</span>
+<span class="sd">    [77, 3, 51, 6, 0]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">millisecond</span> <span class="o">=</span> <span class="n">seconds</span> <span class="o">*</span> <span class="mi">1000</span>
+    <span class="n">divisors</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+    <span class="n">quotient</span><span class="p">,</span> <span class="n">result</span> <span class="o">=</span> <span class="n">millisecond</span><span class="p">,</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">divisor</span> <span class="ow">in</span> <span class="n">divisors</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">quotient</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">quotient</span><span class="p">,</span> <span class="n">divisor</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">quotient</span><span class="p">)</span> <span class="k">if</span> <span class="n">divisor</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">remainder</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">result</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="timeago"><a class="viewcode-back" href="../../torequests.html#torequests.utils.timeago">[docs]</a><span class="k">def</span> <span class="nf">timeago</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">accuracy</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lang</span><span class="o">=</span><span class="s1">&#39;en&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Translate seconds into human-readable.</span>
+
+<span class="sd">        :param seconds: seconds (float/int).</span>
+<span class="sd">        :param accuracy: 4 by default (units[:accuracy]), determine the length of elements.</span>
+<span class="sd">        :param format: index of [led, literal, dict].</span>
+<span class="sd">        :param lang: en or cn.</span>
+<span class="sd">        :param units: day, hour, minute, second, millisecond.</span>
+
+<span class="sd">    &gt;&gt;&gt; timeago(93245732.0032424, 5)</span>
+<span class="sd">    &#39;1079 days, 05:35:32,003&#39;</span>
+<span class="sd">    &gt;&gt;&gt; timeago(93245732.0032424, 4, 1)</span>
+<span class="sd">    &#39;1079 days 5 hours 35 minutes 32 seconds&#39;</span>
+<span class="sd">    &gt;&gt;&gt; timeago(-389, 4, 1)</span>
+<span class="sd">    &#39;-6 minutes 29 seconds 0 millisecond&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">format</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+                      <span class="mi">2</span><span class="p">],</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;format arg should be one of 0, 1, 2&#39;</span><span class="p">)</span>
+    <span class="n">negative</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span> <span class="k">if</span> <span class="n">seconds</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">seconds</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lang</span> <span class="o">==</span> <span class="s1">&#39;en&#39;</span><span class="p">:</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;day&#39;</span><span class="p">,</span> <span class="s1">&#39;hour&#39;</span><span class="p">,</span> <span class="s1">&#39;minute&#39;</span><span class="p">,</span> <span class="s1">&#39;second&#39;</span><span class="p">,</span> <span class="s1">&#39;millisecond&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">lang</span> <span class="o">==</span> <span class="s1">&#39;cn&#39;</span><span class="p">:</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="p">(</span><span class="sa">u</span><span class="s1">&#39;天&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;小时&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;分钟&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;秒&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;毫秒&#39;</span><span class="p">)</span>
+    <span class="n">times</span> <span class="o">=</span> <span class="n">split_seconds</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="n">times</span><span class="p">))</span>
+
+    <span class="n">day</span><span class="p">,</span> <span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">millisecond</span> <span class="o">=</span> <span class="n">times</span>
+
+    <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">day_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> </span><span class="si">%s%s</span><span class="s2">, &quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">day</span><span class="p">,</span> <span class="n">units</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;s&#39;</span>
+            <span class="k">if</span> <span class="n">day</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">lang</span> <span class="o">==</span> <span class="s1">&#39;en&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">day</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">mid_str</span> <span class="o">=</span> <span class="s1">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s2">&quot;</span><span class="si">%02d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">second</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">accuracy</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">mid_str</span> <span class="o">+=</span> <span class="s1">&#39;,</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">millisecond</span>
+        <span class="k">return</span> <span class="n">negative</span> <span class="o">+</span> <span class="n">day_str</span> <span class="o">+</span> <span class="n">mid_str</span>
+    <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># find longest valid fields index (non-zero in front)</span>
+        <span class="n">valid_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">valid_index</span> <span class="o">=</span> <span class="n">x</span>
+                <span class="k">break</span>
+        <span class="n">result_str</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> </span><span class="si">%s%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">num</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">lang</span> <span class="o">==</span> <span class="s1">&#39;en&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">num</span><span class="p">,</span> <span class="n">unit</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">units</span><span class="p">)</span>
+        <span class="p">][</span><span class="n">valid_index</span><span class="p">:][:</span><span class="n">accuracy</span><span class="p">]</span>
+        <span class="n">result_str</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">result_str</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">negative</span> <span class="o">+</span> <span class="n">result_str</span>
+
+
+<span class="c1"># alias name</span>
+<span class="n">timepass</span> <span class="o">=</span> <span class="n">timeago</span>
+
+
+<div class="viewcode-block" id="md5"><a class="viewcode-back" href="../../torequests.html#torequests.utils.md5">[docs]</a><span class="k">def</span> <span class="nf">md5</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">skip_encode</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;str(obj) -&gt; md5_string</span>
+<span class="sd">    </span>
+<span class="sd">    :param string: string to operate.</span>
+<span class="sd">    :param n: md5_str length.</span>
+<span class="sd">    </span>
+<span class="sd">    &gt;&gt;&gt; from torequests.utils import md5</span>
+<span class="sd">    &gt;&gt;&gt; md5(1, 10)</span>
+<span class="sd">    &#39;923820dcc5&#39;</span>
+<span class="sd">    &gt;&gt;&gt; md5(&#39;test&#39;)</span>
+<span class="sd">    &#39;098f6bcd4621d373cade4e832627b4f6&#39;</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">string</span> <span class="k">if</span> <span class="n">skip_encode</span> <span class="k">else</span> <span class="n">unicode</span><span class="p">(</span><span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[(</span><span class="mi">32</span> <span class="o">-</span> <span class="n">n</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">:(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">32</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span></div>
+        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">n</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+
+<div class="viewcode-block" id="Counts"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Counts">[docs]</a><span class="k">class</span> <span class="nc">Counts</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Counter for counting the times been called</span>
+
+<span class="sd">    &gt;&gt;&gt; from torequests.utils import Counts</span>
+<span class="sd">    &gt;&gt;&gt; cc = Counts()</span>
+<span class="sd">    &gt;&gt;&gt; cc.x</span>
+<span class="sd">    1</span>
+<span class="sd">    &gt;&gt;&gt; cc.x</span>
+<span class="sd">    2</span>
+<span class="sd">    &gt;&gt;&gt; cc.now</span>
+<span class="sd">    2</span>
+<span class="sd">    &gt;&gt;&gt; cc.current</span>
+<span class="sd">    2</span>
+<span class="sd">    &gt;&gt;&gt; cc.sub()</span>
+<span class="sd">    1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="s1">&#39;current&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="n">step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">start</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">s</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">now</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span>
+
+<div class="viewcode-block" id="Counts.add"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Counts.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">+=</span> <span class="n">num</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span>
+
+<div class="viewcode-block" id="Counts.sub"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Counts.sub">[docs]</a>    <span class="k">def</span> <span class="nf">sub</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">-=</span> <span class="n">num</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span>
+
+
+<div class="viewcode-block" id="unique"><a class="viewcode-back" href="../../torequests.html#torequests.utils.unique">[docs]</a><span class="k">def</span> <span class="nf">unique</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">return_as</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Unique the seq and keep the order.</span>
+<span class="sd">    </span>
+<span class="sd">    Instead of the slow way:</span>
+<span class="sd">        `lambda seq: (x for index, x in enumerate(seq) if seq.index(x)==index)`</span>
+<span class="sd">    </span>
+<span class="sd">    :param seq: raw sequence.</span>
+<span class="sd">    :param return_as: generator for default, or list / set / str...</span>
+<span class="sd">    </span>
+<span class="sd">    &gt;&gt;&gt; from torequests.utils import unique</span>
+<span class="sd">    &gt;&gt;&gt; a = [1,2,3,4,2,3,4]</span>
+<span class="sd">    &gt;&gt;&gt; unique(a)</span>
+<span class="sd">    &lt;generator object unique.&lt;locals&gt;.&lt;genexpr&gt; at 0x05720EA0&gt;</span>
+<span class="sd">    &gt;&gt;&gt; unique(a, str)</span>
+<span class="sd">    &#39;1234&#39;</span>
+<span class="sd">    &gt;&gt;&gt; unique(a, list)</span>
+<span class="sd">    [1, 2, 3, 4]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">add</span> <span class="o">=</span> <span class="n">seen</span><span class="o">.</span><span class="n">add</span>
+    <span class="n">generator</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">seq</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">return_as</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">return_as</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">generator</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">return_as</span><span class="p">(</span><span class="n">generator</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># python2 not support yield from</span></div>
+        <span class="k">return</span> <span class="n">generator</span>
+
+
+<div class="viewcode-block" id="unparse_qs"><a class="viewcode-back" href="../../torequests.html#torequests.utils.unparse_qs">[docs]</a><span class="k">def</span> <span class="nf">unparse_qs</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reverse conversion for parse_qs&quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="n">reverse</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">keys</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="n">query_name</span> <span class="o">=</span> <span class="n">quote</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query_name</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">+</span> <span class="n">quote</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="s2">&quot;&amp;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="unparse_qsl"><a class="viewcode-back" href="../../torequests.html#torequests.utils.unparse_qsl">[docs]</a><span class="k">def</span> <span class="nf">unparse_qsl</span><span class="p">(</span><span class="n">qsl</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reverse conversion for parse_qsl&quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="n">qsl</span>
+    <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="n">reverse</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">keys</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="n">query_name</span> <span class="o">=</span> <span class="n">quote</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query_name</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">+</span> <span class="n">quote</span><span class="p">(</span><span class="n">values</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="s2">&quot;&amp;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Regex"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Regex">[docs]</a><span class="k">class</span> <span class="nc">Regex</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Register some objects(like functions) to the regular expression.</span>
+
+<span class="sd">    &gt;&gt;&gt; from torequests.utils import Regex, re</span>
+<span class="sd">    &gt;&gt;&gt; reg = Regex()</span>
+<span class="sd">    &gt;&gt;&gt; @reg.register_function(&#39;http.*cctv.*&#39;)</span>
+<span class="sd">    ... def mock():</span>
+<span class="sd">    ...     pass</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; reg.register(&#39;http.*HELLOWORLD&#39;, &#39;helloworld&#39;, instances=&#39;http://helloworld&#39;, flags=re.I)</span>
+<span class="sd">    &gt;&gt;&gt; reg.register(&#39;http.*HELLOWORLD2&#39;, &#39;helloworld2&#39;, flags=re.I)</span>
+<span class="sd">    &gt;&gt;&gt; reg.find(&#39;http://cctv.com&#39;)</span>
+<span class="sd">    [&lt;function mock at 0x031FC5D0&gt;]</span>
+<span class="sd">    &gt;&gt;&gt; reg.match(&#39;http://helloworld&#39;)</span>
+<span class="sd">    [&#39;helloworld&#39;]</span>
+<span class="sd">    &gt;&gt;&gt; reg.match(&#39;non-http://helloworld&#39;)</span>
+<span class="sd">    []</span>
+<span class="sd">    &gt;&gt;&gt; reg.search(&#39;non-http://helloworld&#39;)</span>
+<span class="sd">    [&#39;helloworld&#39;]</span>
+<span class="sd">    &gt;&gt;&gt; len(reg.search(&#39;non-http://helloworld2&#39;))</span>
+<span class="sd">    2</span>
+<span class="sd">    &gt;&gt;&gt; print(reg.show_all())</span>
+<span class="sd">    (&#39;http.*cctv.*&#39;) =&gt;  =&gt; &lt;class &#39;function&#39;&gt; mock &quot;&quot;</span>
+<span class="sd">    (&#39;http.*HELLOWORLD&#39;, re.IGNORECASE) =&gt; http://helloworld =&gt; &lt;class &#39;str&#39;&gt; helloworld</span>
+<span class="sd">    (&#39;http.*HELLOWORLD2&#39;, re.IGNORECASE) =&gt;  =&gt; &lt;class &#39;str&#39;&gt; helloworld2</span>
+<span class="sd">    &gt;&gt;&gt; reg.fuzzy(&#39;non-http://helloworld&#39;)</span>
+<span class="sd">    [(&#39;http://helloworld&#39;, 95)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ensure_mapping</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param ensure_mapping: ensure mapping one to one, if False,</span>
+<span class="sd">         will return all(more than 1) mapped object list.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ensure_mapping</span> <span class="o">=</span> <span class="n">ensure_mapping</span>
+
+<div class="viewcode-block" id="Regex.register"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Regex.register">[docs]</a>    <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patterns</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">instances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">reg_kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Register one object which can be matched/searched by regex.</span>
+
+<span class="sd">        :param patterns: a list/tuple/set of regex-pattern.</span>
+<span class="sd">        :param obj: return it while search/match success.</span>
+<span class="sd">        :param instances: instance list will search/match the patterns.</span>
+<span class="sd">        :param reg_kwargs: kwargs for re.compile.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;bool(obj) should be True.&#39;</span>
+        <span class="n">patterns</span> <span class="o">=</span> <span class="n">patterns</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">patterns</span><span class="p">,</span>
+                                          <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">))</span> <span class="k">else</span> <span class="p">[</span><span class="n">patterns</span><span class="p">]</span>
+        <span class="n">instances</span> <span class="o">=</span> <span class="n">instances</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">instances</span> <span class="o">=</span> <span class="n">instances</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">instances</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">))</span> <span class="k">else</span> <span class="p">[</span><span class="n">instances</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">:</span>
+            <span class="n">pattern_compiled</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="o">**</span><span class="n">reg_kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">pattern_compiled</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">instances</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensure_mapping</span><span class="p">:</span>
+                <span class="c1"># check all instances to avoid one-to-many instances.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_check_instances</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># no need to check all instances.</span>
+                <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="n">instances</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span> <span class="o">==</span> <span class="p">[</span>
+                        <span class="n">obj</span>
+                    <span class="p">]</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span> <span class="o">==</span> <span class="p">[</span>
+                        <span class="n">obj</span>
+                    <span class="p">],</span> <span class="s1">&#39;instance </span><span class="si">%s</span><span class="s1"> should fit at least one pattern </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span></div>
+                        <span class="n">instance</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Regex.register_function"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Regex.register_function">[docs]</a>    <span class="k">def</span> <span class="nf">register_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patterns</span><span class="p">,</span> <span class="n">instances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">reg_kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decorator for register.&quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">function</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">patterns</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">instances</span><span class="o">=</span><span class="n">instances</span><span class="p">,</span> <span class="o">**</span><span class="n">reg_kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">function</span>
+</div>
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+<div class="viewcode-block" id="Regex.find"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Regex.find">[docs]</a>    <span class="k">def</span> <span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return match or search result.</span>
+<span class="sd">        </span>
+<span class="sd">        :rtype: list&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">string</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">string</span><span class="p">)</span> <span class="ow">or</span> <span class="n">default</span>
+
+<div class="viewcode-block" id="Regex.search"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Regex.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Use re.search to find the result</span>
+<span class="sd">        </span>
+<span class="sd">        :rtype: list&quot;&quot;&quot;</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="n">default</span> <span class="k">if</span> <span class="n">default</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">string</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensure_mapping</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> matches more than one pattern: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="n">string</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">result</span> <span class="k">if</span> <span class="n">result</span> <span class="k">else</span> <span class="n">default</span>
+
+<div class="viewcode-block" id="Regex.match"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Regex.match">[docs]</a>    <span class="k">def</span> <span class="nf">match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Use re.search to find the result</span>
+
+<span class="sd">        :rtype: list&quot;&quot;&quot;</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="n">default</span> <span class="k">if</span> <span class="n">default</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">string</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensure_mapping</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> matches more than one pattern: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="n">string</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">result</span> <span class="k">if</span> <span class="n">result</span> <span class="k">else</span> <span class="n">default</span>
+
+<div class="viewcode-block" id="Regex.fuzzy"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Regex.fuzzy">[docs]</a>    <span class="k">def</span> <span class="nf">fuzzy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Give suggestion from all instances.&quot;&quot;&quot;</span>
+        <span class="n">instances</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">instances</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">instances</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">instances</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="kn">from</span> <span class="nn">fuzzywuzzy</span> <span class="k">import</span> <span class="n">process</span>
+        <span class="n">maybe</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">instances</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">maybe</span>
+
+    <span class="k">def</span> <span class="nf">_check_instances</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+                <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">instance</span><span class="p">),</span> \
+                    <span class="s1">&#39;instance </span><span class="si">%s</span><span class="s1"> not fit pattern </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">instance</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Regex.show_all"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Regex.show_all">[docs]</a>    <span class="k">def</span> <span class="nf">show_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">as_string</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;, python2 will not show flags&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="p">:</span>
+            <span class="n">pattern</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">10</span><span class="p">:]</span> <span class="k">if</span> <span class="n">PY3</span> <span class="k">else</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pattern</span>
+            <span class="n">instances</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="ow">or</span> <span class="p">[]</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                                 <span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="vm">__doc__</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">))</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span>
+                                     <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">value</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; =&gt; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">pattern</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">instances</span><span class="p">),</span> <span class="n">value</span><span class="p">)))</span></div></div>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="k">if</span> <span class="n">as_string</span> <span class="k">else</span> <span class="n">result</span>
+
+
+<div class="viewcode-block" id="kill_after"><a class="viewcode-back" href="../../torequests.html#torequests.utils.kill_after">[docs]</a><span class="k">def</span> <span class="nf">kill_after</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Kill self after seconds&quot;&quot;&quot;</span>
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
+    <span class="n">kill</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">kill</span>
+    <span class="n">run_after_async</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="n">kill</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span></div>
+    <span class="n">run_after_async</span><span class="p">(</span><span class="n">seconds</span> <span class="o">+</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">kill</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="UA"><a class="viewcode-back" href="../../torequests.html#torequests.utils.UA">[docs]</a><span class="k">class</span> <span class="nc">UA</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Some common User-Agents for crawler.</span>
+<span class="sd">    </span>
+<span class="sd">    Android, iPhone, iPad, Firefox, Chrome, IE6, IE9&quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">Android</span> <span class="o">=</span> <span class="s1">&#39;Mozilla/5.0 (Linux; Android 5.1.1; Nexus 6 Build/LYZ28E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Mobile Safari/537.36&#39;</span>
+    <span class="n">iPhone</span> <span class="o">=</span> <span class="s1">&#39;Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1&#39;</span>
+    <span class="n">iPad</span> <span class="o">=</span> <span class="s1">&#39;Mozilla/5.0 (iPad; CPU OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1&#39;</span>
+    <span class="n">Firefox</span> <span class="o">=</span> <span class="s1">&#39;Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0&#39;</span>
+    <span class="n">Chrome</span> <span class="o">=</span> <span class="s1">&#39;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36&#39;</span>
+    <span class="n">IE6</span> <span class="o">=</span> <span class="s1">&#39;Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)&#39;</span></div>
+    <span class="n">IE9</span> <span class="o">=</span> <span class="s1">&#39;Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0;&#39;</span>
+
+
+<div class="viewcode-block" id="try_import"><a class="viewcode-back" href="../../torequests.html#torequests.utils.try_import">[docs]</a><span class="k">def</span> <span class="nf">try_import</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">ImportErrorModule</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Try import module_name, except ImportError and return default,</span>
+<span class="sd">        sometimes to be used for catch ImportError and lazy-import.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">warn</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">Config</span><span class="o">.</span><span class="n">utils_logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s1">&#39;Module `</span><span class="si">%s</span><span class="s1">` not found. Install it to remove this warning&#39;</span> <span class="o">%</span>
+                    <span class="n">module_name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">warn</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">ImportErrorModule</span><span class="p">(</span>
+            <span class="n">module_name</span><span class="p">)</span> <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">ImportErrorModule</span> <span class="k">else</span> <span class="n">default</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">module</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">names</span><span class="p">]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">ImportErrorModule</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">module_name</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">))</span> <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">ImportErrorModule</span> <span class="k">else</span> <span class="n">default</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">result</span>
+
+
+<div class="viewcode-block" id="ensure_request"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ensure_request">[docs]</a><span class="k">def</span> <span class="nf">ensure_request</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Used for requests.request / Requests.request with **ensure_request(request)</span>
+<span class="sd">    :param request: dict or curl-string or url</span>
+
+<span class="sd">    &gt;&gt;&gt; from torequests.utils import ensure_request</span>
+<span class="sd">    &gt;&gt;&gt; ensure_request(&#39;&#39;&#39;curl http://test.com&#39;&#39;&#39;)</span>
+<span class="sd">    {&#39;url&#39;: &#39;http://test.com&#39;, &#39;method&#39;: &#39;get&#39;}</span>
+<span class="sd">    &gt;&gt;&gt; ensure_request(&#39;http://test.com&#39;)</span>
+<span class="sd">    {&#39;method&#39;: &#39;get&#39;, &#39;url&#39;: &#39;http://test.com&#39;}</span>
+<span class="sd">    &gt;&gt;&gt; ensure_request({&#39;method&#39;: &#39;get&#39;, &#39;url&#39;: &#39;http://test.com&#39;})</span>
+<span class="sd">    {&#39;method&#39;: &#39;get&#39;, &#39;url&#39;: &#39;http://test.com&#39;}</span>
+<span class="sd">    &gt;&gt;&gt; ensure_request({&#39;url&#39;: &#39;http://test.com&#39;})</span>
+<span class="sd">    {&#39;url&#39;: &#39;http://test.com&#39;, &#39;method&#39;: &#39;get&#39;}</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">request</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="p">(</span><span class="n">unicode</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="s1">&#39;get&#39;</span><span class="p">,</span> <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">request</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;curl &#39;</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">curlparse</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;request should be dict or str.&#39;</span><span class="p">)</span>
+    <span class="n">result</span><span class="p">[</span><span class="s1">&#39;method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;get&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span></div>
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<div class="viewcode-block" id="Timer"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Timer">[docs]</a><span class="k">class</span> <span class="nc">Timer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Usage:</span>
+<span class="sd">        init Timer anywhere:</span>
+<span class="sd">            such as head of function, or head of module, then it will show log after del it by gc.</span>
+
+<span class="sd">        :param name: be used in log or None.</span>
+<span class="sd">        :param log_func: some function to show process.</span>
+<span class="sd">        :param default_timer: use `timeit.default_timer` by default.</span>
+<span class="sd">        :param rounding: None, or seconds will be round(xxx, rounding)</span>
+<span class="sd">        :param readable: None, or use `timepass`: readable(cost_seconds) -&gt; 00:00:01,234</span>
+<span class="sd">        </span>
+<span class="sd">        ::</span>
+
+<span class="sd">            from torequests.utils import Timer</span>
+<span class="sd">            import time</span>
+<span class="sd">            Timer()</span>
+
+<span class="sd">            @Timer.watch()</span>
+<span class="sd">            def test(a=1):</span>
+<span class="sd">                Timer()</span>
+<span class="sd">                time.sleep(1)</span>
+
+<span class="sd">                def test_inner():</span>
+<span class="sd">                    t = Timer(&#39;test_non_del&#39;)</span>
+<span class="sd">                    time.sleep(1)</span>
+<span class="sd">                    t.x</span>
+
+<span class="sd">                test_inner()</span>
+
+<span class="sd">            test(3)</span>
+<span class="sd">            time.sleep(1)</span>
+<span class="sd">            # [2018-03-10 02:16:48]: Timer [00:00:01]: test_non_del, start at 2018-03-10 02:16:47.</span>
+<span class="sd">            # [2018-03-10 02:16:48]: Timer [00:00:02]: test(a=3), start at 2018-03-10 02:16:46.</span>
+<span class="sd">            # [2018-03-10 02:16:48]: Timer [00:00:02]: test(3), start at 2018-03-10 02:16:46.</span>
+<span class="sd">            # [2018-03-10 02:16:49]: Timer [00:00:03]: &lt;module&gt;: __main__ (temp_code.py), start at 2018-03-10 02:16:46.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">log_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">default_timer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">rounding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">readable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">log_after_del</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">stack_level</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">default_timer</span> <span class="o">=</span> <span class="n">default_timer</span> <span class="ow">or</span> <span class="n">default_timer</span>
+        <span class="n">readable</span> <span class="o">=</span> <span class="n">readable</span> <span class="ow">or</span> <span class="n">timepass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_after_del</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_at</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">uid</span> <span class="o">=</span> <span class="n">md5</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_at</span><span class="p">,</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+            <span class="n">f_name</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">_getframe</span><span class="p">(</span><span class="n">stack_level</span><span class="p">)</span><span class="o">.</span><span class="n">f_code</span><span class="o">.</span><span class="n">co_name</span>
+            <span class="n">f_local</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">_getframe</span><span class="p">(</span><span class="n">stack_level</span><span class="p">)</span><span class="o">.</span><span class="n">f_locals</span>
+            <span class="k">if</span> <span class="n">f_name</span> <span class="o">==</span> <span class="s1">&#39;&lt;module&gt;&#39;</span><span class="p">:</span>
+                <span class="n">f_vars</span> <span class="o">=</span> <span class="s2">&quot;: </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">f_local</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;__name__&#39;</span><span class="p">),</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">f_local</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;__file__&#39;</span><span class="p">))[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="c1"># f_vars = f_vars.replace(&#39; __main__&#39;, &#39;&#39;)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f_vars</span> <span class="o">=</span> <span class="s1">&#39;(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                    <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">f_local</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">f_local</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="p">])</span> <span class="k">if</span> <span class="n">f_local</span> <span class="k">else</span> <span class="s1">&#39;()&#39;</span>
+            <span class="k">if</span> <span class="bp">self</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">f_local</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="c1"># add self to name space for __del__ way.</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">_getframe</span><span class="p">(</span><span class="n">stack_level</span><span class="p">)</span><span class="o">.</span><span class="n">f_locals</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">uid</span><span class="p">:</span> <span class="bp">self</span><span class="p">})</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">f_name</span><span class="p">,</span> <span class="n">f_vars</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_func</span> <span class="o">=</span> <span class="n">log_func</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timer</span> <span class="o">=</span> <span class="n">default_timer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rounding</span> <span class="o">=</span> <span class="n">rounding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">readable</span> <span class="o">=</span> <span class="n">readable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_timer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_after_del</span> <span class="o">=</span> <span class="n">log_after_del</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Only return the expect_string quietly.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Call self.log_func(self) and return expect_string.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_after_del</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">passed_string</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">string</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_func</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_func</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">print_info</span><span class="p">(</span><span class="s1">&#39;Timer [</span><span class="si">%(passed)s</span><span class="s1">]: </span><span class="si">%(name)s</span><span class="s1">, start at </span><span class="si">%(start)s</span><span class="s1">.&#39;</span> <span class="o">%</span>
+                       <span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+                           <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                           <span class="n">start</span><span class="o">=</span><span class="n">ttime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_at</span><span class="p">),</span>
+                           <span class="n">passed</span><span class="o">=</span><span class="n">passed_string</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">passed_string</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">passed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the cost_seconds after starting up.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">timer</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_timer</span>
+
+<div class="viewcode-block" id="Timer.tick"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Timer.tick">[docs]</a>    <span class="k">def</span> <span class="nf">tick</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the time cost string as expect.&quot;&quot;&quot;</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rounding</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">readable</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readable</span><span class="p">(</span><span class="n">string</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">string</span>
+
+<div class="viewcode-block" id="Timer.watch"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Timer.watch">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">watch</span><span class="p">(</span><span class="o">*</span><span class="n">timer_args</span><span class="p">,</span> <span class="o">**</span><span class="n">timer_kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decorator for Timer.&quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">function</span><span class="p">):</span>
+
+            <span class="nd">@wraps</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">inner</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="n">args1</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+                <span class="n">kwargs1</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                    <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="p">])</span>
+                <span class="n">arg</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">[</span><span class="n">args1</span><span class="p">,</span> <span class="n">kwargs1</span><span class="p">]))</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">arg</span><span class="p">)</span>
+                <span class="n">_</span> <span class="o">=</span> <span class="n">Timer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">timer_args</span><span class="p">,</span> <span class="o">**</span><span class="n">timer_kwargs</span><span class="p">)</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+            <span class="k">return</span> <span class="n">inner</span>
+</div>
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_after_del</span><span class="p">:</span>
+            <span class="c1"># not be called by self.x yet.</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span>
+
+
+<div class="viewcode-block" id="ensure_dict_key_title"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ensure_dict_key_title">[docs]</a><span class="k">def</span> <span class="nf">ensure_dict_key_title</span><span class="p">(</span><span class="n">dict_obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set the dict key as key.title(); keys should be str.</span>
+<span class="sd">    Always be used to headers.</span>
+
+<span class="sd">        &gt;&gt;&gt; from torequests.utils import ensure_dict_key_title</span>
+<span class="sd">        &gt;&gt;&gt; ensure_dict_key_title({&#39;hello-world&#39;:1, &#39;HELLOWORLD&#39;:2})</span>
+<span class="sd">        {&#39;Hello-World&#39;: 1, &#39;Helloworld&#39;: 2}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">((</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">unicode</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">dict_obj</span><span class="o">.</span><span class="n">keys</span><span class="p">())):</span>
+        <span class="k">return</span> <span class="n">dict_obj</span></div>
+    <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="o">.</span><span class="n">title</span><span class="p">():</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">dict_obj</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+
+<div class="viewcode-block" id="ClipboardWatcher"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ClipboardWatcher">[docs]</a><span class="k">class</span> <span class="nc">ClipboardWatcher</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Watch clipboard with `pyperclip`, run callback while changed.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pyperclip</span> <span class="o">=</span> <span class="n">try_import</span><span class="p">(</span><span class="s1">&#39;pyperclip&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="o">=</span> <span class="n">interval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span>
+
+<div class="viewcode-block" id="ClipboardWatcher.read"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ClipboardWatcher.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the current clipboard content.&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pyperclip</span><span class="o">.</span><span class="n">paste</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ClipboardWatcher.write"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ClipboardWatcher.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Rewrite the current clipboard content.&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pyperclip</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">current</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the current clipboard content.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ClipboardWatcher.default_callback"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ClipboardWatcher.default_callback">[docs]</a>    <span class="k">def</span> <span class="nf">default_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Default clean the \\n in text.&quot;&quot;&quot;</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">text</span>
+
+<div class="viewcode-block" id="ClipboardWatcher.watch"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ClipboardWatcher.watch">[docs]</a>    <span class="k">def</span> <span class="nf">watch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Block method to watch the clipboard changing.&quot;&quot;&quot;</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">watch_async</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">timeout</span><span class="p">)</span><span class="o">.</span><span class="n">x</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return self.watch()&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">watch</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ClipboardWatcher.watch_async"><a class="viewcode-back" href="../../torequests.html#torequests.utils.ClipboardWatcher.watch_async">[docs]</a>    <span class="nd">@threads</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">watch_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Non-block method to watch the clipboard changing.&quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">timeout</span> <span class="ow">or</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span> <span class="o">&lt;</span> <span class="n">timeout</span><span class="p">:</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">new</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">temp</span><span class="p">:</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="n">limit</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">temp</span> <span class="o">=</span> <span class="n">new</span></div></div>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Saver"><a class="viewcode-back" href="../../torequests.html#torequests.utils.Saver">[docs]</a><span class="k">class</span> <span class="nc">Saver</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple object persistent toolkit with pickle/json, </span>
+<span class="sd">    if only you don&#39;t care the performance and security.</span>
+<span class="sd">    **Do not set the key starts with &quot;_&quot;**</span>
+
+<span class="sd">    :param path: if not set, will be ~/_saver.db. print(self._path) to show it.</span>
+<span class="sd">        Set pickle&#39;s protocol &lt; 3 for compatibility between python2/3, </span>
+<span class="sd">        but use -1 for performance and some other optimizations.</span>
+<span class="sd">    :param save_mode: pickle / json.</span>
+<span class="sd">    &gt;&gt;&gt; ss = Saver()</span>
+<span class="sd">    &gt;&gt;&gt; ss._path</span>
+<span class="sd">    &#39;/home/work/_saver.json&#39;</span>
+<span class="sd">    &gt;&gt;&gt; ss.a = 1</span>
+<span class="sd">    &gt;&gt;&gt; ss[&#39;b&#39;] = 2</span>
+<span class="sd">    &gt;&gt;&gt; str(ss)</span>
+<span class="sd">    {&#39;a&#39;: 1, &#39;b&#39;: 2, &#39;c&#39;: 3, &#39;d&#39;: 4}</span>
+<span class="sd">    &gt;&gt;&gt; del ss.b</span>
+<span class="sd">    &gt;&gt;&gt; str(ss)</span>
+<span class="sd">    &quot;{&#39;a&#39;: 1, &#39;c&#39;: 3, &#39;d&#39;: 4}&quot;</span>
+<span class="sd">    &gt;&gt;&gt; ss._update({&#39;c&#39;: 3, &#39;d&#39;: 4})</span>
+<span class="sd">    &gt;&gt;&gt; ss</span>
+<span class="sd">    Saver(path=&quot;/home/work/_saver.json&quot;){&#39;a&#39;: 1, &#39;c&#39;: 3, &#39;d&#39;: 4}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_instances</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_mode</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">saver_args</span><span class="p">):</span>
+        <span class="c1"># BORG</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">path</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_home_path</span><span class="p">(</span><span class="n">save_mode</span><span class="o">=</span><span class="n">save_mode</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instances</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">super</span><span class="p">(</span><span class="n">Saver</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_mode</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">saver_args</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Saver</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Saver</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
+            <span class="s1">&#39;_path&#39;</span><span class="p">,</span> <span class="n">path</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_home_path</span><span class="p">(</span><span class="n">save_mode</span><span class="o">=</span><span class="n">save_mode</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Saver</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="s1">&#39;_saver_args&#39;</span><span class="p">,</span> <span class="n">saver_args</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Saver</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="s1">&#39;_save_mode&#39;</span><span class="p">,</span> <span class="n">save_mode</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Saver</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="s1">&#39;_conflict_keys&#39;</span><span class="p">,</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Saver</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="s1">&#39;_cache&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load</span><span class="p">())</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_home_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">save_mode</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">home</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">save_mode</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+            <span class="n">ext</span> <span class="o">=</span> <span class="s1">&#39;json&#39;</span>
+        <span class="k">elif</span> <span class="n">save_mode</span> <span class="o">==</span> <span class="s1">&#39;pickle&#39;</span><span class="p">:</span>
+            <span class="n">ext</span> <span class="o">=</span> <span class="s1">&#39;pkl&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ext</span> <span class="o">=</span> <span class="s1">&#39;db&#39;</span>
+        <span class="n">file_name</span> <span class="o">=</span> <span class="s1">&#39;_saver.</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ext</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">home</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span>
+
+    <span class="k">def</span> <span class="nf">_save_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;wb&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_mode</span> <span class="o">==</span> <span class="s1">&#39;pickle&#39;</span> <span class="k">else</span> <span class="s1">&#39;w&#39;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_mode</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_saver_args</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_mode</span> <span class="o">==</span> <span class="s1">&#39;pickle&#39;</span><span class="p">:</span>
+                <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_saver_args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">def</span> <span class="nf">_load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_save_obj</span><span class="p">({})</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;rb&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_mode</span> <span class="o">==</span> <span class="s1">&#39;pickle&#39;</span> <span class="k">else</span> <span class="s1">&#39;r&#39;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_mode</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_mode</span> <span class="o">==</span> <span class="s1">&#39;pickle&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_obj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">key</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">unicode</span><span class="p">,</span> <span class="nb">str</span>
+            <span class="p">))</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conflict_keys</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;__&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conflict_keys</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__contain__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
+
+    <span class="k">def</span> <span class="nf">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dir</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_popitem</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">popitem</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
+        <span class="k">return</span> <span class="s1">&#39;Saver(path=&quot;</span><span class="si">%s</span><span class="s1">&quot;)</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">,</span> <span class="n">reprlib</span><span class="o">.</span><span class="n">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">))</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">torequests 4.6.5 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Clericpy.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.
+    </div>
+  </body>
+</html>
