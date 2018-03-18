@@ -78,7 +78,7 @@ def simple_cmd():
 
 def print_mem(unit='MB'):
     """Show the proc-mem-cost with psutil, use this only for lazinesssss.
-    
+
     :param unit: B, KB, MB, GB.
     """
     try:
@@ -94,10 +94,9 @@ def print_mem(unit='MB'):
         print_info('pip install psutil first.')
 
 
-class Curl:
-    """
-    Curl args parser.
-    
+class _Curl:
+    """Curl args parser.
+
     **Use curlparse function directly.**
     """
     parser = argparse.ArgumentParser()
@@ -134,7 +133,7 @@ def curlparse(string, encoding='utf-8'):
     assert '\n' not in string, 'curl-string should not contain \\n, try r"...".'
     if string.startswith('http'):
         return {'url': string, 'method': 'get'}
-    args, unknown = Curl.parser.parse_known_args(shlex.split(string.strip()))
+    args, unknown = _Curl.parser.parse_known_args(shlex.split(string.strip()))
     requests_args = {}
     headers = {}
     requests_args['url'] = args.url
@@ -237,7 +236,7 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
     """Translate timestamp into human-readable: %Y-%m-%d %H:%M:%S.
 
     :param timestamp: the timestamp float, or `time.time()` by default.
-    :param tzone: time compensation, int(-time.timezone / 3600) by default, 
+    :param tzone: time compensation, int(-time.timezone / 3600) by default,
                 (can be set with Config.TIMEZONE).
     :param fail: while raising an exception, return it.
     :param fmt: %Y-%m-%d %H:%M:%S, %z not work.
@@ -262,7 +261,7 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
     """Translate %Y-%m-%d %H:%M:%S into timestamp.
 
     :param timestr: string like 2018-03-15 01:27:56, or time.time() if not set.
-    :param tzone: time compensation, int(-time.timezone / 3600) by default, 
+    :param tzone: time compensation, int(-time.timezone / 3600) by default,
                 (can be set with Config.TIMEZONE).
     :param fail: while raising an exception, return it.
     :param fmt: %Y-%m-%d %H:%M:%S, %z not work.
@@ -358,16 +357,15 @@ timepass = timeago
 
 def md5(string, n=32, encoding='utf-8', skip_encode=False):
     """str(obj) -> md5_string
-    
+
     :param string: string to operate.
     :param n: md5_str length.
-    
+
     >>> from torequests.utils import md5
     >>> md5(1, 10)
     '923820dcc5'
     >>> md5('test')
     '098f6bcd4621d373cade4e832627b4f6'
-    
     """
     todo = string if skip_encode else unicode(string).encode(encoding)
     if n == 32:
@@ -428,13 +426,13 @@ class Counts(object):
 
 def unique(seq, return_as=None):
     """Unique the seq and keep the order.
-    
+
     Instead of the slow way:
         `lambda seq: (x for index, x in enumerate(seq) if seq.index(x)==index)`
-    
+
     :param seq: raw sequence.
     :param return_as: generator for default, or list / set / str...
-    
+
     >>> from torequests.utils import unique
     >>> a = [1,2,3,4,2,3,4]
     >>> unique(a)
@@ -558,13 +556,13 @@ class Regex(object):
 
     def find(self, string, default=None):
         """Return match or search result.
-        
+
         :rtype: list"""
         return self.match(string) or self.search(string) or default
 
     def search(self, string, default=None):
         """Use re.search to find the result
-        
+
         :rtype: list"""
         default = default if default else []
         result = [item[1] for item in self.container if item[0].search(string)]
@@ -625,7 +623,7 @@ def kill_after(seconds, timeout=2):
 
 class UA:
     """Some common User-Agents for crawler.
-    
+
     Android, iPhone, iPad, Firefox, Chrome, IE6, IE9"""
     __slots__ = ()
     Android = 'Mozilla/5.0 (Linux; Android 5.1.1; Nexus 6 Build/LYZ28E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Mobile Safari/537.36'
@@ -709,7 +707,7 @@ class Timer(object):
         :param default_timer: use `timeit.default_timer` by default.
         :param rounding: None, or seconds will be round(xxx, rounding)
         :param readable: None, or use `timepass`: readable(cost_seconds) -> 00:00:01,234
-        
+
         ::
 
             from torequests.utils import Timer
@@ -882,7 +880,7 @@ class ClipboardWatcher(object):
     def watch(self, limit=None, timeout=None):
         """Block method to watch the clipboard changing."""
         return self.watch_async(limit, timeout).x
-    
+
     @property
     def x(self):
         """Return self.watch()"""
@@ -906,12 +904,12 @@ class ClipboardWatcher(object):
 
 class Saver(object):
     """
-    Simple object persistent toolkit with pickle/json, 
+    Simple object persistent toolkit with pickle/json,
     if only you don't care the performance and security.
     **Do not set the key starts with "_"**
 
     :param path: if not set, will be ~/_saver.db. print(self._path) to show it.
-        Set pickle's protocol < 3 for compatibility between python2/3, 
+        Set pickle's protocol < 3 for compatibility between python2/3,
         but use -1 for performance and some other optimizations.
     :param save_mode: pickle / json.
     >>> ss = Saver()

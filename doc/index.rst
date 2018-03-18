@@ -133,6 +133,26 @@ Examples:
         # [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
         # [2018-03-19 00:57:38]: [(612, None), (612, None), (612, None), (612, None)]
 
+**4. utils: some useful crawler toolkits**
+
+        | **ClipboardWatcher**: watch your clipboard changing.
+        | **Counts**: counter while every time being called.
+        | **Null**: will return self when be called, and alway be False.
+        | **Regex**: Regex Mapper for string -> regex -> object.
+        | **Saver**: simple object persistent toolkit with pickle/json.
+        | **Timer**: timing tool.
+        | **UA**: some common User-Agents for crawler.
+        | **curlparse**: translate curl-string into dict of request.
+        | **md5**: str(obj) -> md5_string.
+        | **print_mem**: show the proc-mem-cost with psutil, use this only for lazinesssss.
+        | **ptime**: %Y-%m-%d %H:%M:%S -> timestamp.
+        | **ttime**: timestamp -> %Y-%m-%d %H:%M:%S
+        | **slice_by_size**: slice a sequence into chunks, return as a generation of chunks with size.
+        | **slice_into_pieces**: slice a sequence into n pieces, return a generation of n pieces.
+        | **timeago**: show the seconds as human-readable.
+        | **unique**: unique one sequence.
+
+
 Read More
 =================
 
