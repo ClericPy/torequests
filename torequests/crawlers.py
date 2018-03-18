@@ -5,14 +5,12 @@ from __future__ import division
 import json
 import os
 import time
-import traceback
 from copy import deepcopy
 from functools import wraps
 
 from .logs import print_info
-from .parsers import SimpleParser
-from .utils import (Counts, curlparse, ensure_dict_key_title, ensure_request,
-                    md5, parse_qsl, slice_by_size, timepass, ttime, unparse_qsl,
+from .utils import (Counts, ensure_dict_key_title, ensure_request, md5,
+                    parse_qsl, slice_by_size, timepass, ttime, unparse_qsl,
                     urlparse, urlunparse)
 from .versions import PY2, PY3, PY35_PLUS
 
@@ -43,18 +41,23 @@ class CommonRequests(object):
                  logger_function=None,
                  encoding=None,
                  **kwargs):
-        """request: dict or curl-string or url.
-        Cookie need to be set in headers."""
+        #: If not set, will use print_info
         self.logger_function = logger_function or print_info
+        #: torequests's async requests tool.
         self.req = Requests(n=n, interval=interval, **kwargs)
+        #: default encoding or detected by response
         self.encoding = encoding
         request = ensure_request(request)
         if 'headers' in request:
             request['headers'] = ensure_dict_key_title(request['headers'])
-        # self.request should not be modified
+        #: request: dict or curl-string or url; 
+        #: self.request should not be modified
         self.request = request
+        #: max reties for bad response.
         self.retry = retry
+        #: default timeout
         self.timeout = timeout
+        #: function to check the same response.
         self.ensure_response = ensure_response or self._ensure_response
         self.init_original_response()
 
@@ -68,7 +71,7 @@ class CommonRequests(object):
         return r
 
     def init_original_response(self):
-        """get the original response for comparing, and confirm is_cookie_necessary"""
+        """Get the original response for comparing, confirm ``is_cookie_necessary``"""
         if 'json' in self.request:
             self.request['data'] = json.dumps(self.request.pop('json')).encode(
                 self.encoding)
@@ -88,7 +91,16 @@ class CommonRequests(object):
 
 
 class CleanRequest(CommonRequests):
+    """Clean the non-sense request args but return the original response.
 
+    Basic Usage::
+
+        >>> from torequests.crawlers import CleanRequest
+        >>> request = '''curl 'https://p.3.cn?skuIds=1&nonsense=1&nonce=0' -H 'Pragma: no-cache' -H 'DNT: 1' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.9' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Cache-Control: no-cache' -H 'Referer: https://p.3.cn?skuIds=1&nonsense=1&nonce=0' -H 'Cookie: ASPSESSIONIDSQRRSADB=MLHDPOPCAMBDGPFGBEEJKLAF' -H 'Connection: keep-alive' --compressed'''
+        >>> c = CleanRequest(request)
+        >>> c.x
+        {'url': 'https://p.3.cn', 'method': 'get'}
+    """
     def __init__(self,
                  request,
                  n=10,
@@ -101,6 +113,7 @@ class CleanRequest(CommonRequests):
                  **kwargs):
         """request: dict or curl-string or url.
         Cookie need to be set in headers."""
+        #: request args which can be ignored.
         self.ignore = {
             'qsl': [],
             'Cookie': [],
@@ -119,12 +132,15 @@ class CleanRequest(CommonRequests):
             logger_function=logger_function,
             encoding=encoding,
             **kwargs)
+        #: The list of async-requests task.
         self.tasks = []
+        #: If the post-data should be seen as json.
         self.has_json_data = False
+        #: The cleaned request to be return at last.
         self.new_request = deepcopy(self.request)
 
     def init_original_response(self):
-        """get the original response for comparing, and confirm is_cookie_necessary"""
+        """Get the original response for comparing, confirm is_cookie_necessary"""
         no_cookie_resp = None
         self.is_cookie_necessary = True
         if 'json' in self.request:
@@ -150,10 +166,15 @@ class CleanRequest(CommonRequests):
         return self.original_response
 
     @classmethod
-    def sort_url_qsl(cls, raw_url, **kws):
+    def sort_url_qsl(cls, raw_url, **kwargs):
+        """Do nothing but sort the params of url.
+
+            raw_url: the raw url to be sorted; 
+            kwargs: (optional) same kwargs for ``sorted``.
+        """
         parsed_url = urlparse(raw_url)
         qsl = parse_qsl(parsed_url.query)
-        return cls._join_url(parsed_url, sorted(qsl, **kws))
+        return cls._join_url(parsed_url, sorted(qsl, **kwargs))
 
     def _add_task(self, key, value, request):
         task = [
@@ -173,6 +194,7 @@ class CleanRequest(CommonRequests):
                            unparse_qsl(new_qsl), parsed_url.fragment))
 
     def clean_url(self):
+        """Only clean the url params and return self."""
         raw_url = self.request['url']
         parsed_url = urlparse(raw_url)
         qsl = parse_qsl(parsed_url.query)
@@ -185,6 +207,9 @@ class CleanRequest(CommonRequests):
         return self
 
     def clean_post_data(self):
+        """Only clean the post-data and return self. 
+        
+        Including form-data / bytes-data / json-data."""
         data = self.request.get('data')
         if not (data and self.request['method'] == 'post'):
             return self
@@ -218,6 +243,7 @@ class CleanRequest(CommonRequests):
             return self
 
     def clean_cookie(self):
+        """Only clean the cookie from headers and return self."""
         if not self.is_cookie_necessary:
             return self
         headers = self.request.get('headers', {})
@@ -231,6 +257,7 @@ class CleanRequest(CommonRequests):
         return self
 
     def clean_headers(self):
+        """Only clean the headers (cookie include) and return self."""
         if not isinstance(self.request.get('headers'), dict):
             return self
         headers = self.request['headers']
@@ -248,6 +275,7 @@ class CleanRequest(CommonRequests):
         return self
 
     def reset_new_request(self):
+        """Remove the non-sense args from the self.ignore, return self.new_request"""
         raw_url = self.new_request['url']
         parsed_url = urlparse(raw_url)
         qsl = parse_qsl(parsed_url.query)
@@ -291,9 +319,11 @@ class CleanRequest(CommonRequests):
         return self.new_request
 
     def clean_all(self):
+        """Clean the url + post-data + headers, return self."""
         return self.clean_url().clean_post_data().clean_headers()
 
     def result(self):
+        """Whole task, clean_all + reset_new_request, return self.new_request."""
         if not self.tasks:
             self.clean_all()
         tasks_length = len(self.tasks)
@@ -311,6 +341,7 @@ class CleanRequest(CommonRequests):
 
     @property
     def x(self):
+        """Property as self.result()"""
         return self.result()
 
     def __str__(self):
@@ -335,14 +366,17 @@ class Seed(object):
 
     @property
     def as_list(self):
+        """Property return the value for keys of __slots__."""
         return [getattr(k) for k in self.__slots__]
 
     @property
     def as_dict(self):
+        """Property return key-value dict from __slots__."""
         return {k: getattr(self, k) for k in self.__slots__}
 
     @property
     def as_json(self, ensure_ascii=False):
+        """Property return key-value json-string from __slots__."""
         return json.dumps(self.as_dict, ensure_ascii=ensure_ascii)
 
     def __str__(self):
@@ -353,16 +387,17 @@ class Seed(object):
 
 
 class StressTest(CommonRequests):
-    """
-    example: 
-    ```
-    >>> StressTest('http://p.3.cn').x
-    # [2018-03-13 00:33:52]: [154] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 165.0 req/s [100.00 %]
-    # [2018-03-13 00:33:52]: [155] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 166.0 req/s [100.00 %]
-    # [2018-03-13 00:33:52]: [156] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 167.0 req/s [100.00 %]
-    # [2018-03-13 00:33:52]: [157] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 167.0 req/s [100.00 %]
-    # [2018-03-13 00:33:52]: [158] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 168.0 req/s [100.00 %]
-    ```
+    """StressTest for a request(dict/curl-string/url).
+
+    Basic Usage::
+
+        >>> from torequests.crawlers import StressTest
+        >>> StressTest('http://p.3.cn').x
+        [2018-03-13 00:33:52]: [154] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 165.0 req/s [100.00 %]
+        [2018-03-13 00:33:52]: [155] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 166.0 req/s [100.00 %]
+        [2018-03-13 00:33:52]: [156] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 167.0 req/s [100.00 %]
+        [2018-03-13 00:33:52]: [157] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 167.0 req/s [100.00 %]
+        [2018-03-13 00:33:52]: [158] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 168.0 req/s [100.00 %]
     """
 
     def __init__(self,
@@ -378,7 +413,7 @@ class StressTest(CommonRequests):
                  total_time=None,
                  shutdown=None,
                  shutdown_changed=True,
-                 chunk_size=1000,
+                 chunk_size=100,
                  **kwargs):
         """request: dict or curl-string or url.
         Cookie need to be set in headers."""
@@ -393,30 +428,45 @@ class StressTest(CommonRequests):
             logger_function=logger_function,
             encoding=encoding,
             **kwargs)
+        #: counter for all response fetched
         self.counter = Counts()
+        #: counter for success response fetched
         self.succ_counter = Counts()
+        #: timestamp for starting up, time.time()
         self.start_time = time.time()
+        #: readable-time-string for starting up, ttime(self.start_time)
         self.start_time_readable = ttime(self.start_time)
+        #: the limit of total response count, stop the script while reaching.
         self.total_tries = total_tries or float('inf')
+        #: the limit of time run-time, stop the script while reaching.
         self.total_time = total_time or float('inf')
+        #: shutdown function, ``os._exit(0)`` if not set.
         self.shutdown = shutdown or self._shutdown
+        #: shutdown if response changed.
         self.shutdown_changed = shutdown_changed
+        #: fetch requests chunk_size each time, default 100
         self.chunk_size = chunk_size
-        self.pt_callback = self.pt_callback_wrapper(self.ensure_response)
+        #: StressTest callback function, will be wrapped.
+        self.st_callback = self.st_callback_wrapper(self.ensure_response)
 
     def _shutdown(self):
         return os._exit(0)
 
     @property
     def speed(self):
+        """Speed property, the unit can be `req / s`. 
+
+        Returns: the num of request is fetched in one second."""
         return self.counter.now // self.passed
 
     @property
     def succ_rate(self):
+        """The request rate of success. Returns :string like `100.00%`"""
         return '%.2f %%' % (self.succ_counter.now * 100 / self.counter.now)
 
     @property
     def passed(self):
+        """This attribute returns the seconds after starting up."""
         return time.time() - self.start_time
 
     def _logger_function(self, text):
@@ -425,8 +475,8 @@ class StressTest(CommonRequests):
             timepass(self.passed), self.speed, self.succ_rate)
         print_info(log_str)
 
-    def pt_callback_wrapper(self, func):
-        """add shutdown checker for callback function."""
+    def st_callback_wrapper(self, func):
+        """add shutdown checker for origin callback function."""
 
         @wraps(func)
         def wrapper(r):
@@ -444,7 +494,7 @@ class StressTest(CommonRequests):
                 self.succ_counter.x
             elif self.shutdown_changed:
                 print_info('shutdown for: shutdown_changed: %s => %s' %
-                            (self.original_response, result))
+                           (self.original_response, result))
                 self.shutdown()
             self.logger_function(result)
             return result
@@ -452,10 +502,11 @@ class StressTest(CommonRequests):
         return wrapper
 
     def start(self):
+        """Start the task cycle."""
         while 1:
             tasks = [
                 self.req.request(
-                    callback=self.pt_callback,
+                    callback=self.st_callback,
                     retry=self.retry,
                     timeout=self.timeout,
                     **self.request) for _ in range(self.chunk_size)
@@ -464,4 +515,5 @@ class StressTest(CommonRequests):
 
     @property
     def x(self):
+        """This attribute returns self.start()"""
         return self.start()

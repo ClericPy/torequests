@@ -27,7 +27,7 @@ setup(
     keywords=(
         'requests async multi-thread aiohttp asyncio uvloop asynchronous'),
     description=
-    'Asynchronous requests. Using concurrent.futures to make requests asynchronous, and some functions to make async-coding easy. Besides, add aiohttp+uvloop to enjoy python3.5+ coroutine. Read more: https://github.com/ClericPy/torequests.',
+    'Async wrapper for requests / aiohttp, and some python crawler toolkits. Let synchronization code enjoy the performance of asynchronous programming. Read more: https://github.com/ClericPy/torequests.',
     license='MIT License',
     install_requires=install_requires,
     py_modules=['torequests'],

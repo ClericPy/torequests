@@ -105,7 +105,7 @@ app.run(server='gevent', port=5000)
 
 
 ### Documentation
-> [Document & Usage](doc/document.md)
+> [Document & Usage](obsolete/doc/document.md)
 
 ### License
 > [MIT license](LICENSE)

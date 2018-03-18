@@ -8,7 +8,10 @@ def init_logger(name='',
                 formatter=None,
                 formatter_str=None,
                 datefmt="%Y-%m-%d %H:%M:%S"):
-    """Args:
+    """Add a default handler for logger.
+    
+    Args:
+
     name = '' or logger obj.
 
     handler_path_levels = [['loggerfile.log',13],['','DEBUG'],['','info'],['','notSet']] # [[path,level]]

@@ -4,7 +4,7 @@ import json
 from functools import wraps
 
 
-def new_future_await(self):
+def _new_future_await(self):
     loop = asyncio.get_event_loop()
     future = loop.run_in_executor(None, self.result, self._timeout)
     for i in future:
@@ -12,7 +12,7 @@ def new_future_await(self):
     return self.x
 
 
-def aiohttp_response_patch(ClientResponse):
+def _aiohttp_response_patch(ClientResponse):
     # convert ClientResponse attribute into requests-like, for py3.5+
     def _encoding_setter(self, value):
         self.request_encoding = value
@@ -37,7 +37,7 @@ def aiohttp_response_patch(ClientResponse):
         self.content.decode(encoding or self.encoding))
 
 
-def aiohttp_unclosed_connection_patch(Connection):
+def _aiohttp_unclosed_connection_patch(Connection):
     # avoid the Unclosed connection issue for aiohttp
     def wrapper(function):
 

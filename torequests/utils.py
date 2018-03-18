@@ -1,6 +1,6 @@
 #! coding:utf-8
 # compatible for win32 / python 2 & 3
-from __future__ import print_function
+from __future__ import print_function, division
 
 import argparse
 import hashlib
@@ -39,7 +39,7 @@ if PY3:
 
 def simple_cmd():
     """
-    **Deprecated**. Not better than fire => pip install fire
+    ``Deprecated``: Not better than ``fire`` -> pip install fire
     """
     parser = argparse.ArgumentParser(
         prog='Simple command-line function toolkit.',
@@ -77,19 +77,29 @@ def simple_cmd():
     func(*args, **kwargs)
 
 
-def print_mem():
-    """show the mem taken by this process"""
+def print_mem(unit='MB'):
+    """Show the proc-mem-cost with psutil, use this only for lazinesssss.
+    
+    :param unit: B, KB, MB, GB.
+    """
     try:
         import psutil
-        print_info("total: %.2f(MB)" % (
-            float(psutil.Process(os.getpid()).memory_info().vms) / 1024 / 1024))
+        B = float(psutil.Process(os.getpid()).memory_info().vms)
+        KB = B / 1024
+        MB = KB / 1024
+        GB = MB / 1024
+        result = vars()[unit]
+        print_info("memory usage: %.2f(%s)" % (result, unit))
+        return result
     except ImportError:
-        print_info('pip install psutil.')
+        print_info('pip install psutil first.')
 
 
 class Curl:
     """
-    translate curl string into a dict of requests kwargs.
+    Curl args parser.
+    
+    **Use curlparse function directly.**
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('curl')
@@ -106,11 +116,21 @@ class Curl:
     parser.add_argument('--compressed', action='store_true')
 
 
-def curlparse(string, encode='utf-8'):
-    """
-    Input: curl-string; output: dict of request.
-        requests.request(**Curl.parse(curl_string));
-        curl-string sometimes should use r'''...''' 
+def curlparse(string, encoding='utf-8'):
+    """Translate curl-string into dict of request.
+        :param string: standard curl-string, like `r'''curl ...'''`.
+        :param encoding: encoding for post-data encoding.
+
+    Basic Usage::
+
+      >>> from torequests.utils import curlparse
+      >>> curl_string = '''curl 'https://p.3.cn?skuIds=1&nonsense=1&nonce=0' -H 'Pragma: no-cache' -H 'DNT: 1' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.9' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Cache-Control: no-cache' -H 'Referer: https://p.3.cn?skuIds=1&nonsense=1&nonce=0' -H 'Cookie: ASPSESSIONIDSQRRSADB=MLHDPOPCAMBDGPFGBEEJKLAF' -H 'Connection: keep-alive' --compressed'''
+      >>> request_args = curlparse(curl_string)
+      >>> request_args
+      {'url': 'https://p.3.cn?skuIds=1&nonsense=1&nonce=0', 'headers': {'Pragma': 'no-cache', 'Dnt': '1', 'Accept-Encoding': 'gzip, deflate', 'Accept-Language': 'zh-CN,zh;q=0.9', 'Upgrade-Insecure-Requests': '1', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8', 'Cache-Control': 'no-cache', 'Referer': 'https://p.3.cn?skuIds=1&nonsense=1&nonce=0', 'Cookie': 'ASPSESSIONIDSQRRSADB=MLHDPOPCAMBDGPFGBEEJKLAF', 'Connection': 'keep-alive'}, 'method': 'get'}
+      >>> import requests
+      >>> requests.request(**request_args)
+      <Response [200]>
     """
     assert '\n' not in string, 'curl-string should not contain \\n, try r"...".'
     if string.startswith('http'):
@@ -143,14 +163,14 @@ def curlparse(string, encode='utf-8'):
         # elif headers.get('content-type', '') in ('application/json',):
         # requests_args['json'] = json.loads(data)
         else:
-            data = data.encode(encode)
+            data = data.encode(encoding)
             requests_args['data'] = data
     requests_args['method'] = args.method.lower()
     return requests_args
 
 
 class Null(object):
-    """Null object will return self when be called."""
+    """Null instance will return self when be called, it will alway be False."""
 
     def __init__(self, *args, **kwargs):
         return
@@ -187,14 +207,14 @@ null = Null()
 
 
 def itertools_chain(*iterables):
-    """Python3: from itertools import chain."""
+    """For the shortage of Python2's, Python3: `from itertools import chain`."""
     for it in iterables:
         for element in it:
             yield element
 
 
 def slice_into_pieces(seq, n):
-    """return a generation of n pieces"""
+    """Slice a sequence into `n` pieces, return a generation of n pieces"""
     length = len(seq)
     if length % n == 0:
         size = length // n
@@ -205,7 +225,7 @@ def slice_into_pieces(seq, n):
 
 
 def slice_by_size(seq, size):
-    """return as a generation of chunks with size."""
+    """Slice a sequence into chunks, return as a generation of chunks with `size`."""
     filling = null
     for it in zip(*(itertools_chain(seq, [filling] * size),) * size):
         if filling in it:
@@ -215,13 +235,18 @@ def slice_by_size(seq, size):
 
 
 def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
-    """
-    Translate timestamp into human-readable: %Y-%m-%d %H:%M:%S. %z not work.
-        print(ttime()) # 2018-03-15 01:24:35
-        print(ttime(1486572818.421858323)) # 2017-02-09 00:53:38
-        tzone: time compensation, int(-time.timezone / 3600) by default, 
+    """Translate timestamp into human-readable: %Y-%m-%d %H:%M:%S.
+
+    :param timestamp: the timestamp float, or `time.time()` by default.
+    :param tzone: time compensation, int(-time.timezone / 3600) by default, 
                 (can be set with Config.TIMEZONE).
-        fail: while raise an exception, return fail arg.
+    :param fail: while raising an exception, return it.
+    :param fmt: %Y-%m-%d %H:%M:%S, %z not work.
+
+    >>> ttime()
+    2018-03-15 01:24:35
+    >>> ttime(1486572818.421858323)
+    2017-02-09 00:53:38
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestamp = timestamp if timestamp is not None else time.time()
@@ -235,14 +260,20 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
 
 
 def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
-    """
-    input %Y-%m-%d %H:%M:%S and return timestamp.
-        print(ptime('2018-03-15 01:27:56')) # 1521048476.0
-        %z doesn't work.
-        tzone: timestamp compensation, local time zone by default (can be set with Config.TIMEZONE).
+    """Translate %Y-%m-%d %H:%M:%S into timestamp.
+
+    :param timestr: string like 2018-03-15 01:27:56, or time.time() if not set.
+    :param tzone: time compensation, int(-time.timezone / 3600) by default, 
+                (can be set with Config.TIMEZONE).
+    :param fail: while raising an exception, return it.
+    :param fmt: %Y-%m-%d %H:%M:%S, %z not work.
+
+        >>> ptime('2018-03-15 01:27:56')
+        1521048476.0
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
-    timestr = timestr or ttime()
+    #: str(timestr) for datetime.datetime object
+    timestr = str(timestr or ttime())
     try:
         return time.mktime(time.strptime(timestr,
                                          fmt)) - (time.timezone + tzone * 3600)
@@ -251,11 +282,14 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
 
 
 def split_seconds(seconds):
-    """
-    split seconds into [day, hour, minute, second, millisecond]
-        print(split_seconds(6666666)) -> [77, 3, 51, 6, 0]
-        divisor: 1, 24, 60, 60, 1000
-        units: day, hour, minute, second, millisecond
+    """Split seconds into [day, hour, minute, second, millisecond]
+
+        `divisor: 1, 24, 60, 60, 1000`
+
+        `units: day, hour, minute, second, millisecond`
+
+    >>> split_seconds(6666666)
+    [77, 3, 51, 6, 0]
     """
     millisecond = seconds * 1000
     divisors = (1, 24, 60, 60, 1000)
@@ -267,13 +301,20 @@ def split_seconds(seconds):
 
 
 def timeago(seconds=0, accuracy=4, format=0, lang='en'):
-    """
-    Translate seconds into human-readable
-        seconds: abs(seconds)
-        accuracy: 4 by default (units[:accuracy]), determine the length of elements.
-        format: index of [led, literal, dict]
-        lang: cn or en
-        units: day, hour, minute, second, millisecond
+    """Translate seconds into human-readable.
+
+        :param seconds: seconds (float/int).
+        :param accuracy: 4 by default (units[:accuracy]), determine the length of elements.
+        :param format: index of [led, literal, dict].
+        :param lang: en or cn.
+        :param units: day, hour, minute, second, millisecond.
+
+    >>> timeago(93245732.0032424, 5)
+    '1079 days, 05:35:32,003'
+    >>> timeago(93245732.0032424, 4, 1)
+    '1079 days 5 hours 35 minutes 32 seconds'
+    >>> timeago(-389, 4, 1)
+    '-6 minutes 29 seconds 0 millisecond'
     """
     assert format in [0, 1,
                       2], ValueError('format arg should be one of 0, 1, 2')
@@ -317,8 +358,17 @@ timepass = timeago
 
 
 def md5(string, n=32, encoding='utf-8', skip_encode=False):
-    """
-    obj -> str
+    """str(obj) -> md5_string
+    
+    :param string: string to operate.
+    :param n: md5_str length.
+    
+    >>> from torequests.utils import md5
+    >>> md5(1, 10)
+    '923820dcc5'
+    >>> md5('test')
+    '098f6bcd4621d373cade4e832627b4f6'
+    
     """
     todo = string if skip_encode else unicode(string).encode(encoding)
     if n == 32:
@@ -330,10 +380,20 @@ def md5(string, n=32, encoding='utf-8', skip_encode=False):
 
 
 class Counts(object):
-    """
-    Counter for counts the times been called
-        count.x -> current+step and return current
-        count.now -> return current
+    """Counter for counting the times been called
+
+    >>> from torequests.utils import Counts
+    >>> cc = Counts()
+    >>> cc.x
+    1
+    >>> cc.x
+    2
+    >>> cc.now
+    2
+    >>> cc.current
+    2
+    >>> cc.sub()
+    1
     """
     __slots__ = ('start', 'step', 'current')
 
@@ -368,10 +428,23 @@ class Counts(object):
 
 
 def unique(seq, return_as=None):
-    """Unique the seq in order.
+    """Unique the seq and keep the order.
+    
     Instead of the slow way:
-        lambda seq: (x for index, x in enumerate(seq) if seq.index(x)==index)
-    return_as: generator for default, or list / set / str..."""
+        `lambda seq: (x for index, x in enumerate(seq) if seq.index(x)==index)`
+    
+    :param seq: raw sequence.
+    :param return_as: generator for default, or list / set / str...
+    
+    >>> from torequests.utils import unique
+    >>> a = [1,2,3,4,2,3,4]
+    >>> unique(a)
+    <generator object unique.<locals>.<genexpr> at 0x05720EA0>
+    >>> unique(a, str)
+    '1234'
+    >>> unique(a, list)
+    [1, 2, 3, 4]
+    """
     seen = set()
     add = seen.add
     generator = (x for x in seq if x not in seen and not add(x))
@@ -385,6 +458,7 @@ def unique(seq, return_as=None):
 
 
 def unparse_qs(qs, sort=False, reverse=False):
+    """Reverse conversion for parse_qs"""
     result = []
     items = qs.items()
     if sort:
@@ -397,6 +471,7 @@ def unparse_qs(qs, sort=False, reverse=False):
 
 
 def unparse_qsl(qsl, sort=False, reverse=False):
+    """Reverse conversion for parse_qsl"""
     result = []
     items = qsl
     if sort:
@@ -408,19 +483,50 @@ def unparse_qsl(qsl, sort=False, reverse=False):
 
 
 class Regex(object):
-    """
-    Register some objects(like functions) to the regular expression
+    """Register some objects(like functions) to the regular expression.
+
+    >>> from torequests.utils import Regex, re
+    >>> reg = Regex()
+    >>> @reg.register_function('http.*cctv.*')
+    ... def mock():
+    ...     pass
+    ...
+    >>> reg.register('http.*HELLOWORLD', 'helloworld', instances='http://helloworld', flags=re.I)
+    >>> reg.register('http.*HELLOWORLD2', 'helloworld2', flags=re.I)
+    >>> reg.find('http://cctv.com')
+    [<function mock at 0x031FC5D0>]
+    >>> reg.match('http://helloworld')
+    ['helloworld']
+    >>> reg.match('non-http://helloworld')
+    []
+    >>> reg.search('non-http://helloworld')
+    ['helloworld']
+    >>> len(reg.search('non-http://helloworld2'))
+    2
+    >>> print(reg.show_all())
+    ('http.*cctv.*') =>  => <class 'function'> mock ""
+    ('http.*HELLOWORLD', re.IGNORECASE) => http://helloworld => <class 'str'> helloworld
+    ('http.*HELLOWORLD2', re.IGNORECASE) =>  => <class 'str'> helloworld2
+    >>> reg.fuzzy('non-http://helloworld')
+    [('http://helloworld', 95)]
     """
 
     def __init__(self, ensure_mapping=False):
         """
-        ensure_mapping: ensure mapping one to one,
-                        if False, will return all(more than 1)
-                        mapped object list."""
+        :param ensure_mapping: ensure mapping one to one, if False,
+         will return all(more than 1) mapped object list."""
         self.container = []
         self.ensure_mapping = ensure_mapping
 
     def register(self, patterns, obj=None, instances=None, **reg_kwargs):
+        """Register one object which can be matched/searched by regex.
+
+        :param patterns: a list/tuple/set of regex-pattern.
+        :param obj: return it while search/match success.
+        :param instances: instance list will search/match the patterns.
+        :param reg_kwargs: kwargs for re.compile.
+        """
+        assert obj, 'bool(obj) should be True.'
         patterns = patterns if isinstance(patterns,
                                           (list, tuple, set)) else [patterns]
         instances = instances or []
@@ -431,14 +537,19 @@ class Regex(object):
             self.container.append((pattern_compiled, obj, instances))
             if self.ensure_mapping:
                 # check all instances to avoid one-to-many instances.
-                self.check_instances()
+                self._check_instances()
             else:
                 # no need to check all instances.
                 for instance in instances:
-                    assert self.search(instance) or self.match(instance), \
-                        'instance %s not fit pattern %s' % (instance, pattern)
+                    assert self.search(instance) == [
+                        obj
+                    ] or self.match(instance) == [
+                        obj
+                    ], 'instance %s should fit at least one pattern %s' % (
+                        instance, pattern)
 
     def register_function(self, patterns, instances=None, **reg_kwargs):
+        """Decorator for register."""
 
         def wrapper(function):
             self.register(patterns, function, instances=instances, **reg_kwargs)
@@ -446,7 +557,16 @@ class Regex(object):
 
         return wrapper
 
+    def find(self, string, default=None):
+        """Return match or search result.
+        
+        :rtype: list"""
+        return self.match(string) or self.search(string) or default
+
     def search(self, string, default=None):
+        """Use re.search to find the result
+        
+        :rtype: list"""
         default = default if default else []
         result = [item[1] for item in self.container if item[0].search(string)]
         if self.ensure_mapping:
@@ -455,6 +575,9 @@ class Regex(object):
         return result if result else default
 
     def match(self, string, default=None):
+        """Use re.search to find the result
+
+        :rtype: list"""
         default = default if default else []
         result = [item[1] for item in self.container if item[0].match(string)]
         if self.ensure_mapping:
@@ -463,6 +586,7 @@ class Regex(object):
         return result if result else default
 
     def fuzzy(self, key, limit=5):
+        """Give suggestion from all instances."""
         instances = [i[2] for i in self.container if i[2]]
         if not instances:
             return
@@ -471,7 +595,7 @@ class Regex(object):
         maybe = process.extract(key, instances, limit=limit)
         return maybe
 
-    def check_instances(self):
+    def _check_instances(self):
         for item in self.container:
             for instance in item[2]:
                 assert self.search(instance) or self.match(instance), \
@@ -479,16 +603,16 @@ class Regex(object):
                         instance, item[0].pattern)
 
     def show_all(self, as_string=True):
-        """python2 will not show flags"""
+        """, python2 will not show flags"""
         result = []
         for item in self.container:
-            key = str(item[0])[10:] if PY3 else item[0].pattern
+            pattern = str(item[0])[10:] if PY3 else item[0].pattern
             instances = item[2] or []
             value = '%s "%s"' % (item[1].__name__,
                                  (item[1].__doc__ or '')) if callable(
                                      item[1]) else str(item[1])
             value = '%s %s' % (type(item[1]), value)
-            result.append(' => '.join((','.join(instances), key, value)))
+            result.append(' => '.join((pattern, ','.join(instances), value)))
         return '\n'.join(result) if as_string else result
 
 
@@ -501,7 +625,9 @@ def kill_after(seconds, timeout=2):
 
 
 class UA:
-    """some common User-Agents for crawler"""
+    """Some common User-Agents for crawler.
+    
+    Android, iPhone, iPad, Firefox, Chrome, IE6, IE9"""
     __slots__ = ()
     Android = 'Mozilla/5.0 (Linux; Android 5.1.1; Nexus 6 Build/LYZ28E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Mobile Safari/537.36'
     iPhone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1'
@@ -513,9 +639,8 @@ class UA:
 
 
 def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
-    """
-    Try import module_name, except ImportError and return default,
-        sometimes to be used for lazy-import.
+    """Try import module_name, except ImportError and return default,
+        sometimes to be used for catch ImportError and lazy-import.
     """
     try:
         module = importlib.import_module(module_name)
@@ -546,8 +671,20 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
 
 
 def ensure_request(request):
-    """used for requests.request / Requests.request with **ensure_request(request)
-    request: dict or curl-string or url"""
+    """Used for requests.request / Requests.request with **ensure_request(request)
+    :param request: dict or curl-string or url
+
+    >>> from torequests.utils import ensure_request
+    >>> ensure_request('''curl http://test.com''')
+    {'url': 'http://test.com', 'method': 'get'}
+    >>> ensure_request('http://test.com')
+    {'method': 'get', 'url': 'http://test.com'}
+    >>> ensure_request({'method': 'get', 'url': 'http://test.com'})
+    {'method': 'get', 'url': 'http://test.com'}
+    >>> ensure_request({'url': 'http://test.com'})
+    {'url': 'http://test.com', 'method': 'get'}
+
+    """
     if isinstance(request, dict):
         result = request
     elif isinstance(request, (unicode, str)):
@@ -558,8 +695,7 @@ def ensure_request(request):
             result = curlparse(request)
     else:
         raise ValueError('request should be dict or str.')
-    assert 'method' in result, ValueError('no `method` in request.')
-    result['method'] = result['method'].lower()
+    result['method'] = result.setdefault('method', 'get').lower()
     return result
 
 
@@ -567,53 +703,51 @@ class Timer(object):
     """
     Usage:
         init Timer anywhere:
-            such as head of function, or head of module
-        ```python
-        from torequests.utils import Timer, md5
-        import time
-        Timer()
-        @Timer.watch()
-        def test(a=1):
-            Timer()
-            time.sleep(1)
-            def test_inner():
-                t = Timer('test_non_del')
-                time.sleep(1)
-                t.x
-            test_inner()
-        test(3)
-        time.sleep(1)
-        # [2018-03-10 02:16:48]: Timer [00:00:01]: test_non_del, start at 2018-03-10 02:16:47.
-        # [2018-03-10 02:16:48]: Timer [00:00:02]: test(a=3), start at 2018-03-10 02:16:46.
-        # [2018-03-10 02:16:48]: Timer [00:00:02]: test(3), start at 2018-03-10 02:16:46.
-        # [2018-03-10 02:16:49]: Timer [00:00:03]: <module>: __main__ (temp_code.py), start at 2018-03-10 02:16:46.
+            such as head of function, or head of module, then it will show log after del it by gc.
 
-        ```
-        then it will show log after del it by gc.
-    ```
-    Args:
-        name: be used in log
-        log_func=print_info, or function like Config.utils_logger.info
-        default_timer=default_timer -> timeit.default_timer
-        rounding=None -> if setted, seconds will be round(xxx, rounding)
-        readable=timepass: readable(cost_seconds) -> 00:00:01,234
-    Attr:
-        self.tick() -> return the expect time_cost_string
-        self.string -> return self.tick()
-        self.x -> return self.string, and output it
-        self.passed -> return seconds passed after self.start
-        [staticmethod] watch: decorator for timer a function, args as same as Timer
-    ```
+        :param name: be used in log or None.
+        :param log_func: some function to show process.
+        :param default_timer: use `timeit.default_timer` by default.
+        :param rounding: None, or seconds will be round(xxx, rounding)
+        :param readable: None, or use `timepass`: readable(cost_seconds) -> 00:00:01,234
+        
+        ::
+
+            from torequests.utils import Timer
+            import time
+            Timer()
+
+            @Timer.watch()
+            def test(a=1):
+                Timer()
+                time.sleep(1)
+
+                def test_inner():
+                    t = Timer('test_non_del')
+                    time.sleep(1)
+                    t.x
+
+                test_inner()
+
+            test(3)
+            time.sleep(1)
+            # [2018-03-10 02:16:48]: Timer [00:00:01]: test_non_del, start at 2018-03-10 02:16:47.
+            # [2018-03-10 02:16:48]: Timer [00:00:02]: test(a=3), start at 2018-03-10 02:16:46.
+            # [2018-03-10 02:16:48]: Timer [00:00:02]: test(3), start at 2018-03-10 02:16:46.
+            # [2018-03-10 02:16:49]: Timer [00:00:03]: <module>: __main__ (temp_code.py), start at 2018-03-10 02:16:46.
+
     """
 
     def __init__(self,
                  name=None,
                  log_func=None,
-                 default_timer=default_timer,
+                 default_timer=None,
                  rounding=None,
-                 readable=timepass,
+                 readable=None,
                  log_after_del=True,
                  stack_level=1):
+        default_timer = default_timer or default_timer
+        readable = readable or timepass
         self._log_after_del = False
         self.start_at = time.time()
         uid = md5('%s%s' % (self.start_at, id(self)))
@@ -644,16 +778,12 @@ class Timer(object):
 
     @property
     def string(self):
-        """
-        only return the expect_string
-        """
+        """Only return the expect_string quietly."""
         return self.tick()
 
     @property
     def x(self):
-        """
-        call self.log_func(self) and return expect_string
-        """
+        """Call self.log_func(self) and return expect_string."""
         self._log_after_del = False
         passed_string = self.string
         if self.log_func:
@@ -668,15 +798,11 @@ class Timer(object):
 
     @property
     def passed(self):
-        """
-        return the cost_seconds after start
-        """
+        """Return the cost_seconds after starting up."""
         return self.timer() - self.start_timer
 
     def tick(self):
-        """
-        return the time cost string as expect
-        """
+        """Return the time cost string as expect."""
         string = self.passed
         if self.rounding:
             string = round(string)
@@ -686,6 +812,7 @@ class Timer(object):
 
     @staticmethod
     def watch(*timer_args, **timer_kwargs):
+        """Decorator for Timer."""
 
         def wrapper(function):
 
@@ -713,14 +840,20 @@ class Timer(object):
 
 
 def ensure_dict_key_title(dict_obj):
-    """set the dict key as key.title(); keys should be str"""
+    """Set the dict key as key.title(); keys should be str.
+    Always be used to headers.
+
+        >>> from torequests.utils import ensure_dict_key_title
+        >>> ensure_dict_key_title({'hello-world':1, 'HELLOWORLD':2})
+        {'Hello-World': 1, 'Helloworld': 2}
+    """
     if not all((isinstance(i, unicode) for i in dict_obj.keys())):
         return dict_obj
     return {key.title(): value for key, value in dict_obj.items()}
 
 
 class ClipboardWatcher(object):
-    """watch clipboard, run callback while changed"""
+    """Watch clipboard with `pyperclip`, run callback while changed."""
 
     def __init__(self, interval=0.5, callback=None):
         self.pyperclip = try_import('pyperclip')
@@ -729,26 +862,36 @@ class ClipboardWatcher(object):
         self.temp = self.current
 
     def read(self):
+        """Return the current clipboard content."""
         return self.pyperclip.paste()
 
     def write(self, text):
+        """Rewrite the current clipboard content."""
         return self.pyperclip.copy(text)
 
     @property
     def current(self):
+        """Return the current clipboard content."""
         return self.read()
 
     def default_callback(self, text):
-        # clean text
+        """Default clean the \\n in text."""
         text = text.replace('\r\n', '\n')
         print(text, flush=1)
         return text
 
     def watch(self, limit=None, timeout=None):
+        """Block method to watch the clipboard changing."""
         return self.watch_async(limit, timeout).x
+    
+    @property
+    def x(self):
+        """Return self.watch()"""
+        return self.watch()
 
     @threads(1)
     def watch_async(self, limit=None, timeout=None):
+        """Non-block method to watch the clipboard changing."""
         start_time = time.time()
         count = 0
         while not timeout or time.time() - start_time < timeout:
@@ -764,23 +907,36 @@ class ClipboardWatcher(object):
 
 class Saver(object):
     """
-    Simple object persistent toolkit with pickle/json,
-        if only you don't care the performance and security.
+    Simple object persistent toolkit with pickle/json, 
+    if only you don't care the performance and security.
+    **Do not set the key starts with "_"**
+
+    :param path: if not set, will be ~/_saver.db. print(self._path) to show it.
+        Set pickle's protocol < 3 for compatibility between python2/3, 
+        but use -1 for performance and some other optimizations.
+    :param save_mode: pickle / json.
+    >>> ss = Saver()
+    >>> ss._path
+    '/home/work/_saver.json'
+    >>> ss.a = 1
+    >>> ss['b'] = 2
+    >>> str(ss)
+    {'a': 1, 'b': 2, 'c': 3, 'd': 4}
+    >>> del ss.b
+    >>> str(ss)
+    "{'a': 1, 'c': 3, 'd': 4}"
+    >>> ss._update({'c': 3, 'd': 4})
+    >>> ss
+    Saver(path="/home/work/_saver.json"){'a': 1, 'c': 3, 'd': 4}
     """
     _instances = {}
 
-    def __new__(cls, path=None, save_mode='pickle', **saver_args):
+    def __new__(cls, path=None, save_mode='json', **saver_args):
         # BORG
         path = path or cls._get_home_path(save_mode=save_mode)
         return cls._instances.setdefault(path, super(Saver, cls).__new__(cls))
 
-    def __init__(self, path=None, save_mode='pickle', **saver_args):
-        """
-        path: if not set, will be ~/_saver.db. print(self._path) to show it.
-        pickle's protocol < 3 for compatibility between python2/3, 
-                use -1 for performance and some other optimizations.
-        save_mode: pickle/json. TODO: tinydb, sqlitedict
-        """
+    def __init__(self, path=None, save_mode='json', **saver_args):
         super(Saver, self).__init__()
         super(Saver, self).__setattr__(
             '_path', path or self._get_home_path(save_mode=save_mode))
@@ -826,8 +982,9 @@ class Saver(object):
 
     def _set(self, key, value):
         assert isinstance(
-            key, (unicode, str)
-        ) and key not in self._conflict_keys and not key.startswith('__')
+            key,
+            (unicode, str
+            )) and key not in self._conflict_keys and not key.startswith('__')
         self._cache[key] = value
         self._save()
 
@@ -898,7 +1055,7 @@ class Saver(object):
         self._save()
 
     def __str__(self):
-        return 'Saver(path="%s")%s' % (self._path, reprlib.repr(self._cache))
+        return str(self._cache)
 
     def __repr__(self):
         return 'Saver(path="%s")%s' % (self._path, reprlib.repr(self._cache))

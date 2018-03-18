@@ -2,6 +2,7 @@
 
 
 class CommonException(Exception):
+    """This Exception mainly used for `bool(self) is False`, and not `callable`."""
 
     def __init__(self, name):
         self.name = name
@@ -23,8 +24,7 @@ class CommonException(Exception):
 
 
 class FailureException(CommonException):
-    """This class mainly used for __bool__,
-        self.error for reviewing the source exception."""
+    """Use `self.error` to review the origin exception."""
 
     def __init__(self, error, name=None):
         self.__dict__ = error.__dict__
@@ -34,7 +34,4 @@ class FailureException(CommonException):
 
 
 class ImportErrorModule(CommonException, ImportError):
-    """
-    This obj will raise error while __call__.
-    bool(self) will always be False.
-    """
+    pass

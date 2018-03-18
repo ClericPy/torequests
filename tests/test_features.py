@@ -7,7 +7,7 @@ from torequests import *
 
 def test_main_tPool():
     trequests = tPool()
-    test_url = 'http://p.3.cn/prices/mgets?skuIds=J_1273500'
+    test_url = 'http://p.3.cn'
     ss = [
         trequests.get(test_url, retry=2, callback=lambda x: len(x.content))
         for i in range(3)
