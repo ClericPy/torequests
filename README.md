@@ -91,27 +91,24 @@ print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
 #### 3. Requests - aiohttp-wrapper
 
 ```python
-from torequests.main import tPool
+from torequests.dummy import Requests
 from torequests.logs import print_info
-
-trequests = tPool()
-test_url = 'http://p.3.cn'
+trequests = Requests(frequencies={'p.3.cn': (2, 2)})
 ss = [
     trequests.get(
-        test_url,
-        retry=2,
-        callback=lambda x: (len(x.content), print_info(len(x.content))))
-    for i in range(3)
+        'http://p.3.cn', retry=1, timeout=5,
+        callback=lambda x: (len(x.content), print_info(trequests.frequencies)))
+    for i in range(4)
 ]
-# or [i.x for i in ss]
 trequests.x
 ss = [i.cx for i in ss]
 print_info(ss)
 
-# [2018-03-18 21:18:09]: 612
-# [2018-03-18 21:18:09]: 612
-# [2018-03-18 21:18:09]: 612
-# [2018-03-18 21:18:09]: [(612, None), (612, None), (612, None)]
+# [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
+# [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<0/2>, interval=2)}
+# [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
+# [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
+# [2018-03-19 00:57:38]: [(612, None), (612, None), (612, None), (612, None)]
 ```
 
 > uvloop cost about 3.8s per 5000 requests; win32 5.78s per 5000 requests.
