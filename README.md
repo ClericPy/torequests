@@ -1,4 +1,4 @@
-# torequests  - v4.6.6
+# torequests  - v4.6.7
 
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
