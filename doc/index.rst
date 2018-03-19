@@ -5,10 +5,7 @@
 
 Welcome to torequests's documentation!
 ======================================
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+`https://github.com/ClericPy/torequests <https://github.com/ClericPy/torequests>`_
 
 Indices and tables
 ==================

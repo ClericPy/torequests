@@ -8,6 +8,23 @@ Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie
 
 > pip install torequests -U
 
+**requirements:**
+
+    | requests
+    | futures # python2
+    | aiohttp >= 3.0.5 # python3
+    | uvloop  # python3
+
+**optional:**
+
+    | jsonpath_rw_ext
+    | lxml
+    | objectpath
+    | psutil
+    | fuzzywuzzy
+    | python-Levenshtein
+    | pyperclip
+
 ### Features
 
 Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-coding brief & smooth, compatible for win32 / python 2&3.
@@ -15,6 +32,7 @@ Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-co
 * convert any funtions into async-mode with concurrent.futures
 * wrap requests module in future...
 * simplify aiohttp, make it `requests-like`.
+* some crawler toolkits.
 
 ### Getting started
 
@@ -161,27 +179,6 @@ app.run(server='gevent', port=5000)
     slice_into_pieces: slice a sequence into n pieces, return a generation of n pieces.
     timeago: show the seconds as human-readable.
     unique: unique one sequence.
-
-
-### Requirement
-
-**requirements:**
-
-    | requests
-    | futures # python2
-    | aiohttp >= 3.0.5 # python3
-    | uvloop  # python3
-
-**optional:**
-
-    | jsonpath_rw_ext
-    | lxml
-    | objectpath
-    | psutil
-    | fuzzywuzzy
-    | python-Levenshtein
-    | pyperclip
-
 
 
 ### Documentation

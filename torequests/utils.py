@@ -14,7 +14,7 @@ import signal
 import sys
 import time
 from functools import wraps
-from timeit import default_timer
+import timeit
 
 from .configs import Config
 from .exceptions import ImportErrorModule
@@ -743,7 +743,6 @@ class Timer(object):
                  readable=None,
                  log_after_del=True,
                  stack_level=1):
-        default_timer = default_timer or default_timer
         readable = readable or timepass
         self._log_after_del = False
         self.start_at = time.time()
@@ -767,7 +766,7 @@ class Timer(object):
             name = '%s%s' % (f_name, f_vars)
         self.name = name
         self.log_func = log_func
-        self.timer = default_timer
+        self.timer = default_timer or timeit.default_timer
         self.rounding = rounding
         self.readable = readable
         self.start_timer = self.timer()
