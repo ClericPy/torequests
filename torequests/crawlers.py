@@ -28,6 +28,8 @@ if PY35_PLUS:
 else:
     from .main import tPool as Requests
 
+__all__ = 'CleanRequest Seed StressTest'.split(' ')
+
 
 class CommonRequests(object):
 
@@ -50,7 +52,7 @@ class CommonRequests(object):
         request = ensure_request(request)
         if 'headers' in request:
             request['headers'] = ensure_dict_key_title(request['headers'])
-        #: request: dict or curl-string or url; 
+        #: request: dict or curl-string or url;
         #: self.request should not be modified
         self.request = request
         #: max reties for bad response.
@@ -101,6 +103,7 @@ class CleanRequest(CommonRequests):
         >>> c.x
         {'url': 'https://p.3.cn', 'method': 'get'}
     """
+
     def __init__(self,
                  request,
                  n=10,

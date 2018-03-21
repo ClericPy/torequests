@@ -37,6 +37,9 @@ if PY3:
     unicode = str
 
 
+__all__ = 'parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n'.split(' ')
+
+
 def simple_cmd():
     """
     ``Deprecated``: Not better than ``fire`` -> pip install fire
@@ -1055,3 +1058,58 @@ class Saver(object):
 
     def __repr__(self):
         return 'Saver(path="%s")%s' % (self._path, reprlib.repr(self._cache))
+
+
+def guess_interval(nums, accuracy=0):
+    '''Given a seq of number, return the median, only calculate interval >= accuracy.
+
+    ::
+
+        from torequests.utils import guess_interval
+        import random
+
+        seq = [random.randint(1, 100) for i in range(20)]
+        print(guess_interval(seq, 5))
+        # sorted_seq: [2, 10, 12, 19, 19, 29, 30, 32, 38, 40, 41, 54, 62, 69, 75, 79, 82, 88, 97, 99]
+        # diffs: [8, 7, 10, 6, 13, 8, 7, 6, 6, 9]
+        # median: 8
+    '''
+    if not nums:
+        return 0
+    nums = sorted([int(i) for i in nums])
+    if len(nums) == 1:
+        return nums[0]
+    diffs = [nums[i + 1] - nums[i] for i in range(len(nums) - 1)]
+    diffs = [item for item in diffs if item >= accuracy]
+    sorted_diff = sorted(diffs)
+    result = sorted_diff[len(diffs) // 2]
+    return result
+
+
+def _re_split_mixin(string, sep, reg=False):
+    if reg:
+        return re.split(sep, string)
+    else:
+        return string.split(sep)
+
+
+def split_n(string, seps, reg=False):
+    r"""Split strings into n-dimensional list.
+
+    ::
+
+        from torequests.utils import split_n
+
+        ss = '''a b c  d e f  1 2 3  4 5 6
+        a b c  d e f  1 2 3  4 5 6
+        a b c  d e f  1 2 3  4 5 6'''
+
+        print(split_n(ss, ('\n', '  ', ' ')))
+        # [[['a', 'b', 'c'], ['d', 'e', 'f'], ['1', '2', '3'], ['4', '5', '6']], [['a', 'b', 'c'], ['d', 'e', 'f'], ['1', '2', '3'], ['4', '5', '6']], [['a', 'b', 'c'], ['d', 'e', 'f'], ['1', '2', '3'], ['4', '5', '6']]]
+        print(split_n(ss, ['\s+'], reg=1))
+        # ['a', 'b', 'c', 'd', 'e', 'f', '1', '2', '3', '4', '5', '6', 'a', 'b', 'c', 'd', 'e', 'f', '1', '2', '3', '4', '5', '6', 'a', 'b', 'c', 'd', 'e', 'f', '1', '2', '3', '4', '5', '6']
+    """
+    deep = len(seps)
+    if not deep:
+        return string
+    return [split_n(i, seps[1:]) for i in _re_split_mixin(string, seps[0], reg=reg)]

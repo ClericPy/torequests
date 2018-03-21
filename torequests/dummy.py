@@ -25,6 +25,9 @@ try:
 except ImportError:
     Config.dummy_logger.debug('Not found uvloop, using default_event_loop.')
 
+__all__ = 'NewTask Loop Asyncme coros get_results_generator Frequency Requests'.split(
+    ' ')
+
 
 class NewTask(asyncio.Task):
     """Add some special method & attribute for asyncio.Task.

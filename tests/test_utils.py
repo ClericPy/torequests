@@ -1,8 +1,10 @@
 #! coding:utf-8
+import re
 import time
-from torequests.utils import *
-from torequests.parsers import *
+
 import requests
+from torequests.parsers import *
+from torequests.utils import *
 
 # with capsys.disabled():
 
@@ -88,10 +90,7 @@ def test_clean_request():
     )
 
     c = CleanRequest(request)
-    assert (c.x == {
-        'url': 'https://p.3.cn',
-        'method': 'get'
-    })
+    assert (c.x == {'url': 'https://p.3.cn', 'method': 'get'})
 
 
 def test_failure():
@@ -201,3 +200,18 @@ def test_ensure_request():
         },
         'method': 'get'
     })
+
+    def test_split_n():
+        ss = '''a b c  d e f  1 2 3  4 5 6
+        a b c  d e f  1 2 3  4 5 6
+        a b c  d e f  1 2 3  4 5 6'''
+        assert (split_n(ss, ('\n', '  ', ' ')) == [[
+            ['a', 'b', 'c'], ['d', 'e', 'f'], ['1', '2', '3'], ['4', '5', '6']
+        ], [['a', 'b', 'c'], ['d', 'e', 'f'], ['1', '2', '3'],
+            ['4', '5', '6']], [['a', 'b', 'c'], ['d', 'e', 'f'],
+                               ['1', '2', '3'], ['4', '5', '6']]])
+        assert (split_n(ss, ['\s+'], reg=1) == [
+            'a', 'b', 'c', 'd', 'e', 'f', '1', '2', '3', '4', '5', '6', 'a',
+            'b', 'c', 'd', 'e', 'f', '1', '2', '3', '4', '5', '6', 'a', 'b',
+            'c', 'd', 'e', 'f', '1', '2', '3', '4', '5', '6'
+        ])

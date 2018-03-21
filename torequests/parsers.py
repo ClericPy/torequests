@@ -15,6 +15,8 @@ HTMLParser, XHTMLParser, fromstring, tostring = try_import(
     'lxml.html', ['HTMLParser', 'XHTMLParser', 'fromstring', 'tostring'])
 Tree = try_import('objectpath', 'Tree')
 
+__all__ = ['SimpleParser']
+
 
 def get_one(seq, default=None, skip_string_iter=True):
     """

@@ -19,6 +19,9 @@ from .versions import PY2, PY3
 if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
+__all__ = 'Pool ProcessPool NewFuture Async threads get_results_generator run_after_async tPool'.split(
+    ' ')
+
 
 class NewExecutorPoolMixin(Executor):
     """Add async_func decorator for wrapping a function to return the NewFuture."""
