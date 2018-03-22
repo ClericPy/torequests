@@ -453,7 +453,15 @@ class Requests(Loop):
     :param default_callback: None
     :param frequencies: None or {host: Frequency obj} or {host: [n, interval]}
     :param default_host_frequency: None
-    :param **kwargs: is used to aiohttp.ClientSession.
+    :param kwargs: will used for aiohttp.ClientSession.
+
+    :WARNING: if proxy is not None and **mutable**, should avoid reusing old proxy in the same connection.
+
+        `self.session.connector._force_close = True`, 
+
+        Or use the `connector` param in __init__
+
+        `Requests(connector=TCPConnector(force_close=True))`
 
     ::
 
@@ -536,7 +544,9 @@ class Requests(Loop):
 
     async def _request(self, method, url, retry=0, **kwargs):
         url = url.strip()
-        host = urlparse(url).netloc
+        parsed_url = urlparse(url)
+        scheme = parsed_url.scheme
+        host = parsed_url.netloc
         if host in self.frequencies:
             frequency = self.frequencies[host]
         elif self.default_host_frequency:
@@ -547,8 +557,7 @@ class Requests(Loop):
         proxies = kwargs.pop('proxies', None)
         encoding = kwargs.pop('encoding', None)
         if proxies:
-            proxy = '://'.join(proxies.popitem())
-            kwargs['proxy'] = proxy
+            kwargs['proxy'] = '%s://%s' % (scheme, proxies[scheme])
         for retries in range(retry + 1):
             with await sem:
                 try:
