@@ -998,7 +998,7 @@ class Saver(object):
             return object.__getattribute__(self, key)
         return self._get(key)
 
-    def __contain__(self, key):
+    def __contains__(self, key):
         return key in self._cache
 
     def __delattr__(self, key):
@@ -1044,7 +1044,7 @@ class Saver(object):
     def __getitem__(self, key):
         if key in self._cache:
             return self._get(key)
-        return result
+        raise KeyError
 
     def __setitem__(self, key, value):
         self._set(key, value)
