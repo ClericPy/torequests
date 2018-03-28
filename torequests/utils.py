@@ -930,12 +930,12 @@ class Saver(object):
     """
     _instances = {}
 
-    def __new__(cls, path=None, save_mode='json', **saver_args):
+    def __new__(cls, path=None, save_mode='json', auto_backup=False, **saver_args):
         # BORG
         path = path or cls._get_home_path(save_mode=save_mode)
         return cls._instances.setdefault(path, super(Saver, cls).__new__(cls))
 
-    def __init__(self, path=None, save_mode='json', **saver_args):
+    def __init__(self, path=None, save_mode='json', auto_backup=False, **saver_args):
         super(Saver, self).__init__()
         super(Saver, self).__setattr__(
             '_path', path or self._get_home_path(save_mode=save_mode))
@@ -943,6 +943,11 @@ class Saver(object):
         super(Saver, self).__setattr__('_save_mode', save_mode)
         super(Saver, self).__setattr__('_conflict_keys', set(dir(self)))
         super(Saver, self).__setattr__('_cache', self._load())
+        # super(Saver, self).__setattr__('_auto_backup', auto_backup)
+        if auto_backup:
+            with open(self._path, 'rb') as f_raw:
+                with open(self._path + '.bk', 'wb') as f_bk:
+                    f_bk.write(f_raw.read())
 
     @classmethod
     def _get_home_path(cls, save_mode=None):
