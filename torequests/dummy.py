@@ -566,7 +566,7 @@ class Requests(Loop):
                         resp.content = await resp.read()
                         resp.request_encoding = encoding
                         return resp
-                except Exception as err:
+                except aiohttp.ClientError as err:
                     error = err
                     continue
                 finally:

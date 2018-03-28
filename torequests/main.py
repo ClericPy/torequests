@@ -9,7 +9,7 @@ from concurrent.futures.thread import _WorkItem
 from functools import wraps
 from weakref import WeakSet
 
-from requests import Session
+from requests import RequestException, Session
 from requests.adapters import HTTPAdapter
 
 from .configs import Config
@@ -447,7 +447,7 @@ class tPool(object):
                 Config.main_logger.debug('%s done, %s' % (url, kwargs))
 
                 return resp
-            except Exception as e:
+            except RequestException as e:
                 error = e
                 Config.main_logger.debug(
                     'Retry %s for the %s time, Exception: %s . kwargs= %s' %
