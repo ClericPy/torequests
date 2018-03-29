@@ -14,7 +14,7 @@ from ._py3_patch import (_aiohttp_response_patch,
                          _aiohttp_unclosed_connection_patch)
 from .configs import Config
 from .exceptions import FailureException
-from .main import NewFuture, Pool, ProcessPool
+from .main import NewFuture, Pool, ProcessPool, Error
 
 _aiohttp_response_patch(ClientResponse)
 _aiohttp_unclosed_connection_patch(Connection)
@@ -566,7 +566,7 @@ class Requests(Loop):
                         resp.content = await resp.read()
                         resp.request_encoding = encoding
                         return resp
-                except aiohttp.ClientError as err:
+                except (aiohttp.ClientError, Error) as err:
                     error = err
                     continue
                 finally:

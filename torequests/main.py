@@ -4,7 +4,7 @@
 import time
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed, wait)
-from concurrent.futures._base import Executor, Future, TimeoutError
+from concurrent.futures._base import Executor, Future, TimeoutError, Error
 from concurrent.futures.thread import _WorkItem
 from functools import wraps
 from weakref import WeakSet
@@ -447,7 +447,7 @@ class tPool(object):
                 Config.main_logger.debug('%s done, %s' % (url, kwargs))
 
                 return resp
-            except RequestException as e:
+            except (RequestException, Error) as e:
                 error = e
                 Config.main_logger.debug(
                     'Retry %s for the %s time, Exception: %s . kwargs= %s' %
