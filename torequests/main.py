@@ -267,6 +267,7 @@ class NewFuture(Future):
                 except Exception as e:
                     Config.main_logger.error(
                         'exception calling callback for %s' % e)
+            self._condition.notify_all()
 
     @property
     def _callbacks(self):
