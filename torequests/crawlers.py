@@ -395,7 +395,7 @@ class StressTest(CommonRequests):
     Basic Usage::
 
         >>> from torequests.crawlers import StressTest
-        >>> StressTest('http://p.3.cn').x
+        >>> StressTest('http://p.3.cn', retry=2, timeout=2).x
         [2018-03-13 00:33:52]: [154] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 165.0 req/s [100.00 %]
         [2018-03-13 00:33:52]: [155] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 166.0 req/s [100.00 %]
         [2018-03-13 00:33:52]: [156] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 167.0 req/s [100.00 %]

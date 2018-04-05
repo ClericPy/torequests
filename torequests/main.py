@@ -258,14 +258,15 @@ class NewFuture(Future):
         """Record the task_end_time & task_cost_time, set result for self._callback_result."""
         self.task_end_time = time.time()
         self.task_cost_time = self.task_end_time - self.task_start_time
-        for callback in self._done_callbacks:
-            try:
-                result = callback(self)
-                if callback in self._user_callbacks:
-                    self._callback_result = result
-            except Exception as e:
-                Config.main_logger.error(
-                    'exception calling callback for %s' % e)
+        with self._condition:
+            for callback in self._done_callbacks:
+                try:
+                    result = callback(self)
+                    if callback in self._user_callbacks:
+                        self._callback_result = result
+                except Exception as e:
+                    Config.main_logger.error(
+                        'exception calling callback for %s' % e)
 
     @property
     def _callbacks(self):
