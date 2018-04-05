@@ -250,7 +250,7 @@ class NewFuture(Future):
 
     def __getattr__(self, name):
         try:
-            object.__getattribute__(self, name)
+            return object.__getattribute__(self, name)
         except AttributeError:
             return self.x.__getattribute__(name)
 
@@ -282,7 +282,7 @@ class NewFuture(Future):
         """Block the main thead until future finish, return the future.callback_result."""
         if self._state == 'PENDING':
             self.x
-        if self._done_callbacks:
+        if self._user_callbacks:
             return self._callback_result
         else:
             return self.x
