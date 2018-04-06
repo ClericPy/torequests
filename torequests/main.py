@@ -447,7 +447,7 @@ class tPool(object):
             try:
                 resp = self.session.request(method, url, **kwargs)
                 Config.main_logger.debug('%s done, %s' % (url, kwargs))
-
+                resp.url_string = resp.url
                 return resp
             except (RequestException, Error) as e:
                 error = e
