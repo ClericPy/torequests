@@ -427,7 +427,7 @@ class Counts(object):
         return self.current
 
 
-def unique(seq, return_as=None):
+def unique(seq, key=None, return_as=None):
     """Unique the seq and keep the order.
 
     Instead of the slow way:
@@ -447,11 +447,15 @@ def unique(seq, return_as=None):
     """
     seen = set()
     add = seen.add
-    generator = (x for x in seq if x not in seen and not add(x))
+    if key:
+        generator = (x for x in seq if key(x) not in seen and not add(key(x)))
+    else:
+        generator = (x for x in seq if x not in seen and not add(x))
     if return_as:
         if return_as == str:
             return ''.join(map(str, generator))
-        return return_as(generator)
+        else:
+            return return_as(generator)
     else:
         # python2 not support yield from
         return generator
