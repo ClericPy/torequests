@@ -395,12 +395,16 @@ class Counts(object):
     >>> cc.sub()
     1
     """
-    __slots__ = ('start', 'step', 'current')
+    __slots__ = ('start', 'step', 'current', 'total')
 
     def __init__(self, start=0, step=1):
         self.start = start
         self.step = step
         self.current = start
+        self.total = -1
+
+    def clear(self):
+        self.current = self.start
 
     @property
     def x(self):
