@@ -1,5 +1,9 @@
 #! coding:utf-8
 import logging
+from .versions import PY3
+
+if PY3:
+    unicode = str
 
 
 def init_logger(name='',
@@ -68,4 +72,4 @@ utils_logger = init_logger(
     formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
 print_logger = init_logger(
     'torequests.print', formatter_str='[%(asctime)s]: %(message)s')
-print_info = print_logger.info
+print_info = lambda *messages, sep=' ': print_logger.info(sep.join(map(unicode, messages)))
