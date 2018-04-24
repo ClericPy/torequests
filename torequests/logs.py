@@ -71,5 +71,9 @@ utils_logger = init_logger(
     'torequests.utils',
     formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
 print_logger = init_logger(
-    'torequests.print', formatter_str='[%(asctime)s]: %(message)s')
-print_info = lambda *messages, sep=' ': print_logger.info(sep.join(map(unicode, messages)))
+    'torequests.print',
+    formatter_str='[%(asctime)s](%(lineno)sL): %(message)s')
+
+
+def print_info(*messages):
+    return print_logger.info(' '.join(map(unicode, messages)))
