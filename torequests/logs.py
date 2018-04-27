@@ -75,5 +75,7 @@ print_logger = init_logger(
     formatter_str='[%(asctime)s](%(lineno)sL): %(message)s')
 
 
-def print_info(*messages):
-    return print_logger.info(' '.join(map(unicode, messages)))
+def print_info(*messages, **kwargs):
+    """kwargs: sep=' '"""
+    sep = kwargs.pop('sep', ' ')
+    return print_logger.info(sep.join(map(unicode, messages)))

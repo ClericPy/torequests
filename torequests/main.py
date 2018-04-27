@@ -55,7 +55,7 @@ class NewExecutorPoolMixin(Executor):
     def wait_futures_done(self, tasks=None):
         # ignore the order of tasks
         tasks = tasks or self._all_futures
-        fs = {f.x for f in wait(tasks).done}
+        fs = [f.x for f in wait(tasks).done]
         return fs
 
 
