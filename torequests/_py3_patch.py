@@ -22,6 +22,14 @@ def _aiohttp_response_patch(ClientResponse):
         self.request_encoding = None
         return
 
+    def __bool__(self):
+        """Returns True if :attr:`status_code` is less than 400.
+        """
+        return self.ok
+
+    def __repr__(self):
+        return '<Response [%s]>' % self.status
+
     ClientResponse._json = ClientResponse.json
     ClientResponse._text = ClientResponse.text
     ClientResponse.encoding = property(
@@ -32,7 +40,9 @@ def _aiohttp_response_patch(ClientResponse):
         lambda self: self.content.decode(self.encoding))
     ClientResponse.url_string = property(lambda self: str(self._url))
     ClientResponse.status_code = property(lambda self: self.status)
-    ClientResponse.ok = property(lambda self: self.status in range(200, 300))
+    ClientResponse.ok = property(lambda self: self.status < 400)
+    ClientResponse.__bool__ = __bool__
+    ClientResponse.__repr__ = __repr__
     ClientResponse.json = lambda self, encoding=None, loads=json.loads: loads(
         self.content.decode(encoding or self.encoding))
 
