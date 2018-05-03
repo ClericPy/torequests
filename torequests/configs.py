@@ -12,3 +12,4 @@ class Config:
     dummy_logger = dummy_logger
     main_logger = main_logger
     utils_logger = utils_logger
+    wait_futures_before_exiting = True

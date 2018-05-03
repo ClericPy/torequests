@@ -2,5 +2,6 @@
 from .main import *
 
 __all__ = [
-    'Pool', 'Async', 'threads', 'get_results_generator', 'tPool', 'ProcessPool', '_abandon_all_tasks'
+    "Pool", "ProcessPool", "NewFuture", "Async", "threads",
+    "get_results_generator", "run_after_async", "tPool"
 ]

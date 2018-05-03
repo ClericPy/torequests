@@ -1,6 +1,7 @@
 #! coding:utf-8
 # python2 requires: pip install futures
 
+import atexit
 import time
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed, wait)
@@ -19,8 +20,24 @@ from .versions import PY2, PY3
 if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
-__all__ = 'Pool ProcessPool NewFuture Async threads get_results_generator run_after_async tPool _abandon_all_tasks'.split(
-    ' ')
+__all__ = [
+    "Pool", "ProcessPool", "NewFuture", "Async", "threads",
+    "get_results_generator", "run_after_async", "tPool"
+]
+
+
+def _abandon_all_tasks():
+    """Only used for abandon_all_tasks and exit the main thread,
+    to prevent the main thread waiting for unclosed thread while exiting."""
+    _threads_queues.clear()
+
+
+def ensure_waiting_for_threads():
+    if Config.wait_futures_before_exiting:
+        _abandon_all_tasks()
+
+
+atexit.register(ensure_waiting_for_threads)
 
 
 class NewExecutorPoolMixin(Executor):
@@ -362,12 +379,6 @@ def run_after_async(seconds, func, *args, **kwargs):
     """Run the function after seconds asynchronously."""
     time.sleep(seconds)
     return func(*args, **kwargs)
-
-
-def _abandon_all_tasks():
-    """Only used for abandon_all_tasks and exit the main thread,
-    to prevent the main thread waiting for unclosed thread while exiting."""
-    _threads_queues.clear()
 
 
 class tPool(object):
