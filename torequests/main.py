@@ -5,7 +5,7 @@ import time
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed, wait)
 from concurrent.futures._base import Executor, Future, TimeoutError, Error
-from concurrent.futures.thread import _WorkItem
+from concurrent.futures.thread import _WorkItem, _threads_queues
 from functools import wraps
 from weakref import WeakSet
 
@@ -19,7 +19,7 @@ from .versions import PY2, PY3
 if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
-__all__ = 'Pool ProcessPool NewFuture Async threads get_results_generator run_after_async tPool'.split(
+__all__ = 'Pool ProcessPool NewFuture Async threads get_results_generator run_after_async tPool _abandon_all_tasks'.split(
     ' ')
 
 
@@ -362,6 +362,12 @@ def run_after_async(seconds, func, *args, **kwargs):
     """Run the function after seconds asynchronously."""
     time.sleep(seconds)
     return func(*args, **kwargs)
+
+
+def _abandon_all_tasks():
+    """Only used for abandon_all_tasks and exit the main thread,
+    to prevent the main thread waiting for unclosed thread while exiting."""
+    _threads_queues.clear()
 
 
 class tPool(object):
