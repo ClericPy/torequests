@@ -644,6 +644,8 @@ class UA:
     Chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
     IE6 = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'
     IE9 = 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0;'
+    WECHAT_ANDROID = 'Mozilla/5.0 (Linux; Android 5.0; SM-N9100 Build/LRX21V) > AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 > Chrome/37.0.0.0 Mobile Safari/537.36 > MicroMessenger/6.0.2.56_r958800.520 NetType/WIFI'
+    WECHAT_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Mobile/9B176 MicroMessenger/4.3.2'
 
 
 def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
@@ -1126,3 +1128,4 @@ def split_n(string, seps, reg=False):
     if not deep:
         return string
     return [split_n(i, seps[1:]) for i in _re_split_mixin(string, seps[0], reg=reg)]
+
