@@ -7,6 +7,7 @@ from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed, wait)
 from concurrent.futures._base import Executor, Future, TimeoutError, Error
 from concurrent.futures.thread import _WorkItem, _threads_queues
+from threading import Timer
 from functools import wraps
 from weakref import WeakSet
 
@@ -374,11 +375,12 @@ def get_results_generator(future_list, timeout=None, sort_by_completed=False):
         return
 
 
-@threads(100)
 def run_after_async(seconds, func, *args, **kwargs):
     """Run the function after seconds asynchronously."""
-    time.sleep(seconds)
-    return func(*args, **kwargs)
+    t = Timer(seconds, func, args, kwargs)
+    t.daemon = True
+    t.start()
+    return t
 
 
 class tPool(object):
