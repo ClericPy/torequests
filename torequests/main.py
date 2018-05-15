@@ -498,6 +498,7 @@ class tPool(object):
 
     def get(self, url, params=None, callback=None, retry=0, **kwargs):
         """Similar to `requests.get`, but return as NewFuture."""
+        kwargs.setdefault('allow_redirects', True)
         return self.request(
             'get',
             url=url,
@@ -506,12 +507,13 @@ class tPool(object):
             retry=retry,
             **kwargs)
 
-    def post(self, url, data=None, callback=None, retry=0, **kwargs):
+    def post(self, url, data=None, json=None, callback=None, retry=0, **kwargs):
         """Similar to `requests.post`, but return as NewFuture."""
         return self.request(
             'post',
             url=url,
             data=data,
+            json=json,
             callback=callback,
             retry=retry,
             **kwargs)
@@ -528,11 +530,13 @@ class tPool(object):
 
     def head(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.head`, but return as NewFuture."""
+        kwargs.setdefault('allow_redirects', False)
         return self.request(
             'head', url=url, callback=callback, retry=retry, **kwargs)
 
     def options(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.options`, but return as NewFuture."""
+        kwargs.setdefault('allow_redirects', True)
         return self.request(
             'options', url=url, callback=callback, retry=retry, **kwargs)
 
