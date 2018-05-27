@@ -1,6 +1,6 @@
 #! coding:utf-8
 # compatible for win32 / python 2 & 3
-from __future__ import print_function, division
+from __future__ import division, print_function
 
 import argparse
 import hashlib
@@ -13,14 +13,15 @@ import shlex
 import signal
 import sys
 import time
-from functools import wraps
 import timeit
+from functools import wraps
+from threading import Thread
 
 from .configs import Config
 from .exceptions import ImportErrorModule
+from .logs import print_info
 from .main import run_after_async, threads
 from .versions import PY2, PY3
-from .logs import print_info
 
 if PY2:
     import repr as reprlib
@@ -36,8 +37,8 @@ if PY3:
     from html import escape, unescape
     unicode = str
 
-
-__all__ = 'parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n'.split(' ')
+__all__ = 'parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n'.split(
+    ' ')
 
 
 def simple_cmd():
@@ -940,12 +941,20 @@ class Saver(object):
     """
     _instances = {}
 
-    def __new__(cls, path=None, save_mode='json', auto_backup=False, **saver_args):
+    def __new__(cls,
+                path=None,
+                save_mode='json',
+                auto_backup=False,
+                **saver_args):
         # BORG
         path = path or cls._get_home_path(save_mode=save_mode)
         return cls._instances.setdefault(path, super(Saver, cls).__new__(cls))
 
-    def __init__(self, path=None, save_mode='json', auto_backup=False, **saver_args):
+    def __init__(self,
+                 path=None,
+                 save_mode='json',
+                 auto_backup=False,
+                 **saver_args):
         super(Saver, self).__init__()
         super(Saver, self).__setattr__(
             '_path', path or self._get_home_path(save_mode=save_mode))
@@ -982,8 +991,10 @@ class Saver(object):
         return obj
 
     def _load(self):
-        if not os.path.isfile(self._path):
-            self._save_obj({})
+        if not (os.path.isfile(self._path) and os.path.getsize(self._path)):
+            cache = {}
+            self._save_obj(cache)
+            return cache
         mode = 'rb' if self._save_mode == 'pickle' else 'r'
         with open(self._path, mode) as f:
             if self._save_mode == 'json':
@@ -1127,5 +1138,18 @@ def split_n(string, seps, reg=False):
     deep = len(seps)
     if not deep:
         return string
-    return [split_n(i, seps[1:]) for i in _re_split_mixin(string, seps[0], reg=reg)]
+    return [
+        split_n(i, seps[1:]) for i in _re_split_mixin(string, seps[0], reg=reg)
+    ]
 
+
+def bg(func):
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        t = Thread(target=func, args=args, kwargs=kwargs)
+        t.daemon = True
+        t.start()
+        return t
+
+    return wrapper

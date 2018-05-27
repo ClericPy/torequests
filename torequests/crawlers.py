@@ -155,8 +155,10 @@ class CleanRequest(CommonRequests):
             # test is_cookie_necessary
             cookie = self.request['headers'].get('Cookie', None)
             if cookie:
+                new_request = deepcopy(self.request)
+                new_request['headers']['Cookie'] = ''
                 r2 = self.req.request(
-                    retry=self.retry, timeout=self.timeout, **self.request)
+                    retry=self.retry, timeout=self.timeout, **new_request)
                 no_cookie_resp = self.ensure_response(r2)
         resp = r1.x
         assert resp, ValueError(
