@@ -22,4 +22,4 @@ def index():
     return '<a href="http://localhost:5000/sleep/3">%s</a>' % 'a' * 100
 
 
-app.run(server='gevent', port=5000)
+app.run(server='gevent', port=5000, reloader=True, debug=True)

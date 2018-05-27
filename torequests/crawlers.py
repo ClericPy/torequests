@@ -293,10 +293,9 @@ class CleanRequest(CommonRequests):
 
         if not self.new_request.get('headers'):
             self.new_request.pop('headers', None)
-
         if self.ignore['Cookie'] and 'Cookie' not in self.ignore['headers']:
             headers = self.new_request['headers']
-            headers = {key.lower(): headers[key] for key in headers}
+            headers = {key.title(): headers[key] for key in headers}
             if 'Cookie' in headers:
                 cookies = SimpleCookie(headers['Cookie'])
                 new_cookie = '; '.join([
