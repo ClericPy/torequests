@@ -7,16 +7,14 @@ from functools import partial, wraps
 from urllib.parse import urlparse
 
 import aiohttp
-from aiohttp.client_reqrep import ClientResponse
 from aiohttp.connector import Connection
 
-from ._py3_patch import (_aiohttp_response_patch,
+from ._py3_patch import (NewResponse,
                          _aiohttp_unclosed_connection_patch)
 from .configs import Config
 from .exceptions import FailureException
 from .main import NewFuture, Pool, ProcessPool, Error
 
-_aiohttp_response_patch(ClientResponse)
 _aiohttp_unclosed_connection_patch(Connection)
 
 try:
@@ -114,10 +112,7 @@ class NewTask(asyncio.Task):
         return self.result()
 
     def __getattr__(self, name):
-        try:
-            object.__getattribute__(self, name)
-        except AttributeError:
-            return self.x.__getattribute__(name)
+        return getattr(self.x, name)
 
     def __setattr__(self, name, value):
         if name in self._RESPONSE_ARGS:
@@ -563,9 +558,8 @@ class Requests(Loop):
                 try:
                     async with self.session.request(method, url,
                                                     **kwargs) as resp:
-                        resp.content = await resp.read()
-                        resp.request_encoding = encoding
-                        return resp
+                        await resp.read()
+                        return NewResponse(resp, encoding=encoding)
                 except (aiohttp.ClientError, Error) as err:
                     error = err
                     continue

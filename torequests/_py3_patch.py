@@ -12,39 +12,56 @@ def _new_future_await(self):
     return self.x
 
 
-def _aiohttp_response_patch(ClientResponse):
-    # convert ClientResponse attribute into requests-like, for py3.5+
-    def _encoding_setter(self, value):
-        self.request_encoding = value
-        return
+class NewResponse(object):
+    """Wrap aiohttp's ClientResponse like requests's Response."""
 
-    def _encoding_deleter(self):
-        self.request_encoding = None
-        return
+    def __init__(self, r, encoding=None):
+        self.r = r
+        self.encoding = encoding or self.r.get_encoding()
 
-    def __bool__(self):
-        """Returns True if :attr:`status_code` is less than 400.
-        """
-        return self.ok
+    def __getattr__(self, name):
+        return getattr(self.r, name)
+
+    @property
+    def url(self):
+        return str(self.r.url)
+
+    @property
+    def status_code(self):
+        return self.r.status
 
     def __repr__(self):
-        return '<Response [%s]>' % self.status
+        return '<NewResponse [%s]>' % (self.status_code)
 
-    ClientResponse._json = ClientResponse.json
-    ClientResponse._text = ClientResponse.text
-    ClientResponse.encoding = property(
-        lambda self: self.request_encoding or self.get_encoding())
-    ClientResponse.encoding = ClientResponse.encoding.setter(_encoding_setter)
-    ClientResponse.encoding = ClientResponse.encoding.deleter(_encoding_deleter)
-    ClientResponse.text = property(
-        lambda self: self.content.decode(self.encoding))
-    ClientResponse.url_string = property(lambda self: str(self._url))
-    ClientResponse.status_code = property(lambda self: self.status)
-    ClientResponse.ok = property(lambda self: self.status < 400)
-    ClientResponse.__bool__ = __bool__
-    ClientResponse.__repr__ = __repr__
-    ClientResponse.json = lambda self, encoding=None, loads=json.loads: loads(
-        self.content.decode(encoding or self.encoding))
+    def __bool__(self):
+        return self.ok
+
+    def __iter__(self):
+        """Allows you to use a response as an iterator."""
+        return self.iter_content(128)
+
+    @property
+    def ok(self):
+        return self.status_code in range(200, 400)
+
+    @property
+    def is_redirect(self):
+        """True if this Response is a well-formed HTTP redirect that could have
+        been processed automatically (by :meth:`Session.resolve_redirects`).
+        """
+        return ('location' in self.headers and
+                self.status_code in range(300, 400))
+
+    @property
+    def content(self):
+        return self._body
+
+    @property
+    def text(self):
+        return self.content.decode(self.encoding)
+
+    def json(self, encoding=None, loads=json.loads):
+        return self.content.decode(encoding or self.encoding)
 
 
 def _aiohttp_unclosed_connection_patch(Connection):
