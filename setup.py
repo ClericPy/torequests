@@ -24,18 +24,17 @@ if py_version.major == 3 and py_version.minor >= 5:
     # if  'Windows' not in .system():
     #     install_requires.append('uvloop')
 
-with codecs.open('README.md', encoding='u8') as f:
+with codecs.open('README.rst', encoding='u8') as f:
     README = f.read()
 
 setup(
     name='torequests',
-    version='4.7.6',
+    version='4.7.8',
     keywords=(
         'requests async multi-thread aiohttp asyncio uvloop asynchronous'),
     description=
     'Async wrapper for requests / aiohttp, and some python crawler toolkits. Let synchronization code enjoy the performance of asynchronous programming. Read more: https://github.com/ClericPy/torequests.',
     long_description=README,
-    long_description_content_type='text/markdown',
     license='MIT License',
     install_requires=install_requires,
     py_modules=['torequests'],

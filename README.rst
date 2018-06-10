@@ -5,7 +5,7 @@ Welcome to torequests's documentation!
 `Github <https://github.com/ClericPy/torequests>`_
 
 
-`Document <https://torequests.readthedocs.io/en/latest/>`
+`Document <https://torequests.readthedocs.io/en/latest/>`_
 
 
 Quickstart
@@ -144,7 +144,4 @@ Examples:
         | **unique**: unique one sequence.
 
 
-`Read More <https://torequests.readthedocs.io/en/latest/>`
-=================
-
-
+`Read More <https://torequests.readthedocs.io/en/latest/>`_
