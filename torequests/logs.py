@@ -72,7 +72,7 @@ utils_logger = init_logger(
     formatter_str='%(levelname)-7s %(asctime)s %(name)s: %(message)s')
 print_logger = init_logger(
     'torequests.print',
-    formatter_str='[%(asctime)s](%(lineno)sL): %(message)s')
+    formatter_str='[%(asctime)s](L%(lineno)s): %(message)s')
 
 
 def print_info(*messages, **kwargs):

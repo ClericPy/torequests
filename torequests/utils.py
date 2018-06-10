@@ -284,18 +284,18 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
 
 
 def split_seconds(seconds):
-    """Split seconds into [day, hour, minute, second, millisecond]
+    """Split seconds into [day, hour, minute, second, ms]
 
         `divisor: 1, 24, 60, 60, 1000`
 
-        `units: day, hour, minute, second, millisecond`
+        `units: day, hour, minute, second, ms`
 
     >>> split_seconds(6666666)
     [77, 3, 51, 6, 0]
     """
-    millisecond = seconds * 1000
+    ms = seconds * 1000
     divisors = (1, 24, 60, 60, 1000)
-    quotient, result = millisecond, []
+    quotient, result = ms, []
     for divisor in divisors[::-1]:
         quotient, remainder = divmod(quotient, divisor)
         result.append(quotient) if divisor == 1 else result.append(remainder)
@@ -309,28 +309,28 @@ def timeago(seconds=0, accuracy=4, format=0, lang='en'):
         :param accuracy: 4 by default (units[:accuracy]), determine the length of elements.
         :param format: index of [led, literal, dict].
         :param lang: en or cn.
-        :param units: day, hour, minute, second, millisecond.
+        :param units: day, hour, minute, second, ms.
 
     >>> timeago(93245732.0032424, 5)
     '1079 days, 05:35:32,003'
     >>> timeago(93245732.0032424, 4, 1)
     '1079 days 5 hours 35 minutes 32 seconds'
     >>> timeago(-389, 4, 1)
-    '-6 minutes 29 seconds 0 millisecond'
+    '-6 minutes 29 seconds 0 ms'
     """
     assert format in [0, 1,
                       2], ValueError('format arg should be one of 0, 1, 2')
     negative = '-' if seconds < 0 else ''
     seconds = abs(seconds)
     if lang == 'en':
-        units = ('day', 'hour', 'minute', 'second', 'millisecond')
+        units = ('day', 'hour', 'minute', 'second', 'ms')
     elif lang == 'cn':
         units = (u'天', u'小时', u'分钟', u'秒', u'毫秒')
     times = split_seconds(seconds)
     if format == 2:
         return dict(zip(units, times))
 
-    day, hour, minute, second, millisecond = times
+    day, hour, minute, second, ms = times
 
     if format == 0:
         day_str = "%d %s%s, " % (
@@ -338,7 +338,7 @@ def timeago(seconds=0, accuracy=4, format=0, lang='en'):
             if day > 1 and lang == 'en' else '') if day else ''
         mid_str = ':'.join(("%02d" % i for i in (hour, minute, second)))
         if accuracy > 4:
-            mid_str += ',%03d' % millisecond
+            mid_str += ',%03d' % ms
         return negative + day_str + mid_str
     elif format == 1:
         # find longest valid fields index (non-zero in front)

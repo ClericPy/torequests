@@ -267,10 +267,7 @@ class NewFuture(Future):
                 self._user_callbacks.add(fn)
 
     def __getattr__(self, name):
-        try:
-            return object.__getattribute__(self, name)
-        except AttributeError:
-            return self.x.__getattribute__(name)
+        return getattr(self.x, name)
 
     def _invoke_callbacks(self):
         """Record the task_end_time & task_cost_time, set result for self._callback_result."""
