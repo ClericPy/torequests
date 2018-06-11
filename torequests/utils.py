@@ -145,7 +145,7 @@ def curlparse(string, encoding='utf-8'):
         key, value = header.split(":", 1)
         headers[key.title()] = value.strip()
     if args.user_agent:
-        headers['user-agent'] = args.user_agent
+        headers['User-Agent'] = args.user_agent
     if headers:
         requests_args['headers'] = headers
     if args.user:
@@ -158,12 +158,10 @@ def curlparse(string, encoding='utf-8'):
         if data.startswith('$'):
             data = data[1:]
         args.method = 'post'
-        if headers.get('content-type') == 'tpplication/x-www-form-urlencoded':
+        if 'application/x-www-form-urlencoded' in headers.get('Content-Type', ''):
             data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
                          for i in data.split('&')])
             requests_args['data'] = data
-        # elif headers.get('content-type', '') in ('application/json',):
-        # requests_args['json'] = json.loads(data)
         else:
             data = data.encode(encoding)
             requests_args['data'] = data
