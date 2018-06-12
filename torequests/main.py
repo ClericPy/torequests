@@ -23,7 +23,8 @@ if PY3:
 
 __all__ = [
     "Pool", "ProcessPool", "NewFuture", "Async", "threads",
-    "get_results_generator", "run_after_async", "tPool"
+    "get_results_generator", "run_after_async", "tPool", "get", "post",
+    "options", "delete", "put", "head", "patch", "request"
 ]
 
 
@@ -541,3 +542,38 @@ class tPool(object):
         """Similar to `requests.patch`, but return as NewFuture."""
         return self.request(
             'patch', url=url, callback=callback, retry=retry, **kwargs)
+
+
+def get(url, params=None, callback=None, retry=0, **kwargs):
+    return tPool().get(
+        url, params=params, callback=callback, retry=retry, **kwargs)
+
+
+def post(url, data=None, json=None, callback=None, retry=0, **kwargs):
+    return tPool().post(
+        url, data=data, json=json, callback=callback, retry=retry, **kwargs)
+
+
+def delete(url, callback=None, retry=0, **kwargs):
+    return tPool().delete(url, callback=callback, retry=retry, **kwargs)
+
+
+def put(url, data=None, callback=None, retry=0, **kwargs):
+    return tPool().put(url, data=data, callback=callback, retry=retry, **kwargs)
+
+
+def head(url, callback=None, retry=0, **kwargs):
+    return tPool().head(url, callback=callback, retry=retry, **kwargs)
+
+
+def options(url, callback=None, retry=0, **kwargs):
+    return tPool().options(url, callback=callback, retry=retry, **kwargs)
+
+
+def patch(url, callback=None, retry=0, **kwargs):
+    return tPool().patch(url, callback=callback, retry=retry, **kwargs)
+
+
+def request(method, url, callback=None, retry=0, **kwargs):
+    return tPool().request(
+        method, url, callback=callback, retry=retry, **kwargs)

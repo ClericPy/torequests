@@ -158,7 +158,8 @@ def curlparse(string, encoding='utf-8'):
         if data.startswith('$'):
             data = data[1:]
         args.method = 'post'
-        if 'application/x-www-form-urlencoded' in headers.get('Content-Type', ''):
+        if 'application/x-www-form-urlencoded' in headers.get(
+                'Content-Type', ''):
             data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
                          for i in data.split('&')])
             requests_args['data'] = data
@@ -275,8 +276,9 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
     #: str(timestr) for datetime.datetime object
     timestr = str(timestr or ttime())
     try:
-        return time.mktime(time.strptime(timestr,
-                                         fmt)) - (time.timezone + tzone * 3600)
+        return int(
+            time.mktime(time.strptime(timestr, fmt)) -
+            (time.timezone + tzone * 3600))
     except:
         return fail
 

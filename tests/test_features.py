@@ -2,11 +2,11 @@
 import sys
 import time
 
-from torequests import *
+import torequests
 
 
 def test_main_tPool():
-    trequests = tPool()
+    trequests = torequests.tPool()
     test_url = 'http://p.3.cn'
     ss = [
         trequests.get(test_url, retry=2, callback=lambda x: len(x.content))
@@ -16,6 +16,8 @@ def test_main_tPool():
     trequests.x
     ss = [i.cx for i in ss]
     assert all(ss), 'fail: test_main_tPool'
+    r = torequests.get(test_url, retry=1, timeout=3)
+    assert 'Welcome to nginx!' in r.text
 
 
 # ================================= PYTHON 3 only ========================
