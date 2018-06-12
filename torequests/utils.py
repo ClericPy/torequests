@@ -865,7 +865,7 @@ def ensure_dict_key_title(dict_obj):
 class ClipboardWatcher(object):
     """Watch clipboard with `pyperclip`, run callback while changed."""
 
-    def __init__(self, interval=0.5, callback=None):
+    def __init__(self, interval=0.2, callback=None):
         self.pyperclip = try_import('pyperclip')
         self.interval = interval
         self.callback = callback or self.default_callback
@@ -887,7 +887,8 @@ class ClipboardWatcher(object):
     def default_callback(self, text):
         """Default clean the \\n in text."""
         text = text.replace('\r\n', '\n')
-        print(text, flush=1)
+        sys.stdout.write(text)
+        sys.stdout.flush()
         return text
 
     def watch(self, limit=None, timeout=None):
@@ -1144,6 +1145,32 @@ def split_n(string, seps, reg=False):
 
 
 def bg(func):
+    """Run a function in background, will not block main thread's exit.(thread.daemon=True)
+    ::
+
+        from torequests.utils import bg, print_info
+        import time
+
+        def test1(n):
+            time.sleep(n)
+            print_info(n, 'done')
+
+        @bg
+        def test2(n):
+            time.sleep(n)
+            print_info(n, 'done')
+
+        test3 = bg(test1)
+
+        test2(1)
+        test3(1)
+        print_info('not be blocked')
+        time.sleep(2)
+
+        # [2018-06-12 23:46:19](L81): not be blocked
+        # [2018-06-12 23:46:20](L81): 1 done
+        # [2018-06-12 23:46:20](L81): 1 done
+    """
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -1153,3 +1180,54 @@ def bg(func):
         return t
 
     return wrapper
+
+
+def countdown(seconds=None,
+              block=True,
+              interval=1,
+              daemon=True,
+              tick_callback=None,
+              finish_callback=None):
+    """Run a countdown function to wait something, similar to threading.Timer,
+     but will show the detail tick by tick_callback.
+     ::
+
+        from torequests.utils import countdown
+
+        countdown(3)
+        # 3 2 1 
+        # countdown finished [3 seconds]: 2018-06-13 00:12:55 => 2018-06-13 00:12:58.
+        countdown('2018-06-13 00:13:29')
+        # 10 9 8 7 6 5 4 3 2 1 
+        # countdown finished [10 seconds]: 2018-06-13 00:13:18 => 2018-06-13 00:13:28.
+"""
+
+    def default_tick_callback(s, seconds, *args):
+        sys.stdout.write('%s ' % s)
+        sys.stdout.flush()
+
+    def default_finish_callback(seconds, start_time):
+        print('\ncountdown finished [%s seconds]: %s => %s.' %
+              (seconds, ttime(start_time), ttime()))
+
+    def cd(seconds, interval):
+        for s in range(seconds, 0, -interval):
+            tick_callback(s, seconds, interval)
+            time.sleep(interval)
+        if finish_callback:
+            finish_callback(seconds, start_time)
+
+    assert seconds or end_time
+    start_time = time.time()
+    tick_callback = tick_callback or default_tick_callback
+    finish_callback = finish_callback or default_finish_callback
+
+    if unicode(seconds).isdigit():
+        seconds = int(seconds)
+    elif isinstance(seconds, (unicode, str)):
+        seconds = int(ptime(seconds) - time.time())
+    t = Thread(target=cd, args=(seconds, interval))
+    t.daemon = daemon
+    t.start()
+    if block:
+        t.join()
