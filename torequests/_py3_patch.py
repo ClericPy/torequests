@@ -61,7 +61,7 @@ class NewResponse(object):
         return self.content.decode(self.encoding)
 
     def json(self, encoding=None, loads=json.loads):
-        return self.content.decode(encoding or self.encoding)
+        return loads(self.content.decode(encoding or self.encoding))
 
 
 def _aiohttp_unclosed_connection_patch(Connection):
