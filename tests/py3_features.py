@@ -12,33 +12,42 @@ from torequests.dummy import *
 def test_dummy_Requests():
     """use default event loop"""
     trequests = Requests()
-    test_url = 'http://p.3.cn'
+    test_url = "http://p.3.cn/prices/mgets?skuIds=J_1274600"
     ss = [
-        trequests.get(test_url, retry=0, callback=lambda x: len(x.content))
+        trequests.get(test_url, retry=0, callback=lambda r: len(r.content))
         for i in range(3)
     ]
     trequests.x
-    ss = [i.cx for i in ss]
-    assert all(ss), 'fail: test_dummy_Requests'
+    results = [i.cx for i in ss]
+    assert all(results), "fail: test_dummy_Requests"
+    r = ss[0]
+    assert (
+        isinstance(r.content, bytes)
+        and isinstance(r.text, str)
+        and isinstance(r.json(), list)
+        and not r.is_redirect
+        and r.ok
+        and r.status_code == 200
+        and isinstance(r.url, str)
+    )
 
 
 def test_dummy_Requests_time_interval_sem_run_forever(capsys):
     """  test_dummy_Requests_time_interval_sem_run_forever """
     with capsys.disabled():
-        trequests = Requests(frequencies={'p.3.cn': (2, 1)})
+        trequests = Requests(frequencies={"p.3.cn": (2, 1)})
         trequests.async_run_forever()
-        print('\n')
+        print("\n")
         ss = [
             trequests.get(
-                'http://p.3.cn',
-                callback=
-                lambda x: (len(x.content), print(trequests.frequencies)))
+                "http://p.3.cn",
+                callback=lambda x: (len(x.content), print(trequests.frequencies)),
+            )
             for i in range(4)
         ]
         trequests.x
         ss = [i.cx for i in ss]
-        assert all(
-            ss), 'fail: test_dummy_Requests_time_interval_sem_run_forever'
+        assert all(ss), "fail: test_dummy_Requests_time_interval_sem_run_forever"
 
 
 def test_new_future_await():
@@ -64,16 +73,18 @@ def test_coros(capsys):
 
         @coros(2, 1)
         async def testcoro():
-            print('testcoro 2 ops/s')
+            print("testcoro 2 ops/s")
             await asyncio.sleep(0)
-            return 'testcoro result'
+            return "testcoro result"
 
-        print('\n')
+        print("\n")
         task = [testcoro() for i in range(4)]
         tasks = [i.x for i in task]
         assert tasks == [
-            'testcoro result', 'testcoro result', 'testcoro result',
-            'testcoro result'
+            "testcoro result",
+            "testcoro result",
+            "testcoro result",
+            "testcoro result",
         ]
 
 
@@ -81,15 +92,17 @@ def test_asyncme(capsys):
     with capsys.disabled():
 
         async def test():
-            print('testAsyncme 2 ops/s')
+            print("testAsyncme 2 ops/s")
             await asyncio.sleep(0)
-            return 'testAsyncme result'
+            return "testAsyncme result"
 
-        print('\n')
+        print("\n")
         testAsyncme = Asyncme(test, 2, 1)
         task = [testAsyncme() for i in range(4)]
         tasks = [i.x for i in task]
         assert tasks == [
-            'testAsyncme result', 'testAsyncme result', 'testAsyncme result',
-            'testAsyncme result'
+            "testAsyncme result",
+            "testAsyncme result",
+            "testAsyncme result",
+            "testAsyncme result",
         ]
