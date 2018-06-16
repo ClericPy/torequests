@@ -3,8 +3,12 @@
 
 import atexit
 import time
-from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
-                                as_completed, wait)
+from concurrent.futures import (
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    as_completed,
+    wait,
+)
 from concurrent.futures._base import Executor, Future, TimeoutError, Error
 from concurrent.futures.thread import _WorkItem, _threads_queues
 from threading import Timer
@@ -22,9 +26,22 @@ if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
 __all__ = [
-    "Pool", "ProcessPool", "NewFuture", "Async", "threads",
-    "get_results_generator", "run_after_async", "tPool", "get", "post",
-    "options", "delete", "put", "head", "patch", "request"
+    "Pool",
+    "ProcessPool",
+    "NewFuture",
+    "Async",
+    "threads",
+    "get_results_generator",
+    "run_after_async",
+    "tPool",
+    "get",
+    "post",
+    "options",
+    "delete",
+    "put",
+    "head",
+    "patch",
+    "request",
 ]
 
 
@@ -62,9 +79,10 @@ class NewExecutorPoolMixin(Executor):
         """Get the cpu count."""
         try:
             from multiprocessing import cpu_count
+
             return cpu_count()
         except Exception as e:
-            Config.main_logger.error('_get_cpu_count failed for %s' % e)
+            Config.main_logger.error("_get_cpu_count failed for %s" % e)
 
     @property
     def x(self):
@@ -120,13 +138,8 @@ class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
             # ['use_submit: 2', 'use_submit: 1', 'use_submit: 0', 'use_decorator: 2', 'use_decorator: 1', 'use_decorator: 0']
     """
 
-    def __init__(self,
-                 n=None,
-                 timeout=None,
-                 default_callback=None,
-                 *args,
-                 **kwargs):
-        n = n or kwargs.pop('max_workers', None)
+    def __init__(self, n=None, timeout=None, default_callback=None, *args, **kwargs):
+        n = n or kwargs.pop("max_workers", None)
         if PY2 and n is None:
             # python2 n!=None
             n = (self._get_cpu_count() or 1) * 5
@@ -148,8 +161,8 @@ class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
 
         with self._shutdown_lock:
             if self._shutdown:
-                raise RuntimeError('cannot schedule new futures after shutdown')
-            callback = kwargs.pop('callback', self.default_callback)
+                raise RuntimeError("cannot schedule new futures after shutdown")
+            callback = kwargs.pop("callback", self.default_callback)
             future = NewFuture(self._timeout, args, kwargs, callback=callback)
             w = _WorkItem(future, func, args, kwargs)
             self._work_queue.put(w)
@@ -192,13 +205,8 @@ class ProcessPool(ProcessPoolExecutor, NewExecutorPoolMixin):
         # use_submit: 2
     """
 
-    def __init__(self,
-                 n=None,
-                 timeout=None,
-                 default_callback=None,
-                 *args,
-                 **kwargs):
-        n = n or kwargs.pop('max_workers', None)
+    def __init__(self, n=None, timeout=None, default_callback=None, *args, **kwargs):
+        n = n or kwargs.pop("max_workers", None)
         if PY2 and n is None:
             # python2 n!=None
             n = self._get_cpu_count() or 1
@@ -213,11 +221,12 @@ class ProcessPool(ProcessPoolExecutor, NewExecutorPoolMixin):
         with self._shutdown_lock:
             if PY3 and self._broken:
                 raise BrokenProcessPool(
-                    'A child process terminated '
-                    'abruptly, the process pool is not usable anymore')
+                    "A child process terminated "
+                    "abruptly, the process pool is not usable anymore"
+                )
             if self._shutdown_thread:
-                raise RuntimeError('cannot schedule new futures after shutdown')
-            callback = kwargs.pop('callback', self.default_callback)
+                raise RuntimeError("cannot schedule new futures after shutdown")
+            callback = kwargs.pop("callback", self.default_callback)
             future = NewFuture(self._timeout, args, kwargs, callback=callback)
             w = _WorkItem(future, func, args, kwargs)
             self._pending_work_items[self._queue_count] = w
@@ -246,8 +255,10 @@ class NewFuture(Future):
     :attr task_end_time: timestamp when the task end up.
     :attr task_cost_time: seconds of task costs.
     """
+
     if PY3:
         from ._py3_patch import _new_future_await
+
         __await__ = _new_future_await
 
     def __init__(self, timeout=None, args=None, kwargs=None, callback=None):
@@ -281,8 +292,7 @@ class NewFuture(Future):
                     if callback in self._user_callbacks:
                         self._callback_result = result
                 except Exception as e:
-                    Config.main_logger.error(
-                        'exception calling callback for %s' % e)
+                    Config.main_logger.error("exception calling callback for %s" % e)
             self._condition.notify_all()
 
     @property
@@ -298,7 +308,7 @@ class NewFuture(Future):
     @property
     def callback_result(self):
         """Block the main thead until future finish, return the future.callback_result."""
-        if self._state == 'PENDING':
+        if self._state == "PENDING":
             self.x
         if self._user_callbacks:
             return self._callback_result
@@ -416,21 +426,22 @@ class tPool(object):
         # [2018-03-18 21:18:09]: [(612, None), (612, None), (612, None)]
     """
 
-    def __init__(self,
-                 n=None,
-                 interval=0,
-                 timeout=None,
-                 session=None,
-                 catch_exception=True,
-                 default_callback=None):
+    def __init__(
+        self,
+        n=None,
+        interval=0,
+        timeout=None,
+        session=None,
+        catch_exception=True,
+        default_callback=None,
+    ):
         self.pool = Pool(n, timeout)
         self.session = session if session else Session()
         self.n = n or 10
         # adapt the concurrent limit.
-        custom_adapter = HTTPAdapter(
-            pool_connections=self.n, pool_maxsize=self.n)
-        self.session.mount('http://', custom_adapter)
-        self.session.mount('https://', custom_adapter)
+        custom_adapter = HTTPAdapter(pool_connections=self.n, pool_maxsize=self.n)
+        self.session.mount("http://", custom_adapter)
+        self.session.mount("https://", custom_adapter)
         self.interval = interval
         self.catch_exception = catch_exception
         self.default_callback = default_callback
@@ -460,26 +471,29 @@ class tPool(object):
         self.close()
 
     def _request(self, method, url, retry=0, **kwargs):
+        referer_info = kwargs.pop("referer_info", None)
         for _ in range(retry + 1):
             try:
                 resp = self.session.request(method, url, **kwargs)
-                Config.main_logger.debug('%s done, %s' % (url, kwargs))
-                resp.url_string = resp.url
+                Config.main_logger.debug("%s done, %s" % (url, kwargs))
+                resp.referer_info = referer_info
                 return resp
             except (RequestException, Error) as e:
                 error = e
                 Config.main_logger.debug(
-                    'Retry %s for the %s time, Exception: %s . kwargs= %s' %
-                    (url, _ + 1, e, kwargs))
+                    "Retry %s for the %s time, Exception: %s . kwargs= %s"
+                    % (url, _ + 1, e, kwargs)
+                )
                 continue
             finally:
                 if self.interval:
                     time.sleep(self.interval)
-        kwargs['retry'] = retry
+        kwargs["retry"] = retry
         error_info = dict(
-            url=url, kwargs=kwargs, type=type(error), error_msg=str(error))
+            url=url, kwargs=kwargs, type=type(error), error_msg=str(error)
+        )
         error.args = (error_info,)
-        Config.main_logger.debug('Retry %s & failed: %s.' % (retry, error_info))
+        Config.main_logger.debug("Retry %s & failed: %s." % (retry, error_info))
         if self.catch_exception:
             return FailureException(error)
         raise error
@@ -492,66 +506,63 @@ class tPool(object):
             url=url,
             retry=retry,
             callback=callback or self.default_callback,
-            **kwargs)
+            **kwargs
+        )
 
     def get(self, url, params=None, callback=None, retry=0, **kwargs):
         """Similar to `requests.get`, but return as NewFuture."""
-        kwargs.setdefault('allow_redirects', True)
+        kwargs.setdefault("allow_redirects", True)
         return self.request(
-            'get',
-            url=url,
-            params=params,
-            callback=callback,
-            retry=retry,
-            **kwargs)
+            "get", url=url, params=params, callback=callback, retry=retry, **kwargs
+        )
 
     def post(self, url, data=None, json=None, callback=None, retry=0, **kwargs):
         """Similar to `requests.post`, but return as NewFuture."""
         return self.request(
-            'post',
+            "post",
             url=url,
             data=data,
             json=json,
             callback=callback,
             retry=retry,
-            **kwargs)
+            **kwargs
+        )
 
     def delete(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.delete`, but return as NewFuture."""
-        return self.request(
-            'delete', url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("delete", url=url, callback=callback, retry=retry, **kwargs)
 
     def put(self, url, data=None, callback=None, retry=0, **kwargs):
         """Similar to `requests.put`, but return as NewFuture."""
         return self.request(
-            'put', url=url, data=data, callback=callback, retry=retry, **kwargs)
+            "put", url=url, data=data, callback=callback, retry=retry, **kwargs
+        )
 
     def head(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.head`, but return as NewFuture."""
-        kwargs.setdefault('allow_redirects', False)
-        return self.request(
-            'head', url=url, callback=callback, retry=retry, **kwargs)
+        kwargs.setdefault("allow_redirects", False)
+        return self.request("head", url=url, callback=callback, retry=retry, **kwargs)
 
     def options(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.options`, but return as NewFuture."""
-        kwargs.setdefault('allow_redirects', True)
+        kwargs.setdefault("allow_redirects", True)
         return self.request(
-            'options', url=url, callback=callback, retry=retry, **kwargs)
+            "options", url=url, callback=callback, retry=retry, **kwargs
+        )
 
     def patch(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.patch`, but return as NewFuture."""
-        return self.request(
-            'patch', url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("patch", url=url, callback=callback, retry=retry, **kwargs)
 
 
 def get(url, params=None, callback=None, retry=0, **kwargs):
-    return tPool().get(
-        url, params=params, callback=callback, retry=retry, **kwargs)
+    return tPool().get(url, params=params, callback=callback, retry=retry, **kwargs)
 
 
 def post(url, data=None, json=None, callback=None, retry=0, **kwargs):
     return tPool().post(
-        url, data=data, json=json, callback=callback, retry=retry, **kwargs)
+        url, data=data, json=json, callback=callback, retry=retry, **kwargs
+    )
 
 
 def delete(url, callback=None, retry=0, **kwargs):
@@ -575,5 +586,5 @@ def patch(url, callback=None, retry=0, **kwargs):
 
 
 def request(method, url, callback=None, retry=0, **kwargs):
-    return tPool().request(
-        method, url, callback=callback, retry=retry, **kwargs)
+    return tPool().request(method, url, callback=callback, retry=retry, **kwargs)
+

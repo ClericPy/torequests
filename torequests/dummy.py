@@ -9,8 +9,7 @@ from urllib.parse import urlparse
 import aiohttp
 from aiohttp.connector import Connection
 
-from ._py3_patch import (NewResponse,
-                         _aiohttp_unclosed_connection_patch)
+from ._py3_patch import NewResponse, _aiohttp_unclosed_connection_patch
 from .configs import Config
 from .exceptions import FailureException
 from .main import NewFuture, Pool, ProcessPool, Error
@@ -19,12 +18,14 @@ _aiohttp_unclosed_connection_patch(Connection)
 
 try:
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
-    Config.dummy_logger.debug('Not found uvloop, using default_event_loop.')
+    Config.dummy_logger.debug("Not found uvloop, using default_event_loop.")
 
-__all__ = 'NewTask Loop Asyncme coros get_results_generator Frequency Requests'.split(
-    ' ')
+__all__ = "NewTask Loop Asyncme coros get_results_generator Frequency Requests".split(
+    " "
+)
 
 
 class NewTask(asyncio.Task):
@@ -40,10 +41,11 @@ class NewTask(asyncio.Task):
         :attr task_end_time: timestamp when the task end up.
         :attr task_cost_time: seconds of task costs.
     """
-    _PENDING = 'PENDING'
-    _CANCELLED = 'CANCELLED'
-    _FINISHED = 'FINISHED'
-    _RESPONSE_ARGS = ('encoding', 'request_encoding', 'content')
+
+    _PENDING = "PENDING"
+    _CANCELLED = "CANCELLED"
+    _FINISHED = "FINISHED"
+    _RESPONSE_ARGS = ("encoding", "request_encoding", "content")
 
     def __init__(self, coro, *, loop=None, callback=None, extra_args=None):
         assert asyncio.coroutines.iscoroutine(coro), repr(coro)
@@ -121,25 +123,25 @@ class NewTask(asyncio.Task):
             object.__setattr__(self, name, value)
 
 
-class Loop():
+class Loop:
     """Handle the event loop like a thread pool."""
 
     def __init__(self, n=None, interval=0, default_callback=None, loop=None):
         try:
             self.loop = loop or asyncio.get_event_loop()
             if self.loop.is_running():
-                raise NotImplementedError("Cannot use aioutils in "
-                                          "asynchroneous environment")
+                raise NotImplementedError(
+                    "Cannot use aioutils in " "asynchroneous environment"
+                )
         except Exception as e:
-            Config.dummy_logger.debug(
-                "Rebuilding a new loop for exception: %s" % e)
+            Config.dummy_logger.debug("Rebuilding a new loop for exception: %s" % e)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
         self.default_callback = default_callback
         self.async_running = False
         self.n = n
         self.interval = interval
-        self.frequency = Frequency(self.n, self.interval, 'loop_sem')
+        self.frequency = Frequency(self.n, self.interval, "loop_sem")
 
     def _wrap_coro_function_with_sem(self, coro_func):
         """Decorator set the coro_function has sem/interval control."""
@@ -179,7 +181,7 @@ class Loop():
     def run_coroutine_threadsafe(self, coro, loop=None, callback=None):
         """Be used when loop running in a single non-main thread."""
         if not asyncio.iscoroutine(coro):
-            raise TypeError('A await in coroutines. object is required')
+            raise TypeError("A await in coroutines. object is required")
         loop = loop or self.loop
         future = NewFuture(callback=callback)
 
@@ -269,17 +271,13 @@ class Loop():
     @property
     def todo_tasks(self):
         """Return tasks in loop which its state is pending."""
-        tasks = [
-            task for task in self.all_tasks if task._state == NewTask._PENDING
-        ]
+        tasks = [task for task in self.all_tasks if task._state == NewTask._PENDING]
         return tasks
 
     @property
     def done_tasks(self):
         """Return tasks in loop which its state is not pending."""
-        tasks = [
-            task for task in self.all_tasks if task._state != NewTask._PENDING
-        ]
+        tasks = [task for task in self.all_tasks if task._state != NewTask._PENDING]
         return tasks
 
     def run(self, tasks=None, timeout=None):
@@ -288,8 +286,7 @@ class Loop():
             return self.wait_all_tasks_done(timeout)
         else:
             tasks = tasks or self.todo_tasks
-            return self.loop.run_until_complete(
-                asyncio.gather(*tasks, loop=self.loop))
+            return self.loop.run_until_complete(asyncio.gather(*tasks, loop=self.loop))
 
     def run_forever(self):
         """Block, run loop forever."""
@@ -297,7 +294,7 @@ class Loop():
 
     def wait_all_tasks_done(self, timeout=None, delay=0.5, interval=0.1):
         """Block, only be used while loop running in a single non-main thread."""
-        timeout = timeout or float('inf')
+        timeout = timeout or float("inf")
         start_time = time.time()
         time.sleep(delay)
         while 1:
@@ -345,7 +342,7 @@ class Loop():
         try:
             self.loop.stop()
         except Exception as e:
-            Config.dummy_logger.error('can not stop loop for: %s' % e)
+            Config.dummy_logger.error("can not stop loop for: %s" % e)
 
     @property
     def all_tasks(self):
@@ -369,8 +366,8 @@ def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):
 def coros(n=None, interval=0, default_callback=None, loop=None):
     """Decorator for wrap coro_function into the function return NewTask."""
     submitter = Loop(
-        n=n, interval=interval, default_callback=default_callback,
-        loop=loop).submitter
+        n=n, interval=interval, default_callback=default_callback, loop=loop
+    ).submitter
 
     return submitter
 
@@ -392,9 +389,10 @@ class _mock_sem:
 
 class Frequency:
     """Use sem to control concurrent tasks, use interval to sleep after task done."""
-    __slots__ = ('sem', 'interval', '_init_sem_value', 'name')
 
-    def __init__(self, sem=None, interval=0, name=''):
+    __slots__ = ("sem", "interval", "_init_sem_value", "name")
+
+    def __init__(self, sem=None, interval=0, name=""):
         self.sem = self.ensure_sem(sem)
         self.interval = interval
         self.name = name
@@ -412,8 +410,7 @@ class Frequency:
             return sem
         elif isinstance(sem, (int, float)) and sem > 0:
             return asyncio.Semaphore(int(sem))
-        raise ValueError(
-            'sem should be an asyncio.Semaphore object or int/float')
+        raise ValueError("sem should be an asyncio.Semaphore object or int/float")
 
     @classmethod
     def ensure_frequency(cls, obj):
@@ -431,9 +428,12 @@ class Frequency:
         return self.__repr__()
 
     def __repr__(self):
-        return 'Frequency(sem=<%s/%s>, interval=%s%s)' % (
-            self.sem._value, self._init_sem_value, self.interval,
-            ', name=%s' % self.name if self.name else '')
+        return "Frequency(sem=<%s/%s>, interval=%s%s)" % (
+            self.sem._value,
+            self._init_sem_value,
+            self.interval,
+            ", name=%s" % self.name if self.name else "",
+        )
 
 
 class Requests(Loop):
@@ -480,25 +480,28 @@ class Requests(Loop):
         # [2018-03-19 00:57:38]: [(612, None), (612, None), (612, None), (612, None)]
     """
 
-    def __init__(self,
-                 n=100,
-                 interval=0,
-                 session=None,
-                 return_exceptions=True,
-                 default_callback=None,
-                 frequencies=None,
-                 default_host_frequency=None,
-                 **kwargs):
-        loop = kwargs.pop('loop', None)
+    def __init__(
+        self,
+        n=100,
+        interval=0,
+        session=None,
+        return_exceptions=True,
+        default_callback=None,
+        frequencies=None,
+        default_host_frequency=None,
+        **kwargs
+    ):
+        loop = kwargs.pop("loop", None)
         # for old version arg `catch_exception`
-        catch_exception = kwargs.pop('catch_exception', None)
+        catch_exception = kwargs.pop("catch_exception", None)
         super().__init__(loop=loop, default_callback=default_callback)
         # Requests object use its own frequency control.
         self.sem = asyncio.Semaphore(n)
         self.n = n
         self.interval = interval
-        self.catch_exception = catch_exception if catch_exception \
-            is not None else return_exceptions
+        self.catch_exception = (
+            catch_exception if catch_exception is not None else return_exceptions
+        )
         self.default_host_frequency = default_host_frequency
         if self.default_host_frequency:
             assert isinstance(self.default_host_frequency, (list, tuple))
@@ -516,10 +519,9 @@ class Requests(Loop):
         if not frequencies:
             return {}
         if not isinstance(frequencies, dict):
-            raise ValueError('frequencies should be dict')
+            raise ValueError("frequencies should be dict")
         frequencies = {
-            host: Frequency.ensure_frequency(frequencies[host])
-            for host in frequencies
+            host: Frequency.ensure_frequency(frequencies[host]) for host in frequencies
         }
         return frequencies
 
@@ -549,17 +551,19 @@ class Requests(Loop):
         else:
             frequency = self.global_frequency
         sem, interval = frequency.sem, frequency.interval
-        proxies = kwargs.pop('proxies', None)
-        encoding = kwargs.pop('encoding', None)
+        proxies = kwargs.pop("proxies", None)
+        encoding = kwargs.pop("encoding", None)
+        referer_info = kwargs.pop("referer_info", None)
         if proxies:
-            kwargs['proxy'] = '%s://%s' % (scheme, proxies[scheme])
+            kwargs["proxy"] = "%s://%s" % (scheme, proxies[scheme])
         for retries in range(retry + 1):
             with await sem:
                 try:
-                    async with self.session.request(method, url,
-                                                    **kwargs) as resp:
+                    async with self.session.request(method, url, **kwargs) as resp:
                         await resp.read()
-                        return NewResponse(resp, encoding=encoding)
+                        r = NewResponse(resp, encoding=encoding)
+                        r.referer_info = referer_info
+                        return r
                 except (aiohttp.ClientError, Error) as err:
                     error = err
                     continue
@@ -567,59 +571,53 @@ class Requests(Loop):
                     if interval:
                         await asyncio.sleep(interval)
         else:
-            kwargs['retry'] = retry
+            kwargs["retry"] = retry
             error_info = dict(
-                url=url, kwargs=kwargs, type=type(error), error_msg=str(error))
+                url=url, kwargs=kwargs, type=type(error), error_msg=str(error)
+            )
             error.args = (error_info,)
-            Config.dummy_logger.debug('Retry %s & failed: %s.' % (retry,
-                                                                  error_info))
+            Config.dummy_logger.debug("Retry %s & failed: %s." % (retry, error_info))
             if self.catch_exception:
-                return FailureException(error)
+                fail = FailureException(error)
+                fail.referer_info = referer_info
+                return fail
             raise error
 
     def request(self, method, url, callback=None, retry=0, **kwargs):
         """Submit the coro of self._request to self.loop"""
         return self.submit(
             self._request(method, url=url, retry=retry, **kwargs),
-            callback=(callback or self.default_callback))
+            callback=(callback or self.default_callback),
+        )
 
     def get(self, url, params=None, callback=None, retry=0, **kwargs):
         return self.request(
-            'get',
-            url=url,
-            params=params,
-            callback=callback,
-            retry=retry,
-            **kwargs)
+            "get", url=url, params=params, callback=callback, retry=retry, **kwargs
+        )
 
     def post(self, url, data=None, callback=None, retry=0, **kwargs):
         return self.request(
-            'post',
-            url=url,
-            data=data,
-            callback=callback,
-            retry=retry,
-            **kwargs)
+            "post", url=url, data=data, callback=callback, retry=retry, **kwargs
+        )
 
     def delete(self, url, callback=None, retry=0, **kwargs):
-        return self.request(
-            'delete', url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("delete", url=url, callback=callback, retry=retry, **kwargs)
 
     def put(self, url, data=None, callback=None, retry=0, **kwargs):
         return self.request(
-            'put', url=url, data=data, callback=callback, retry=retry, **kwargs)
+            "put", url=url, data=data, callback=callback, retry=retry, **kwargs
+        )
 
     def head(self, url, callback=None, retry=0, **kwargs):
-        return self.request(
-            'head', url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("head", url=url, callback=callback, retry=retry, **kwargs)
 
     def options(self, url, callback=None, retry=0, **kwargs):
         return self.request(
-            'options', url=url, callback=callback, retry=retry, **kwargs)
+            "options", url=url, callback=callback, retry=retry, **kwargs
+        )
 
     def patch(self, url, callback=None, retry=0, **kwargs):
-        return self.request(
-            'patch', url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("patch", url=url, callback=callback, retry=retry, **kwargs)
 
     def close(self):
         """Should be closed[explicit] while using external session or connector,
@@ -630,7 +628,7 @@ class Requests(Loop):
                     self.session._connector.close()
                 self.session._connector = None
         except Exception as e:
-            Config.dummy_logger.error('can not close session for: %s' % e)
+            Config.dummy_logger.error("can not close session for: %s" % e)
 
     def __del__(self):
         self.close()

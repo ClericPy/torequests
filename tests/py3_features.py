@@ -13,14 +13,16 @@ def test_dummy_Requests():
     """use default event loop"""
     trequests = Requests()
     test_url = "http://p.3.cn/prices/mgets?skuIds=J_1274600"
-    ss = [
-        trequests.get(test_url, retry=0, callback=lambda r: len(r.content))
+    tasks = [
+        trequests.get(
+            test_url, retry=0, callback=lambda r: len(r.content), referer_info=i
+        )
         for i in range(3)
     ]
     trequests.x
-    results = [i.cx for i in ss]
-    assert all(results), "fail: test_dummy_Requests"
-    r = ss[0]
+    cb_results = [i.cx for i in tasks]
+    assert all(cb_results), "fail: test_dummy_Requests"
+    r = tasks[0]
     assert (
         isinstance(r.content, bytes)
         and isinstance(r.text, str)
@@ -29,6 +31,7 @@ def test_dummy_Requests():
         and r.ok
         and r.status_code == 200
         and isinstance(r.url, str)
+        and r.referer_info == 0
     )
 
 

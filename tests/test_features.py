@@ -7,22 +7,25 @@ import torequests
 
 def test_main_tPool():
     trequests = torequests.tPool()
-    test_url = 'http://p.3.cn'
-    ss = [
-        trequests.get(test_url, retry=2, callback=lambda x: len(x.content))
+    test_url = "http://p.3.cn"
+    tasks = [
+        trequests.get(
+            test_url, retry=2, callback=lambda x: len(x.content), referer_info=i
+        )
         for i in range(3)
     ]
     # [i.x for i in ss]
     trequests.x
-    ss = [i.cx for i in ss]
-    assert all(ss), 'fail: test_main_tPool'
+    cb_results = [i.cx for i in tasks]
+    assert all(cb_results), "fail: test_main_tPool"
+    assert tasks[0].referer_info == 0
     r = torequests.get(test_url, retry=1, timeout=3)
-    assert 'Welcome to nginx!' in r.text
+    assert "Welcome to nginx!" in r.text
 
 
 # ================================= PYTHON 3 only ========================
 
-PY3 = (sys.version_info[0] == 3)
+PY3 = sys.version_info[0] == 3
 # tests for python3 only
 if PY3:
     from .py3_features import *
