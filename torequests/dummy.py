@@ -553,6 +553,7 @@ class Requests(Loop):
         sem, interval = frequency.sem, frequency.interval
         proxies = kwargs.pop("proxies", None)
         encoding = kwargs.pop("encoding", None)
+        kwargs['verify_ssl'] = kwargs.pop('verify_ssl', None) or kwargs.pop('verify', None)
         referer_info = kwargs.pop("referer_info", None)
         if proxies:
             kwargs["proxy"] = "%s://%s" % (scheme, proxies[scheme])
