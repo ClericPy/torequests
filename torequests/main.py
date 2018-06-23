@@ -9,14 +9,15 @@ from concurrent.futures import (
     as_completed,
     wait,
 )
-from concurrent.futures._base import Executor, Future, TimeoutError, Error
-from concurrent.futures.thread import _WorkItem, _threads_queues
-from threading import Timer
+from concurrent.futures._base import Error, Executor, Future, TimeoutError
+from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
+from threading import Timer
 from weakref import WeakSet
 
 from requests import RequestException, Session
 from requests.adapters import HTTPAdapter
+from urllib3 import disable_warnings
 
 from .configs import Config
 from .exceptions import FailureException
@@ -587,4 +588,3 @@ def patch(url, callback=None, retry=0, **kwargs):
 
 def request(method, url, callback=None, retry=0, **kwargs):
     return tPool().request(method, url, callback=callback, retry=retry, **kwargs)
-
