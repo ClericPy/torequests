@@ -43,6 +43,7 @@ __all__ = [
     "head",
     "patch",
     "request",
+    "disable_warnings",
 ]
 
 
