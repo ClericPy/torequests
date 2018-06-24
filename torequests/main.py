@@ -7,7 +7,6 @@ from concurrent.futures import (
     ProcessPoolExecutor,
     ThreadPoolExecutor,
     as_completed,
-    wait,
 )
 from concurrent.futures._base import Error, Executor, Future, TimeoutError
 from concurrent.futures.thread import _threads_queues, _WorkItem
@@ -94,7 +93,10 @@ class NewExecutorPoolMixin(Executor):
     def wait_futures_done(self, tasks=None):
         # ignore the order of tasks
         tasks = tasks or self._all_futures
-        fs = [f.x for f in wait(tasks).done]
+        fs = []
+        for f in as_completed(tasks):
+            fs.append(f.x)
+        # fs = [f.x for f in wait(tasks).done]
         return fs
 
 
