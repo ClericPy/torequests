@@ -26,19 +26,41 @@ from .versions import PY2, PY3
 if PY2:
     import repr as reprlib
     from urllib import quote, quote_plus, unquote_plus
-    from urlparse import parse_qs, parse_qsl, urlparse, unquote, urljoin, urlsplit, urlunparse
+    from urlparse import (
+        parse_qs,
+        parse_qsl,
+        urlparse,
+        unquote,
+        urljoin,
+        urlsplit,
+        urlunparse,
+    )
     from cgi import escape
     import HTMLParser
+
     unescape = HTMLParser.HTMLParser().unescape
 
 if PY3:
     import reprlib
-    from urllib.parse import parse_qs, parse_qsl, urlparse, quote, quote_plus, unquote, unquote_plus, urljoin, urlsplit, urlunparse
+    from urllib.parse import (
+        parse_qs,
+        parse_qsl,
+        urlparse,
+        quote,
+        quote_plus,
+        unquote,
+        unquote_plus,
+        urljoin,
+        urlsplit,
+        urlunparse,
+    )
     from html import escape, unescape
+
     unicode = str
 
-__all__ = 'parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n'.split(
-    ' ')
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n".split(
+    " "
+)
 
 
 def simple_cmd():
@@ -46,47 +68,51 @@ def simple_cmd():
     ``Deprecated``: Not better than ``fire`` -> pip install fire
     """
     parser = argparse.ArgumentParser(
-        prog='Simple command-line function toolkit.',
+        prog="Simple command-line function toolkit.",
         description="""Input function name and args and kwargs.
-        python xxx.py main -a 1 2 3 -k a=1,b=2,c=3""")
-    parser.add_argument('-f', '--func_name', default='main')
-    parser.add_argument('-a', '--args', dest='args', nargs='*')
-    parser.add_argument('-k', '--kwargs', dest='kwargs')
+        python xxx.py main -a 1 2 3 -k a=1,b=2,c=3""",
+    )
+    parser.add_argument("-f", "--func_name", default="main")
+    parser.add_argument("-a", "--args", dest="args", nargs="*")
+    parser.add_argument("-k", "--kwargs", dest="kwargs")
     parser.add_argument(
-        '-i',
-        '-s',
-        '--info',
-        '--show',
-        '--status',
-        dest='show',
-        action='store_true',
-        help='show the args, kwargs and function\'s source code.')
+        "-i",
+        "-s",
+        "--info",
+        "--show",
+        "--status",
+        dest="show",
+        action="store_true",
+        help="show the args, kwargs and function's source code.",
+    )
     params = parser.parse_args()
     func_name = params.func_name
     func = globals().get(func_name)
     if not (callable(func)):
-        Config.utils_logger.warn('invalid func_name: %s' % func_name)
+        Config.utils_logger.warn("invalid func_name: %s" % func_name)
         return
     args = params.args or []
     kwargs = params.kwargs or {}
     if kwargs:
-        items = [re.split('[:=]', i) for i in re.split('[,;]+', kwargs)]
+        items = [re.split("[:=]", i) for i in re.split("[,;]+", kwargs)]
         kwargs = dict(items)
     if params.show:
         from inspect import getsource
-        Config.utils_logger.info('args: %s; kwargs: %s' % (args, kwargs))
+
+        Config.utils_logger.info("args: %s; kwargs: %s" % (args, kwargs))
         Config.utils_logger.info(getsource(func))
         return
     func(*args, **kwargs)
 
 
-def print_mem(unit='MB'):
+def print_mem(unit="MB"):
     """Show the proc-mem-cost with psutil, use this only for lazinesssss.
 
     :param unit: B, KB, MB, GB.
     """
     try:
         import psutil
+
         B = float(psutil.Process(os.getpid()).memory_info().vms)
         KB = B / 1024
         MB = KB / 1024
@@ -95,7 +121,7 @@ def print_mem(unit='MB'):
         print_info("memory usage: %.2f(%s)" % (result, unit))
         return result
     except ImportError:
-        print_info('pip install psutil first.')
+        print_info("pip install psutil first.")
 
 
 class _Curl:
@@ -103,22 +129,22 @@ class _Curl:
 
     **Use curlparse function directly.**
     """
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('curl')
-    parser.add_argument('url')
-    parser.add_argument('-X', '--method', default='get')
-    parser.add_argument('-A', '--user-agent')
-    parser.add_argument('-u', '--user')  # <user[:password]>
-    parser.add_argument('-x', '--proxy')  # proxy.com:port
-    parser.add_argument('-d', '--data')
-    parser.add_argument('--data-binary')
-    parser.add_argument('--connect-timeout', type=float)
-    parser.add_argument(
-        '-H', '--header', action='append', default=[])  # key: value
-    parser.add_argument('--compressed', action='store_true')
+    parser.add_argument("curl")
+    parser.add_argument("url")
+    parser.add_argument("-X", "--method", default="get")
+    parser.add_argument("-A", "--user-agent")
+    parser.add_argument("-u", "--user")  # <user[:password]>
+    parser.add_argument("-x", "--proxy")  # proxy.com:port
+    parser.add_argument("-d", "--data")
+    parser.add_argument("--data-binary")
+    parser.add_argument("--connect-timeout", type=float)
+    parser.add_argument("-H", "--header", action="append", default=[])  # key: value
+    parser.add_argument("--compressed", action="store_true")
 
 
-def curlparse(string, encoding='utf-8'):
+def curlparse(string, encoding="utf-8"):
     """Translate curl-string into dict of request.
         :param string: standard curl-string, like `r'''curl ...'''`.
         :param encoding: encoding for post-data encoding.
@@ -134,39 +160,41 @@ def curlparse(string, encoding='utf-8'):
       >>> requests.request(**request_args)
       <Response [200]>
     """
-    assert '\n' not in string, 'curl-string should not contain \\n, try r"...".'
-    if string.startswith('http'):
-        return {'url': string, 'method': 'get'}
+    assert "\n" not in string, 'curl-string should not contain \\n, try r"...".'
+    if string.startswith("http"):
+        return {"url": string, "method": "get"}
     args, unknown = _Curl.parser.parse_known_args(shlex.split(string.strip()))
     requests_args = {}
     headers = {}
-    requests_args['url'] = args.url
+    requests_args["url"] = args.url
     for header in args.header:
         key, value = header.split(":", 1)
         headers[key.title()] = value.strip()
     if args.user_agent:
-        headers['User-Agent'] = args.user_agent
+        headers["User-Agent"] = args.user_agent
     if headers:
-        requests_args['headers'] = headers
+        requests_args["headers"] = headers
     if args.user:
-        requests_args['auth'] = tuple(
-            u for u in args.user.split(':', 1) + [''])[:2]
+        requests_args["auth"] = tuple(u for u in args.user.split(":", 1) + [""])[:2]
     # if args.proxy:
     # pass
     data = args.data or args.data_binary
     if data:
-        if data.startswith('$'):
+        if data.startswith("$"):
             data = data[1:]
-        args.method = 'post'
-        if 'application/x-www-form-urlencoded' in headers.get(
-                'Content-Type', ''):
-            data = dict([(i.split('=')[0], unquote_plus(i.split('=')[1]))
-                         for i in data.split('&')])
-            requests_args['data'] = data
+        args.method = "post"
+        if "application/x-www-form-urlencoded" in headers.get("Content-Type", ""):
+            data = dict(
+                [
+                    (i.split("=")[0], unquote_plus(i.split("=")[1]))
+                    for i in data.split("&")
+                ]
+            )
+            requests_args["data"] = data
         else:
             data = data.encode(encoding)
-            requests_args['data'] = data
-    requests_args['method'] = args.method.lower()
+            requests_args["data"] = data
+    requests_args["method"] = args.method.lower()
     return requests_args
 
 
@@ -235,7 +263,7 @@ def slice_by_size(seq, size):
             yield it
 
 
-def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
+def ttime(timestamp=None, tzone=None, fail="", fmt="%Y-%m-%d %H:%M:%S"):
     """Translate timestamp into human-readable: %Y-%m-%d %H:%M:%S.
 
     :param timestamp: the timestamp float, or `time.time()` by default.
@@ -251,16 +279,17 @@ def ttime(timestamp=None, tzone=None, fail='', fmt='%Y-%m-%d %H:%M:%S'):
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
     timestamp = timestamp if timestamp is not None else time.time()
-    timestamp = int(str(timestamp).split('.')[0][:10])
+    timestamp = int(str(timestamp).split(".")[0][:10])
     try:
         timestamp = time.time() if timestamp is None else timestamp
         return time.strftime(
-            fmt, time.localtime(timestamp + time.timezone + tzone * 3600))
+            fmt, time.localtime(timestamp + time.timezone + tzone * 3600)
+        )
     except:
         return fail
 
 
-def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
+def ptime(timestr=None, tzone=None, fail=0, fmt="%Y-%m-%d %H:%M:%S"):
     """Translate %Y-%m-%d %H:%M:%S into timestamp.
 
     :param timestr: string like 2018-03-15 01:27:56, or time.time() if not set.
@@ -277,8 +306,8 @@ def ptime(timestr=None, tzone=None, fail=0, fmt='%Y-%m-%d %H:%M:%S'):
     timestr = str(timestr or ttime())
     try:
         return int(
-            time.mktime(time.strptime(timestr, fmt)) -
-            (time.timezone + tzone * 3600))
+            time.mktime(time.strptime(timestr, fmt)) - (time.timezone + tzone * 3600)
+        )
     except:
         return fail
 
@@ -302,7 +331,7 @@ def split_seconds(seconds):
     return result[::-1]
 
 
-def timeago(seconds=0, accuracy=4, format=0, lang='en'):
+def timeago(seconds=0, accuracy=4, format=0, lang="en"):
     """Translate seconds into human-readable.
 
         :param seconds: seconds (float/int).
@@ -318,14 +347,13 @@ def timeago(seconds=0, accuracy=4, format=0, lang='en'):
     >>> timeago(-389, 4, 1)
     '-6 minutes 29 seconds 0 ms'
     """
-    assert format in [0, 1,
-                      2], ValueError('format arg should be one of 0, 1, 2')
-    negative = '-' if seconds < 0 else ''
+    assert format in [0, 1, 2], ValueError("format arg should be one of 0, 1, 2")
+    negative = "-" if seconds < 0 else ""
     seconds = abs(seconds)
-    if lang == 'en':
-        units = ('day', 'hour', 'minute', 'second', 'ms')
-    elif lang == 'cn':
-        units = (u'天', u'小时', u'分钟', u'秒', u'毫秒')
+    if lang == "en":
+        units = ("day", "hour", "minute", "second", "ms")
+    elif lang == "cn":
+        units = (u"天", u"小时", u"分钟", u"秒", u"毫秒")
     times = split_seconds(seconds)
     if format == 2:
         return dict(zip(units, times))
@@ -333,12 +361,14 @@ def timeago(seconds=0, accuracy=4, format=0, lang='en'):
     day, hour, minute, second, ms = times
 
     if format == 0:
-        day_str = "%d %s%s, " % (
-            day, units[0], 's'
-            if day > 1 and lang == 'en' else '') if day else ''
-        mid_str = ':'.join(("%02d" % i for i in (hour, minute, second)))
+        day_str = (
+            "%d %s%s, " % (day, units[0], "s" if day > 1 and lang == "en" else "")
+            if day
+            else ""
+        )
+        mid_str = ":".join(("%02d" % i for i in (hour, minute, second)))
         if accuracy > 4:
-            mid_str += ',%03d' % ms
+            mid_str += ",%03d" % ms
         return negative + day_str + mid_str
     elif format == 1:
         # find longest valid fields index (non-zero in front)
@@ -348,10 +378,10 @@ def timeago(seconds=0, accuracy=4, format=0, lang='en'):
                 valid_index = x
                 break
         result_str = [
-            "%d %s%s" % (num, unit, 's' if num > 1 and lang == 'en' else '')
+            "%d %s%s" % (num, unit, "s" if num > 1 and lang == "en" else "")
             for num, unit in zip(times, units)
         ][valid_index:][:accuracy]
-        result_str = ' '.join(result_str)
+        result_str = " ".join(result_str)
         return negative + result_str
 
 
@@ -359,7 +389,7 @@ def timeago(seconds=0, accuracy=4, format=0, lang='en'):
 timepass = timeago
 
 
-def md5(string, n=32, encoding='utf-8', skip_encode=False):
+def md5(string, n=32, encoding="utf-8", skip_encode=False):
     """str(obj) -> md5_string
 
     :param string: string to operate.
@@ -375,9 +405,9 @@ def md5(string, n=32, encoding='utf-8', skip_encode=False):
     if n == 32:
         return hashlib.md5(todo).hexdigest()
     elif isinstance(n, (int, float)):
-        return hashlib.md5(todo).hexdigest()[(32 - n) // 2:(n - 32) // 2]
+        return hashlib.md5(todo).hexdigest()[(32 - n) // 2 : (n - 32) // 2]
     elif isinstance(n, (tuple, list)):
-        return hashlib.md5(todo).hexdigest()[n[0]:n[1]]
+        return hashlib.md5(todo).hexdigest()[n[0] : n[1]]
 
 
 class Counts(object):
@@ -396,7 +426,8 @@ class Counts(object):
     >>> cc.sub()
     1
     """
-    __slots__ = ('start', 'step', 'current', 'total')
+
+    __slots__ = ("start", "step", "current", "total")
 
     def __init__(self, start=0, step=1):
         self.start = start
@@ -458,7 +489,7 @@ def unique(seq, key=None, return_as=None):
         generator = (x for x in seq if x not in seen and not add(x))
     if return_as:
         if return_as == str:
-            return ''.join(map(str, generator))
+            return "".join(map(str, generator))
         else:
             return return_as(generator)
     else:
@@ -535,12 +566,12 @@ class Regex(object):
         :param instances: instance list will search/match the patterns.
         :param reg_kwargs: kwargs for re.compile.
         """
-        assert obj, 'bool(obj) should be True.'
-        patterns = patterns if isinstance(patterns,
-                                          (list, tuple, set)) else [patterns]
+        assert obj, "bool(obj) should be True."
+        patterns = patterns if isinstance(patterns, (list, tuple, set)) else [patterns]
         instances = instances or []
-        instances = instances if isinstance(
-            instances, (list, tuple, set)) else [instances]
+        instances = (
+            instances if isinstance(instances, (list, tuple, set)) else [instances]
+        )
         for pattern in patterns:
             pattern_compiled = re.compile(pattern, **reg_kwargs)
             self.container.append((pattern_compiled, obj, instances))
@@ -550,12 +581,12 @@ class Regex(object):
             else:
                 # no need to check all instances.
                 for instance in instances:
-                    assert self.search(instance) == [
+                    assert self.search(instance) == [obj] or self.match(instance) == [
                         obj
-                    ] or self.match(instance) == [
-                        obj
-                    ], 'instance %s should fit at least one pattern %s' % (
-                        instance, pattern)
+                    ], (
+                        "instance %s should fit at least one pattern %s"
+                        % (instance, pattern)
+                    )
 
     def register_function(self, patterns, instances=None, **reg_kwargs):
         """Decorator for register."""
@@ -579,8 +610,10 @@ class Regex(object):
         default = default if default else []
         result = [item[1] for item in self.container if item[0].search(string)]
         if self.ensure_mapping:
-            assert len(result) < 2, '%s matches more than one pattern: %s' % (
-                string, result)
+            assert len(result) < 2, "%s matches more than one pattern: %s" % (
+                string,
+                result,
+            )
         return result if result else default
 
     def match(self, string, default=None):
@@ -590,8 +623,10 @@ class Regex(object):
         default = default if default else []
         result = [item[1] for item in self.container if item[0].match(string)]
         if self.ensure_mapping:
-            assert len(result) < 2, '%s matches more than one pattern: %s' % (
-                string, result)
+            assert len(result) < 2, "%s matches more than one pattern: %s" % (
+                string,
+                result,
+            )
         return result if result else default
 
     def fuzzy(self, key, limit=5):
@@ -601,15 +636,16 @@ class Regex(object):
             return
         instances = sum(instances, [])
         from fuzzywuzzy import process
+
         maybe = process.extract(key, instances, limit=limit)
         return maybe
 
     def _check_instances(self):
         for item in self.container:
             for instance in item[2]:
-                assert self.search(instance) or self.match(instance), \
-                    'instance %s not fit pattern %s' % (
-                        instance, item[0].pattern)
+                assert self.search(instance) or self.match(
+                    instance
+                ), "instance %s not fit pattern %s" % (instance, item[0].pattern)
 
     def show_all(self, as_string=True):
         """, python2 will not show flags"""
@@ -617,12 +653,14 @@ class Regex(object):
         for item in self.container:
             pattern = str(item[0])[10:] if PY3 else item[0].pattern
             instances = item[2] or []
-            value = '%s "%s"' % (item[1].__name__,
-                                 (item[1].__doc__ or '')) if callable(
-                                     item[1]) else str(item[1])
-            value = '%s %s' % (type(item[1]), value)
-            result.append(' => '.join((pattern, ','.join(instances), value)))
-        return '\n'.join(result) if as_string else result
+            value = (
+                '%s "%s"' % (item[1].__name__, (item[1].__doc__ or ""))
+                if callable(item[1])
+                else str(item[1])
+            )
+            value = "%s %s" % (type(item[1]), value)
+            result.append(" => ".join((pattern, ",".join(instances), value)))
+        return "\n".join(result) if as_string else result
 
 
 def kill_after(seconds, timeout=2):
@@ -637,16 +675,19 @@ class UA:
     """Some common User-Agents for crawler.
 
     Android, iPhone, iPad, Firefox, Chrome, IE6, IE9"""
+
     __slots__ = ()
-    Android = 'Mozilla/5.0 (Linux; Android 5.1.1; Nexus 6 Build/LYZ28E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Mobile Safari/537.36'
-    iPhone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1'
-    iPad = 'Mozilla/5.0 (iPad; CPU OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1'
-    Firefox = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
-    Chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
-    IE6 = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'
-    IE9 = 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0;'
-    WECHAT_ANDROID = 'Mozilla/5.0 (Linux; Android 5.0; SM-N9100 Build/LRX21V) > AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 > Chrome/37.0.0.0 Mobile Safari/537.36 > MicroMessenger/6.0.2.56_r958800.520 NetType/WIFI'
-    WECHAT_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Mobile/9B176 MicroMessenger/4.3.2'
+    Android = "Mozilla/5.0 (Linux; Android 5.1.1; Nexus 6 Build/LYZ28E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Mobile Safari/537.36"
+    iPhone = "Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1"
+    iPad = "Mozilla/5.0 (iPad; CPU OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1"
+    Firefox = (
+        "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0"
+    )
+    Chrome = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36"
+    IE6 = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+    IE9 = "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0;"
+    WECHAT_ANDROID = "Mozilla/5.0 (Linux; Android 5.0; SM-N9100 Build/LRX21V) > AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 > Chrome/37.0.0.0 Mobile Safari/537.36 > MicroMessenger/6.0.2.56_r958800.520 NetType/WIFI"
+    WECHAT_IOS = "Mozilla/5.0 (iPhone; CPU iPhone OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Mobile/9B176 MicroMessenger/4.3.2"
 
 
 def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
@@ -659,12 +700,14 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
         if warn:
             if warn is True:
                 Config.utils_logger.warn(
-                    'Module `%s` not found. Install it to remove this warning' %
-                    module_name)
+                    "Module `%s` not found. Install it to remove this warning"
+                    % module_name
+                )
             else:
                 warn(module_name, names, default)
-        module = ImportErrorModule(
-            module_name) if default is ImportErrorModule else default
+        module = (
+            ImportErrorModule(module_name) if default is ImportErrorModule else default
+        )
     if not names:
         return module
     if not isinstance(names, (tuple, set, list)):
@@ -675,9 +718,10 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
             result.append(module.__getattribute__(name))
         else:
             result.append(
-                ImportErrorModule('%s.%s' % (
-                    module_name,
-                    name)) if default is ImportErrorModule else default)
+                ImportErrorModule("%s.%s" % (module_name, name))
+                if default is ImportErrorModule
+                else default
+            )
     return result[0] if len(result) == 1 else result
 
 
@@ -700,13 +744,13 @@ def ensure_request(request):
         result = request
     elif isinstance(request, (unicode, str)):
         request = request.strip()
-        if request.startswith('http'):
-            result = {'method': 'get', 'url': request}
-        elif request.startswith('curl '):
+        if request.startswith("http"):
+            result = {"method": "get", "url": request}
+        elif request.startswith("curl "):
             result = curlparse(request)
     else:
-        raise ValueError('request should be dict or str.')
-    result['method'] = result.setdefault('method', 'get').lower()
+        raise ValueError("request should be dict or str.")
+    result["method"] = result.setdefault("method", "get").lower()
     return result
 
 
@@ -749,35 +793,45 @@ class Timer(object):
 
     """
 
-    def __init__(self,
-                 name=None,
-                 log_func=None,
-                 default_timer=None,
-                 rounding=None,
-                 readable=None,
-                 log_after_del=True,
-                 stack_level=1):
+    def __init__(
+        self,
+        name=None,
+        log_func=None,
+        default_timer=None,
+        rounding=None,
+        readable=None,
+        log_after_del=True,
+        stack_level=1,
+    ):
         readable = readable or timepass
         self._log_after_del = False
         self.start_at = time.time()
-        uid = md5('%s%s' % (self.start_at, id(self)))
+        uid = md5("%s%s" % (self.start_at, id(self)))
         if not name:
             f_name = sys._getframe(stack_level).f_code.co_name
             f_local = sys._getframe(stack_level).f_locals
-            if f_name == '<module>':
+            if f_name == "<module>":
                 f_vars = ": %s (%s)" % (
-                    f_local.get('__name__'),
-                    os.path.split(f_local.get('__file__'))[-1])
+                    f_local.get("__name__"),
+                    os.path.split(f_local.get("__file__"))[-1],
+                )
                 # f_vars = f_vars.replace(' __main__', '')
             else:
-                f_vars = '(%s)' % ', '.join([
-                    '%s=%s' % (i, repr(f_local[i]))
-                    for i in sorted(f_local.keys())
-                ]) if f_local else '()'
+                f_vars = (
+                    "(%s)"
+                    % ", ".join(
+                        [
+                            "%s=%s" % (i, repr(f_local[i]))
+                            for i in sorted(f_local.keys())
+                        ]
+                    )
+                    if f_local
+                    else "()"
+                )
             if self not in f_local.values():
                 # add self to name space for __del__ way.
                 sys._getframe(stack_level).f_locals.update(**{uid: self})
-            name = '%s%s' % (f_name, f_vars)
+            name = "%s%s" % (f_name, f_vars)
         self.name = name
         self.log_func = log_func
         self.timer = default_timer or timeit.default_timer
@@ -799,11 +853,14 @@ class Timer(object):
         if self.log_func:
             self.log_func(self)
         else:
-            print_info('Timer [%(passed)s]: %(name)s, start at %(start)s.' %
-                       (dict(
-                           name=self.name,
-                           start=ttime(self.start_at),
-                           passed=passed_string)))
+            print_info(
+                "Timer [%(passed)s]: %(name)s, start at %(start)s."
+                % (
+                    dict(
+                        name=self.name, start=ttime(self.start_at), passed=passed_string
+                    )
+                )
+            )
         return passed_string
 
     @property
@@ -825,16 +882,14 @@ class Timer(object):
         """Decorator for Timer."""
 
         def wrapper(function):
-
             @wraps(function)
             def inner(*args, **kwargs):
-                args1 = ', '.join(map(repr, args)) if args else ''
-                kwargs1 = ', '.join([
-                    '%s=%s' % (i, repr(kwargs[i]))
-                    for i in sorted(kwargs.keys())
-                ])
-                arg = ', '.join(filter(None, [args1, kwargs1]))
-                name = '%s(%s)' % (function.__name__, arg)
+                args1 = ", ".join(map(repr, args)) if args else ""
+                kwargs1 = ", ".join(
+                    ["%s=%s" % (i, repr(kwargs[i])) for i in sorted(kwargs.keys())]
+                )
+                arg = ", ".join(filter(None, [args1, kwargs1]))
+                name = "%s(%s)" % (function.__name__, arg)
                 _ = Timer(name=name, *timer_args, **timer_kwargs)
                 result = function(*args, **kwargs)
                 return result
@@ -866,7 +921,7 @@ class ClipboardWatcher(object):
     """Watch clipboard with `pyperclip`, run callback while changed."""
 
     def __init__(self, interval=0.2, callback=None):
-        self.pyperclip = try_import('pyperclip')
+        self.pyperclip = try_import("pyperclip")
         self.interval = interval
         self.callback = callback or self.default_callback
         self.temp = self.current
@@ -886,24 +941,14 @@ class ClipboardWatcher(object):
 
     def default_callback(self, text):
         """Default clean the \\n in text."""
-        text = text.replace('\r\n', '\n')
-        text = '%s\n' % text
+        text = text.replace("\r\n", "\n")
+        text = "%s\n" % text
         sys.stdout.write(text)
         sys.stdout.flush()
         return text
 
     def watch(self, limit=None, timeout=None):
         """Block method to watch the clipboard changing."""
-        return self.watch_async(limit, timeout).x
-
-    @property
-    def x(self):
-        """Return self.watch()"""
-        return self.watch()
-
-    @threads(1)
-    def watch_async(self, limit=None, timeout=None):
-        """Non-block method to watch the clipboard changing."""
         start_time = time.time()
         count = 0
         while not timeout or time.time() - start_time < timeout:
@@ -915,6 +960,16 @@ class ClipboardWatcher(object):
                     break
             self.temp = new
             time.sleep(self.interval)
+
+    @property
+    def x(self):
+        """Return self.watch()"""
+        return self.watch()
+
+    @threads(1)
+    def watch_async(self, limit=None, timeout=None):
+        """Non-block method to watch the clipboard changing."""
+        return self.watch(limit=limit, timeout=timeout)
 
 
 class Saver(object):
@@ -941,54 +996,48 @@ class Saver(object):
     >>> ss
     Saver(path="/home/work/_saver.json"){'a': 1, 'c': 3, 'd': 4}
     """
+
     _instances = {}
 
-    def __new__(cls,
-                path=None,
-                save_mode='json',
-                auto_backup=False,
-                **saver_args):
+    def __new__(cls, path=None, save_mode="json", auto_backup=False, **saver_args):
         # BORG
         path = path or cls._get_home_path(save_mode=save_mode)
         return cls._instances.setdefault(path, super(Saver, cls).__new__(cls))
 
-    def __init__(self,
-                 path=None,
-                 save_mode='json',
-                 auto_backup=False,
-                 **saver_args):
+    def __init__(self, path=None, save_mode="json", auto_backup=False, **saver_args):
         super(Saver, self).__init__()
         super(Saver, self).__setattr__(
-            '_path', path or self._get_home_path(save_mode=save_mode))
-        super(Saver, self).__setattr__('_saver_args', saver_args)
-        super(Saver, self).__setattr__('_save_mode', save_mode)
-        super(Saver, self).__setattr__('_conflict_keys', set(dir(self)))
-        super(Saver, self).__setattr__('_cache', self._load())
+            "_path", path or self._get_home_path(save_mode=save_mode)
+        )
+        super(Saver, self).__setattr__("_saver_args", saver_args)
+        super(Saver, self).__setattr__("_save_mode", save_mode)
+        super(Saver, self).__setattr__("_conflict_keys", set(dir(self)))
+        super(Saver, self).__setattr__("_cache", self._load())
         # super(Saver, self).__setattr__('_auto_backup', auto_backup)
         if auto_backup:
-            with open(self._path, 'rb') as f_raw:
-                with open(self._path + '.bk', 'wb') as f_bk:
+            with open(self._path, "rb") as f_raw:
+                with open(self._path + ".bk", "wb") as f_bk:
                     f_bk.write(f_raw.read())
 
     @classmethod
     def _get_home_path(cls, save_mode=None):
-        home = os.path.expanduser('~')
-        if save_mode == 'json':
-            ext = 'json'
-        elif save_mode == 'pickle':
-            ext = 'pkl'
+        home = os.path.expanduser("~")
+        if save_mode == "json":
+            ext = "json"
+        elif save_mode == "pickle":
+            ext = "pkl"
         else:
-            ext = 'db'
-        file_name = '_saver.%s' % ext
+            ext = "db"
+        file_name = "_saver.%s" % ext
         path = os.path.join(home, file_name)
         return path
 
     def _save_obj(self, obj):
-        mode = 'wb' if self._save_mode == 'pickle' else 'w'
+        mode = "wb" if self._save_mode == "pickle" else "w"
         with open(self._path, mode) as f:
-            if self._save_mode == 'json':
+            if self._save_mode == "json":
                 json.dump(obj, f, **self._saver_args)
-            if self._save_mode == 'pickle':
+            if self._save_mode == "pickle":
                 pickle.dump(obj, f, **self._saver_args)
         return obj
 
@@ -997,21 +1046,22 @@ class Saver(object):
             cache = {}
             self._save_obj(cache)
             return cache
-        mode = 'rb' if self._save_mode == 'pickle' else 'r'
+        mode = "rb" if self._save_mode == "pickle" else "r"
         with open(self._path, mode) as f:
-            if self._save_mode == 'json':
+            if self._save_mode == "json":
                 return json.load(f)
-            if self._save_mode == 'pickle':
+            if self._save_mode == "pickle":
                 return pickle.load(f)
 
     def _save(self):
         return self._save_obj(self._cache)
 
     def _set(self, key, value):
-        assert isinstance(
-            key,
-            (unicode, str
-            )) and key not in self._conflict_keys and not key.startswith('__')
+        assert (
+            isinstance(key, (unicode, str))
+            and key not in self._conflict_keys
+            and not key.startswith("__")
+        )
         self._cache[key] = value
         self._save()
 
@@ -1044,7 +1094,7 @@ class Saver(object):
         self._save()
 
     def _shutdown(self):
-        return (os.remove(self._path))
+        return os.remove(self._path)
 
     def _keys(self):
         return self._cache.keys()
@@ -1089,7 +1139,7 @@ class Saver(object):
 
 
 def guess_interval(nums, accuracy=0):
-    '''Given a seq of number, return the median, only calculate interval >= accuracy.
+    """Given a seq of number, return the median, only calculate interval >= accuracy.
 
     ::
 
@@ -1101,7 +1151,7 @@ def guess_interval(nums, accuracy=0):
         # sorted_seq: [2, 10, 12, 19, 19, 29, 30, 32, 38, 40, 41, 54, 62, 69, 75, 79, 82, 88, 97, 99]
         # diffs: [8, 7, 10, 6, 13, 8, 7, 6, 6, 9]
         # median: 8
-    '''
+    """
     if not nums:
         return 0
     nums = sorted([int(i) for i in nums])
@@ -1140,9 +1190,7 @@ def split_n(string, seps, reg=False):
     deep = len(seps)
     if not deep:
         return string
-    return [
-        split_n(i, seps[1:]) for i in _re_split_mixin(string, seps[0], reg=reg)
-    ]
+    return [split_n(i, seps[1:]) for i in _re_split_mixin(string, seps[0], reg=reg)]
 
 
 def bg(func):
@@ -1183,12 +1231,14 @@ def bg(func):
     return wrapper
 
 
-def countdown(seconds=None,
-              block=True,
-              interval=1,
-              daemon=True,
-              tick_callback=None,
-              finish_callback=None):
+def countdown(
+    seconds=None,
+    block=True,
+    interval=1,
+    daemon=True,
+    tick_callback=None,
+    finish_callback=None,
+):
     """Run a countdown function to wait something, similar to threading.Timer,
      but will show the detail tick by tick_callback.
      ::
@@ -1204,12 +1254,14 @@ def countdown(seconds=None,
 """
 
     def default_tick_callback(s, seconds, *args):
-        sys.stdout.write('%s ' % s)
+        sys.stdout.write("%s " % s)
         sys.stdout.flush()
 
     def default_finish_callback(seconds, start_time):
-        print('\ncountdown finished [%s seconds]: %s => %s.' %
-              (seconds, ttime(start_time), ttime()))
+        print(
+            "\ncountdown finished [%s seconds]: %s => %s."
+            % (seconds, ttime(start_time), ttime())
+        )
 
     def cd(seconds, interval):
         for s in range(seconds, 0, -interval):
