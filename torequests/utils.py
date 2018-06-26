@@ -887,6 +887,7 @@ class ClipboardWatcher(object):
     def default_callback(self, text):
         """Default clean the \\n in text."""
         text = text.replace('\r\n', '\n')
+        text = '%s\n' % text
         sys.stdout.write(text)
         sys.stdout.flush()
         return text
