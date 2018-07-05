@@ -377,6 +377,8 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en"):
             if i > 0:
                 valid_index = x
                 break
+        else:
+            valid_index = x
         result_str = [
             "%d %s%s" % (num, unit, "s" if num > 1 and lang == "en" else "")
             for num, unit in zip(times, units)
