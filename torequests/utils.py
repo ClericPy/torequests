@@ -15,7 +15,7 @@ import sys
 import time
 import timeit
 from functools import wraps
-from threading import Thread
+from threading import Thread, Lock
 
 from .configs import Config
 from .exceptions import ImportErrorModule
@@ -1000,6 +1000,7 @@ class Saver(object):
     """
 
     _instances = {}
+    _locks = {}
 
     def __new__(cls, path=None, save_mode="json", auto_backup=False, **saver_args):
         # BORG
@@ -1013,13 +1014,17 @@ class Saver(object):
         )
         super(Saver, self).__setattr__("_saver_args", saver_args)
         super(Saver, self).__setattr__("_save_mode", save_mode)
-        super(Saver, self).__setattr__("_conflict_keys", set(dir(self)))
         super(Saver, self).__setattr__("_cache", self._load())
+        lock = self.__class__._locks.setdefault(path, Lock())
+        super(Saver, self).__setattr__("_lock", lock)
+        super(Saver, self).__setattr__("_conflict_keys", set(dir(self)))
+        print(dir(self))
         # super(Saver, self).__setattr__('_auto_backup', auto_backup)
         if auto_backup:
-            with open(self._path, "rb") as f_raw:
-                with open(self._path + ".bk", "wb") as f_bk:
-                    f_bk.write(f_raw.read())
+            with lock:
+                with open(self._path, "rb") as f_raw:
+                    with open(self._path + ".bk", "wb") as f_bk:
+                        f_bk.write(f_raw.read())
 
     @classmethod
     def _get_home_path(cls, save_mode=None):
@@ -1036,11 +1041,12 @@ class Saver(object):
 
     def _save_obj(self, obj):
         mode = "wb" if self._save_mode == "pickle" else "w"
-        with open(self._path, mode) as f:
-            if self._save_mode == "json":
-                json.dump(obj, f, **self._saver_args)
-            if self._save_mode == "pickle":
-                pickle.dump(obj, f, **self._saver_args)
+        with self._lock:
+            with open(self._path, mode) as f:
+                if self._save_mode == "json":
+                    json.dump(obj, f, **self._saver_args)
+                if self._save_mode == "pickle":
+                    pickle.dump(obj, f, **self._saver_args)
         return obj
 
     def _load(self):
@@ -1049,11 +1055,12 @@ class Saver(object):
             self._save_obj(cache)
             return cache
         mode = "rb" if self._save_mode == "pickle" else "r"
-        with open(self._path, mode) as f:
-            if self._save_mode == "json":
-                return json.load(f)
-            if self._save_mode == "pickle":
-                return pickle.load(f)
+        with self._lock:
+            with open(self._path, mode) as f:
+                if self._save_mode == "json":
+                    return json.load(f)
+                if self._save_mode == "pickle":
+                    return pickle.load(f)
 
     def _save(self):
         return self._save_obj(self._cache)
@@ -1074,7 +1081,8 @@ class Saver(object):
         self._set(key, value)
 
     def __getattr__(self, key):
-        if key in self._conflict_keys:
+        print(key)
+        if key in (self._conflict_keys, '_conflict_keys', '_lock'):
             return object.__getattribute__(self, key)
         return self._get(key)
 

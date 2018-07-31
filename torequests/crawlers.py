@@ -461,7 +461,7 @@ class StressTest(CommonRequests):
         """Speed property, the unit can be `req / s`. 
 
         Returns: the num of request is fetched in one second."""
-        return self.counter.now // self.passed
+        return round(self.counter.now / self.passed, 2)
 
     @property
     def succ_rate(self):
