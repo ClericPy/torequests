@@ -215,3 +215,32 @@ def test_ensure_request():
             'b', 'c', 'd', 'e', 'f', '1', '2', '3', '4', '5', '6', 'a', 'b',
             'c', 'd', 'e', 'f', '1', '2', '3', '4', '5', '6'
         ])
+
+
+    def test_saver():
+        ss = Saver("test.json", auto_backup=1)
+        try:
+            ss.a = 1
+            assert ss.a == ss["a"] == ss._get("a")
+            assert ss._get('not_exist') is None
+            assert ss.not_exist is None
+            ss._update({"b": 2})
+            ss._update(**{"c": 3})
+            ss._set("d", 4)
+            assert ss.b == 2
+            assert ss.c == 3
+            assert ss._cache == {u"a": 1, u"c": 3, u"b": 2, u"d": 4}
+            assert len(ss) == 4
+            assert ss
+            del ss.a
+            del ss['b']
+            assert ss._pop('c', 0) == 3
+            assert ss._pop('c', 0) == 0
+            assert 'a' not in ss
+            assert 'b' not in ss
+            assert 'c' not in ss
+            assert ss._popitem() == ('d', 4)
+            ss._clear()
+            assert not ss
+        finally:
+            ss._shutdown()

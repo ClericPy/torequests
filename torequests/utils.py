@@ -978,7 +978,7 @@ class Saver(object):
     """
     Simple object persistent toolkit with pickle/json,
     if only you don't care the performance and security.
-    **Do not set the key starts with "_"**
+    **Do not set the key startswith "_"**
 
     :param path: if not set, will be ~/_saver.db. print(self._path) to show it.
         Set pickle's protocol < 3 for compatibility between python2/3,
@@ -1009,22 +1009,12 @@ class Saver(object):
 
     def __init__(self, path=None, save_mode="json", auto_backup=False, **saver_args):
         super(Saver, self).__init__()
-        super(Saver, self).__setattr__(
-            "_path", path or self._get_home_path(save_mode=save_mode)
-        )
-        super(Saver, self).__setattr__("_saver_args", saver_args)
-        super(Saver, self).__setattr__("_save_mode", save_mode)
-        super(Saver, self).__setattr__("_cache", self._load())
-        lock = self.__class__._locks.setdefault(path, Lock())
-        super(Saver, self).__setattr__("_lock", lock)
-        super(Saver, self).__setattr__("_conflict_keys", set(dir(self)))
-        print(dir(self))
-        # super(Saver, self).__setattr__('_auto_backup', auto_backup)
-        if auto_backup:
-            with lock:
-                with open(self._path, "rb") as f_raw:
-                    with open(self._path + ".bk", "wb") as f_bk:
-                        f_bk.write(f_raw.read())
+        self._auto_backup = auto_backup
+        self._lock = self.__class__._locks.setdefault(path, Lock())
+        self._path = path or self._get_home_path(save_mode=save_mode)
+        self._saver_args = saver_args
+        self._save_mode = save_mode
+        self._cache = self._load()
 
     @classmethod
     def _get_home_path(cls, save_mode=None):
@@ -1039,6 +1029,11 @@ class Saver(object):
         path = os.path.join(home, file_name)
         return path
 
+    def _save_back_up(self):
+        with open(self._path, "rb") as f_raw:
+            with open(self._path + ".bk", "wb") as f_bk:
+                f_bk.write(f_raw.read())
+
     def _save_obj(self, obj):
         mode = "wb" if self._save_mode == "pickle" else "w"
         with self._lock:
@@ -1047,6 +1042,8 @@ class Saver(object):
                     json.dump(obj, f, **self._saver_args)
                 if self._save_mode == "pickle":
                     pickle.dump(obj, f, **self._saver_args)
+            if self._auto_backup:
+                self._save_back_up()
         return obj
 
     def _load(self):
@@ -1066,11 +1063,7 @@ class Saver(object):
         return self._save_obj(self._cache)
 
     def _set(self, key, value):
-        assert (
-            isinstance(key, (unicode, str))
-            and key not in self._conflict_keys
-            and not key.startswith("__")
-        )
+        assert isinstance(key, (unicode, str)) and not key.startswith("_")
         self._cache[key] = value
         self._save()
 
@@ -1078,11 +1071,13 @@ class Saver(object):
         return self._cache.get(key, default)
 
     def __setattr__(self, key, value):
-        self._set(key, value)
+        if key.startswith("_") or hasattr(self.__class__, key):
+            object.__setattr__(self, key, value)
+        else:
+            self._set(key, value)
 
     def __getattr__(self, key):
-        print(key)
-        if key in (self._conflict_keys, '_conflict_keys', '_lock'):
+        if key.startswith("_") or hasattr(self.__class__, key):
             return object.__getattribute__(self, key)
         return self._get(key)
 
@@ -1104,6 +1099,8 @@ class Saver(object):
         self._save()
 
     def _shutdown(self):
+        if self._auto_backup:
+            os.remove(self._path + ".bk")
         return os.remove(self._path)
 
     def _keys(self):
