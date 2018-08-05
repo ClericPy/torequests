@@ -126,15 +126,20 @@ class NewTask(asyncio.Task):
 class Loop:
     """Handle the event loop like a thread pool."""
 
-    def __init__(self, n=None, interval=0, default_callback=None, loop=None):
+    def __init__(self,
+                 n=None,
+                 interval=0,
+                 default_callback=None,
+                 reuse_running_loop=False,
+                 loop=None):
         try:
             self.loop = loop or asyncio.get_event_loop()
-            if self.loop.is_running():
-                raise NotImplementedError(
-                    "Cannot use aioutils in " "asynchroneous environment"
-                )
+            if not reuse_running_loop and self.loop.is_running():
+                raise NotImplementedError("Cannot use aioutils in "
+                                          "asynchroneous environment")
         except Exception as e:
-            Config.dummy_logger.debug("Rebuilding a new loop for exception: %s" % e)
+            Config.dummy_logger.debug(
+                "Rebuilding a new loop for exception: %s" % e)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
         self.default_callback = default_callback
@@ -282,7 +287,7 @@ class Loop:
 
     def run(self, tasks=None, timeout=None):
         """Block, run loop until all tasks completed."""
-        if self.async_running:
+        if self.async_running or self.loop.is_running():
             return self.wait_all_tasks_done(timeout)
         else:
             tasks = tasks or self.todo_tasks
@@ -489,12 +494,16 @@ class Requests(Loop):
         default_callback=None,
         frequencies=None,
         default_host_frequency=None,
+        reuse_running_loop=False,
         **kwargs
     ):
         loop = kwargs.pop("loop", None)
         # for old version arg `catch_exception`
         catch_exception = kwargs.pop("catch_exception", None)
-        super().__init__(loop=loop, default_callback=default_callback)
+        super().__init__(
+            loop=loop,
+            default_callback=default_callback,
+            reuse_running_loop=reuse_running_loop)
         # Requests object use its own frequency control.
         self.sem = asyncio.Semaphore(n)
         self.n = n
