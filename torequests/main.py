@@ -312,7 +312,7 @@ class NewFuture(Future):
     @property
     def callback_result(self):
         """Block the main thead until future finish, return the future.callback_result."""
-        if self._state == "PENDING":
+        if self._state in {"PENDING", "RUNNING"}:
             self.x
         if self._user_callbacks:
             return self._callback_result
