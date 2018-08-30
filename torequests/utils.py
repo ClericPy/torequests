@@ -905,6 +905,12 @@ class Timer(object):
             # not be called by self.x yet.
             self.x
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.x
+
 
 def ensure_dict_key_title(dict_obj):
     """Set the dict key as key.title(); keys should be str.
