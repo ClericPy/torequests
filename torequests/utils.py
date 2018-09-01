@@ -271,6 +271,7 @@ def ttime(timestamp=None, tzone=None, fail="", fmt="%Y-%m-%d %H:%M:%S"):
                 (can be set with Config.TIMEZONE).
     :param fail: while raising an exception, return it.
     :param fmt: %Y-%m-%d %H:%M:%S, %z not work.
+    :rtype: str
 
     >>> ttime()
     2018-03-15 01:24:35
@@ -278,14 +279,20 @@ def ttime(timestamp=None, tzone=None, fail="", fmt="%Y-%m-%d %H:%M:%S"):
     2017-02-09 00:53:38
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
-    timestamp = timestamp if timestamp is not None else time.time()
-    timestamp = int(str(timestamp).split(".")[0][:10])
+    fix_tz = tzone * 3600
+    if timestamp is None:
+        timestamp = time.time()
+    else:
+        timestamp = float(timestamp)
+        if timestamp >= 1e13:
+            # Compatible 13
+            timestamp = timestamp / 1000
     try:
         timestamp = time.time() if timestamp is None else timestamp
-        return time.strftime(
-            fmt, time.localtime(timestamp + time.timezone + tzone * 3600)
-        )
+        return time.strftime(fmt, time.gmtime(timestamp + fix_tz))
     except:
+        import traceback
+        traceback.print_exc()
         return fail
 
 
@@ -297,17 +304,17 @@ def ptime(timestr=None, tzone=None, fail=0, fmt="%Y-%m-%d %H:%M:%S"):
                 (can be set with Config.TIMEZONE).
     :param fail: while raising an exception, return it.
     :param fmt: %Y-%m-%d %H:%M:%S, %z not work.
+    :rtype: int
 
         >>> ptime('2018-03-15 01:27:56')
-        1521048476.0
+        1521048476
     """
     tzone = Config.TIMEZONE if tzone is None else tzone
+    fix_tz = -(tzone * 3600 + time.timezone)
     #: str(timestr) for datetime.datetime object
     timestr = str(timestr or ttime())
     try:
-        return int(
-            time.mktime(time.strptime(timestr, fmt)) - (time.timezone + tzone * 3600)
-        )
+        return int(time.mktime(time.strptime(timestr, fmt)) + fix_tz)
     except:
         return fail
 

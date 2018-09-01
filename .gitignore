@@ -57,3 +57,4 @@ docs/_build/
 temp_code.py
 doc/_build/
 obsolete/
+.pytest_cache/*
