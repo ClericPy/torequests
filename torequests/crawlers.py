@@ -473,10 +473,11 @@ class StressTest(CommonRequests):
         """This attribute returns the seconds after starting up."""
         return time.time() - self.start_time
 
-    def _logger_function(self, text):
-        log_str = '[%s] response: %s, start at %s (+%s), %s req/s [%s]' % (
+    def _logger_function(self, text, cost=None):
+        cost = ' %.3fs,' % cost if cost is not None else ''
+        log_str = '[%s] response: %s, start at %s (+%s),%s %.2f req/s [%s]' % (
             self.counter.now, text, self.start_time_readable,
-            timepass(self.passed), self.speed, self.succ_rate)
+            timepass(self.passed), cost, self.speed, self.succ_rate)
         print_info(log_str)
 
     def st_callback_wrapper(self, func):
@@ -500,7 +501,7 @@ class StressTest(CommonRequests):
                 print_info('shutdown for: shutdown_changed: %s => %s' %
                            (self.original_response, result))
                 self.shutdown()
-            self.logger_function(result)
+            self.logger_function(result, cost=time.time() - r.task_start_time)
             return result
 
         return wrapper
