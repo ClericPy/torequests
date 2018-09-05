@@ -12,7 +12,7 @@ from torequests.dummy import *
 def test_dummy_Requests():
     """use default event loop"""
     trequests = Requests()
-    test_url = "http://p.3.cn/prices/mgets?skuIds=J_1274600"
+    test_url = "https://httpbin.org/json"
     tasks = [
         trequests.get(
             test_url, retry=0, callback=lambda r: len(r.content), referer_info=i
@@ -23,16 +23,14 @@ def test_dummy_Requests():
     cb_results = [i.cx for i in tasks]
     assert all(cb_results), "fail: test_dummy_Requests"
     r = tasks[0]
-    assert (
-        isinstance(r.content, bytes)
-        and isinstance(r.text, str)
-        and isinstance(r.json(), list)
-        and not r.is_redirect
-        and r.ok
-        and r.status_code == 200
-        and isinstance(r.url, str)
-        and r.referer_info == 0
-    )
+    assert isinstance(r.content, bytes)
+    assert isinstance(r.text, str)
+    assert isinstance(r.json(), dict)
+    assert not r.is_redirect
+    assert r.ok
+    assert r.status_code == 200
+    assert isinstance(r.url, str)
+    assert r.referer_info == 0
 
 
 def test_dummy_Requests_time_interval_sem_run_forever(capsys):
