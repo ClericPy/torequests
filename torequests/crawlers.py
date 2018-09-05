@@ -43,7 +43,7 @@ class CommonRequests(object):
                  logger_function=None,
                  encoding=None,
                  **kwargs):
-        #: If not set, will use print_info
+        #: If not set, will use print_info, logger_function should handle result(str) and **kwargs
         self.logger_function = logger_function or print_info
         #: torequests's async requests tool.
         self.req = Requests(n=n, interval=interval, **kwargs)
@@ -397,11 +397,13 @@ class StressTest(CommonRequests):
 
         >>> from torequests.crawlers import StressTest
         >>> StressTest('http://p.3.cn', retry=2, timeout=2).x
-        [2018-03-13 00:33:52]: [154] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 165.0 req/s [100.00 %]
-        [2018-03-13 00:33:52]: [155] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 166.0 req/s [100.00 %]
-        [2018-03-13 00:33:52]: [156] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 167.0 req/s [100.00 %]
-        [2018-03-13 00:33:52]: [157] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 167.0 req/s [100.00 %]
-        [2018-03-13 00:33:52]: [158] response: f3f97a64-612, start at 2018-03-13 00:33:51 (+00:00:00), 168.0 req/s [100.00 %]
+        [2018-09-06 00:19:40](L481): [1] response: f3f97a64-612, start at 2018-09-06 00:19:40 (+00:00:00), 0.040s, 24.98 req/s [100.00 %]
+        [2018-09-06 00:19:40](L481): [2] response: f3f97a64-612, start at 2018-09-06 00:19:40 (+00:00:00), 0.041s, 48.16 req/s [100.00 %]
+        [2018-09-06 00:19:40](L481): [3] response: f3f97a64-612, start at 2018-09-06 00:19:40 (+00:00:00), 0.045s, 65.89 req/s [100.00 %]
+        [2018-09-06 00:19:40](L481): [4] response: f3f97a64-612, start at 2018-09-06 00:19:40 (+00:00:00), 0.046s, 85.96 req/s [100.00 %]
+        [2018-09-06 00:19:40](L481): [5] response: f3f97a64-612, start at 2018-09-06 00:19:40 (+00:00:00), 0.048s, 104.09 req/s [100.00 %]
+        [2018-09-06 00:19:40](L481): [6] response: f3f97a64-612, start at 2018-09-06 00:19:40 (+00:00:00), 0.051s, 117.57 req/s [100.00 %]
+        [2018-09-06 00:19:40](L481): [7] response: f3f97a64-612, start at 2018-09-06 00:19:40 (+00:00:00), 0.053s, 131.98 req/s [100.00 %]
     """
 
     def __init__(self,
@@ -420,6 +422,7 @@ class StressTest(CommonRequests):
                  chunk_size=100,
                  **kwargs):
         """request: dict or curl-string or url.
+        logger_function: should handle result and **kwargs, which have `cost`
         Cookie need to be set in headers."""
         logger_function = logger_function or self._logger_function
         super(StressTest, self).__init__(
@@ -473,7 +476,8 @@ class StressTest(CommonRequests):
         """This attribute returns the seconds after starting up."""
         return time.time() - self.start_time
 
-    def _logger_function(self, text, cost=None):
+    def _logger_function(self, text, **kwargs):
+        cost = kwargs.get("cost", None)
         cost = ' %.3fs,' % cost if cost is not None else ''
         log_str = '[%s] response: %s, start at %s (+%s),%s %.2f req/s [%s]' % (
             self.counter.now, text, self.start_time_readable,
