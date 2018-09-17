@@ -958,8 +958,7 @@ class ClipboardWatcher(object):
         """Default clean the \\n in text."""
         text = text.replace("\r\n", "\n")
         text = "%s\n" % text
-        sys.stdout.write(text)
-        sys.stdout.flush()
+        flush_print(text, sep='', end='')
         return text
 
     def watch(self, limit=None, timeout=None):
@@ -1274,8 +1273,7 @@ def countdown(
 """
 
     def default_tick_callback(s, seconds, *args):
-        sys.stdout.write("%s " % s)
-        sys.stdout.flush()
+        flush_print(s, sep='', end=' ')
 
     def default_finish_callback(seconds, start_time):
         print(
@@ -1304,3 +1302,29 @@ def countdown(
     t.start()
     if block:
         t.join()
+
+
+def flush_print(*args, **kwargs):
+    """
+    Like print_function at python3, support flush, but not support file.
+    :param sep: space by default
+    :param end: '\\n' by default
+    :param flush: True by default
+
+     ::
+
+        from torequests.utils import flush_print
+
+        countdown(3)
+        # 3 2 1 
+        # countdown finished [3 seconds]: 2018-06-13 00:12:55 => 2018-06-13 00:12:58.
+        countdown('2018-06-13 00:13:29')
+        # 10 9 8 7 6 5 4 3 2 1 
+        # countdown finished [10 seconds]: 2018-06-13 00:13:18 => 2018-06-13 00:13:28.
+    """
+    # PY2 raise SyntaxError for : def flush_print(*args, sep='', end=''):
+    sep, end, flush = kwargs.pop('sep', ' '), kwargs.pop('end', '\n'), kwargs.pop('flush', 1)
+    string = sep.join((unicode(i) for i in args))
+    sys.stdout.write('%s%s' % (string, end))
+    if flush:
+        sys.stdout.flush()
