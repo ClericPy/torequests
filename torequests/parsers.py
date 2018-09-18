@@ -4,16 +4,10 @@ import json
 import re
 from types import GeneratorType
 
-from .utils import try_import
 from .versions import PY2
 
 if not PY2:
     unicode = str
-
-JP = try_import('jsonpath_rw_ext', 'parse')
-HTMLParser, XHTMLParser, fromstring, tostring = try_import(
-    'lxml.html', ['HTMLParser', 'XHTMLParser', 'fromstring', 'tostring'])
-Tree = try_import('objectpath', 'Tree')
 
 __all__ = ['SimpleParser']
 
@@ -51,25 +45,50 @@ class SimpleParser(object):
         'cssselect': 'html',
         'cssselector': 'html',
     }
+    parser_name_to_lib_name = {'html': 'lxml', 'xml': 'lxml'}
 
-    def __init__(self,
-                 encoding=None,
-                 json_parser=None,
-                 regex_parser=None,
-                 html_parser=None,
-                 xml_parser=None):
-        self._encoding = encoding or 'utf-8'
-        self._json = json_parser or json
-        self._re = regex_parser or re
-        self._html_parser = html_parser or HTMLParser()
-        self._xml_parser = xml_parser or XHTMLParser()
+    def __init__(self, encoding='utf-8', *args, **kwargs):
+        """parser_libs limit to only import least libs"""
+        self._encoding = encoding
+        self._json = json
+        self._re = re
+        self._python_ready = True
+        self._re_ready = True
+        self._lxml_ready = False
+        self._jsonpath_ready = False
+        self._objectpath_ready = False
 
     def _choose_parser(self, name):
         name = self.alias.get(name, name)
         func_name = '%s_parser' % name
         if not hasattr(self, func_name):
             raise ValueError('BadParser name %s' % name)
+        self._ensure_lib_ready(name)
         return getattr(self, func_name)
+
+    def _ensure_lib_ready(self, parser_name):
+        lib_name = self.parser_name_to_lib_name.get(parser_name, parser_name)
+        if not getattr(self, '_%s_ready' % lib_name):
+            # lazy import libs which are not ready
+            getattr(self, '_init_%s_lib' % lib_name)()
+
+    def _init_lxml_lib(self):
+        from lxml.html import HTMLParser, XHTMLParser, fromstring, tostring
+        self._html_parser = HTMLParser()
+        self._xml_parser = XHTMLParser()
+        self._tostring = tostring
+        self._fromstring = fromstring
+        self._lxml_ready = True
+
+    def _init_jsonpath_lib(self):
+        from jsonpath_rw_ext import parse as jp_parser
+        self._jsonpath_parser = jp_parser
+        self._jsonpath_ready = True
+
+    def _init_objectpath_lib(self):
+        from objectpath import Tree
+        self._objectpath_parser = Tree
+        self._objectpath_ready = True
 
     @classmethod
     def prepare_response(cls, r, name, encoding=None):
@@ -159,12 +178,14 @@ class SimpleParser(object):
         assert method in allow_method or method.startswith(
             '@'), 'method allow: %s or @attr' % allow_method
         result = self.ensure_list(
-            fromstring(scode, parser=self._html_parser).cssselect(css_path))
+            self._fromstring(scode,
+                             parser=self._html_parser).cssselect(css_path))
         if method.startswith('@'):
             result = [item.get(method[1:]) for item in result]
         else:
             result = [
-                tostring(item, method=method, with_tail=0, encoding='unicode')
+                self._tostring(
+                    item, method=method, with_tail=0, encoding='unicode')
                 for item in result
             ]
         return result
@@ -179,26 +200,27 @@ class SimpleParser(object):
         xpath_string, method = args
         assert method in allow_method, 'method allow: %s' % allow_method
         result = self.ensure_list(
-            fromstring(scode, parser=self._xml_parser).xpath(xpath_string))
+            self._fromstring(scode,
+                             parser=self._xml_parser).xpath(xpath_string))
         result = [
-            tostring(item, method=method, with_tail=0, encoding='unicode')
+            self._tostring(
+                item, method=method, with_tail=0, encoding='unicode')
             for item in result
         ]
         return result
 
-    def jsonpath_parser(self, scode, json_path):
+    def jsonpath_parser(self, scode, jsonpath):
         scode = self.ensure_json(scode)
-        # normalize json_path
-        json_path = self._re.sub('\.$', '',
-                                 self._re.sub('^JSON\.?|^\$?\.?', '$.',
-                                              json_path))
-        jp = JP(json_path)
+        # normalize jsonpath
+        jsonpath = self._re.sub(
+            '\.$', '', self._re.sub('^JSON\.?|^\$?\.?', '$.', jsonpath))
+        jp = self._jsonpath_parser(jsonpath)
         return [i.value for i in jp.find(scode)]
 
-    def objectpath_parser(self, scode, object_path):
+    def objectpath_parser(self, scode, objectpath):
         scode = self.ensure_json(scode)
-        tree = Tree(scode)
-        result = tree.execute(object_path)
+        tree = self._objectpath_parser(scode)
+        result = tree.execute(objectpath)
         if isinstance(result, GeneratorType):
             result = list(result)
         return result

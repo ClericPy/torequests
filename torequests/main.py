@@ -102,7 +102,7 @@ class NewExecutorPoolMixin(Executor):
 
 class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
     """Let ThreadPoolExecutor use NewFuture instead of origin concurrent.futures.Future.
-    
+
     Basic Usage::
 
             from torequests.main import Pool
