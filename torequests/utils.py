@@ -14,6 +14,7 @@ import signal
 import sys
 import time
 import timeit
+from fractions import Fraction
 from functools import wraps
 from threading import Thread, Lock
 
@@ -292,6 +293,7 @@ def ttime(timestamp=None, tzone=None, fail="", fmt="%Y-%m-%d %H:%M:%S"):
         return time.strftime(fmt, time.gmtime(timestamp + fix_tz))
     except:
         import traceback
+
         traceback.print_exc()
         return fail
 
@@ -958,7 +960,7 @@ class ClipboardWatcher(object):
         """Default clean the \\n in text."""
         text = text.replace("\r\n", "\n")
         text = "%s\n" % text
-        flush_print(text, sep='', end='')
+        flush_print(text, sep="", end="")
         return text
 
     def watch(self, limit=None, timeout=None):
@@ -1273,7 +1275,7 @@ def countdown(
 """
 
     def default_tick_callback(s, seconds, *args):
-        flush_print(s, sep='', end=' ')
+        flush_print(s, sep="", end=" ")
 
     def default_finish_callback(seconds, start_time):
         print(
@@ -1313,18 +1315,75 @@ def flush_print(*args, **kwargs):
 
      ::
 
+        import time
         from torequests.utils import flush_print
 
-        countdown(3)
-        # 3 2 1 
-        # countdown finished [3 seconds]: 2018-06-13 00:12:55 => 2018-06-13 00:12:58.
-        countdown('2018-06-13 00:13:29')
-        # 10 9 8 7 6 5 4 3 2 1 
-        # countdown finished [10 seconds]: 2018-06-13 00:13:18 => 2018-06-13 00:13:28.
+        flush_print("=" * 10)
+        for _ in range(10):
+            time.sleep(0.2)
+            flush_print("=", sep="", end="")
     """
     # PY2 raise SyntaxError for : def flush_print(*args, sep='', end=''):
-    sep, end, flush = kwargs.pop('sep', ' '), kwargs.pop('end', '\n'), kwargs.pop('flush', 1)
+    sep, end, flush = (
+        kwargs.pop("sep", " "),
+        kwargs.pop("end", "\n"),
+        kwargs.pop("flush", 1),
+    )
     string = sep.join((unicode(i) for i in args))
-    sys.stdout.write('%s%s' % (string, end))
+    sys.stdout.write("%s%s" % (string, end))
     if flush:
         sys.stdout.flush()
+
+
+class ProgressBar(object):
+    """Simple progress bar.
+        :param size: total counts of calling ProgressBar.x.
+        :param length: length of print log.
+        :param sig: string of each printing log.
+
+    Basic Usage::
+
+        pb = ProgressBar(50, 10)
+        for _ in range(50):
+            time.sleep(0.1)
+            pb.x
+        print("current completion rate:", pb.completion_rate)
+        # ==========
+        # ==========
+        # current completion rate: 1.0
+    """
+    def __init__(self, size, length=100, sig="="):
+        self.size = size or 0
+        self.length = length
+        self.sig = sig
+        self.current = 0
+        self.last_print = 0
+        self.printed = 0
+        if size:
+            # use Fraction for the deviation of division
+            self.chunk = Fraction(self.size, self.length)
+            flush_print(self.sig * self.length)
+        else:
+            self.chunk = 1
+
+    def add(self, step):
+        # ensure step >= 0
+        self.current += step
+        count = int((self.current - self.last_print) / self.chunk)
+        if count < 1:
+            return self.printed
+        for _ in range(count):
+            self.printed += 1
+            flush_print(self.sig, end="")
+        self.last_print = count * self.chunk + self.last_print
+        if self.current == self.size:
+            flush_print()
+        return self.printed
+
+    @property
+    def x(self):
+        return self.add(1)
+
+    @property
+    def completion_rate(self):
+        return self.current / self.size
