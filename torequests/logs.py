@@ -1,5 +1,6 @@
 #! coding:utf-8
 import logging
+import os
 import sys
 
 from .versions import PY3
@@ -78,14 +79,29 @@ utils_logger = init_logger(
     formatter_str="%(levelname)-7s %(asctime)s %(name)s: %(message)s",
 )
 print_logger = init_logger(
-    "torequests.print", formatter_str="[%(asctime)s](L%(line_no)s): %(message)s"
+    "torequests.print", formatter_str="[%(asctime)s] %(fn)s(%(ln)s): %(message)s"
 )
 
 
 def print_info(*messages, **kwargs):
-    """kwargs: sep=' '"""
+    """Simple print use logger, print with time / file / line_no.
+        :param sep: sep of messages, " " by default.
+
+    Basic Usage::
+
+        print_info(1, 2, 3)
+        print_info(1, 2, 3)
+        print_info(1, 2, 3)
+
+        # [2018-10-24 19:12:16] temp_code.py(7): 1 2 3
+        # [2018-10-24 19:12:16] temp_code.py(8): 1 2 3
+        # [2018-10-24 19:12:16] temp_code.py(9): 1 2 3
+    """
     sep = kwargs.pop("sep", " ")
-    line_no = sys._getframe(1).f_lineno
+    frame = sys._getframe(1)
+    ln = frame.f_lineno
+    _file = frame.f_globals.get("__file__", "")
+    fn = os.path.split(_file)[-1]
     return print_logger.info(
-        sep.join(map(unicode, messages)), extra={"line_no": line_no}
+        sep.join(map(unicode, messages)), extra={"ln": ln, "fn": fn}
     )
