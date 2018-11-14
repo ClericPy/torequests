@@ -285,8 +285,8 @@ def ttime(timestamp=None, tzone=None, fail="", fmt="%Y-%m-%d %H:%M:%S"):
         timestamp = time.time()
     else:
         timestamp = float(timestamp)
-        if timestamp >= 1e13:
-            # Compatible 13
+        if 1e12 <= timestamp < 1e13:
+            # Compatible timestamp with 13-digit milliseconds
             timestamp = timestamp / 1000
     try:
         timestamp = time.time() if timestamp is None else timestamp
@@ -1352,6 +1352,7 @@ class ProgressBar(object):
         # ==========
         # current completion rate: 1.0
     """
+
     def __init__(self, size, length=100, sig="="):
         self.size = size or 0
         self.length = length
