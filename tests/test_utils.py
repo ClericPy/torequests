@@ -274,3 +274,12 @@ def test_ensure_request():
             assert not ss
         finally:
             ss._shutdown()
+
+
+def test_find_one():
+    string = "abcd"
+    assert find_one("a.*", string)[0] == "abcd"
+    assert find_one("a(.)", string)[0] == "ab"
+    assert find_one("a(.)", string)[1] == "b"
+    assert find_one("a(B)", string, flags=re.I | re.DOTALL)[1] == "b"
+    assert (find_one("a(B)", string)[1] or "default") == "default"

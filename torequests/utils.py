@@ -1388,3 +1388,59 @@ class ProgressBar(object):
     @property
     def completion_rate(self):
         return self.current / self.size
+
+
+class RegMatch(object):
+    """JS-like match object. Use index number to get groups, if not match or no group, will return ''."""
+    def __init__(self, item):
+        self.item = item
+
+    def __getattr__(self, key, default=null):
+        return getattr(self.item, key, default)
+
+    def __getitem__(self, index):
+        if not isinstance(index, int):
+            raise IndexError
+        try:
+            return self.item.group(index)
+        except IndexError:
+            return ""
+
+    @classmethod
+    def find_one(cls, pattern, string, flags=0):
+        """JS-like match object. Use index number to get groups, if not match or no group, will return ''.
+
+        Basic Usage::
+
+            >>> from torequests.utils import find_one
+            >>> string = "abcd"
+            >>> find_one("a.*", string)
+            <torequests.utils.RegMatch object at 0x0705F1D0>
+            >>> find_one("a.*", string)[0]
+            'abcd'
+            >>> find_one("a.*", string)[1]
+            ''
+            >>> find_one("a(.)", string)[0]
+            'ab'
+            >>> find_one("a(.)", string)[1]
+            'b'
+            >>> find_one("a(.)", string)[2] or "default"
+            'default'
+            >>> import re
+            >>> item = find_one("a(B)(C)", string, flags=re.I | re.S)
+            >>> item
+            <torequests.utils.RegMatch object at 0x0705F1D0>
+            >>> item[0]
+            'abc'
+            >>> item[1]
+            'b'
+            >>> item[2]
+            'c'
+            >>> item[3]
+            ''
+        """
+        item = re.search(pattern, string, flags=flags)
+        return cls(item) if item else null
+
+
+find_one = RegMatch.find_one
