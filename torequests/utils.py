@@ -59,7 +59,7 @@ if PY3:
 
     unicode = str
 
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one".split(
     " "
 )
 
@@ -1392,6 +1392,7 @@ class ProgressBar(object):
 
 class RegMatch(object):
     """JS-like match object. Use index number to get groups, if not match or no group, will return ''."""
+
     def __init__(self, item):
         self.item = item
 
@@ -1399,6 +1400,8 @@ class RegMatch(object):
         return getattr(self.item, key, default)
 
     def __getitem__(self, index):
+        if self.item is None:
+            return ""
         if not isinstance(index, int):
             raise IndexError
         try:
@@ -1440,7 +1443,7 @@ class RegMatch(object):
             ''
         """
         item = re.search(pattern, string, flags=flags)
-        return cls(item) if item else null
+        return cls(item)
 
 
 find_one = RegMatch.find_one

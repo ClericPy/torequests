@@ -283,3 +283,4 @@ def test_find_one():
     assert find_one("a(.)", string)[1] == "b"
     assert find_one("a(B)", string, flags=re.I | re.DOTALL)[1] == "b"
     assert (find_one("a(B)", string)[1] or "default") == "default"
+    assert (find_one("a(B)", string)[1]) == ""
