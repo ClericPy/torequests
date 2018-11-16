@@ -3,11 +3,7 @@
 
 import atexit
 import time
-from concurrent.futures import (
-    ProcessPoolExecutor,
-    ThreadPoolExecutor,
-    as_completed,
-)
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from concurrent.futures._base import Error, Executor, Future, TimeoutError
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
@@ -475,10 +471,16 @@ class tPool(object):
         self.close()
 
     def _request(self, method, url, retry=0, **kwargs):
+        kwargs["url"] = url
+        kwargs["method"] = method
+        # non-official request args
         referer_info = kwargs.pop("referer_info", None)
+        encoding = kwargs.pop("encoding", None)
         for _ in range(retry + 1):
             try:
-                resp = self.session.request(method, url, **kwargs)
+                resp = self.session.request(**kwargs)
+                if encoding:
+                    resp.encoding = encoding
                 Config.main_logger.debug("%s done, %s" % (url, kwargs))
                 resp.referer_info = referer_info
                 return resp
@@ -493,8 +495,14 @@ class tPool(object):
                 if self.interval:
                     time.sleep(self.interval)
         kwargs["retry"] = retry
+        if referer_info:
+            kwargs["referer_info"] = referer_info
+        if encoding:
+            kwargs["encoding"] = encoding
         error_info = dict(
-            url=url, kwargs=kwargs, type=type(error), error_msg=str(error)
+            request=kwargs,
+            type=type(error),
+            error_msg=str(error),
         )
         error.args = (error_info,)
         Config.main_logger.debug("Retry %s & failed: %s." % (retry, error_info))

@@ -14,7 +14,7 @@ class CommonException(Exception):
         return False
 
     def __call__(self, *args, **kwargs):
-        raise TypeError('%s object is not callable' % repr(self))
+        raise TypeError("%s object is not callable" % repr(self))
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self.name)
@@ -31,6 +31,17 @@ class FailureException(CommonException):
         self.error = error
         self.name = self.error.__class__.__name__
         self.ok = False
+
+    def __str__(self):
+        return "%s: %s. %s" % (
+            self.__class__.__name__,
+            self.name,
+            getattr(self.error, "args", ""),
+        )
+
+    @property
+    def text(self):
+        return str(self)
 
 
 class ImportErrorModule(CommonException, ImportError):

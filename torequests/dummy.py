@@ -126,20 +126,22 @@ class NewTask(asyncio.Task):
 class Loop:
     """Handle the event loop like a thread pool."""
 
-    def __init__(self,
-                 n=None,
-                 interval=0,
-                 default_callback=None,
-                 reuse_running_loop=False,
-                 loop=None):
+    def __init__(
+        self,
+        n=None,
+        interval=0,
+        default_callback=None,
+        reuse_running_loop=False,
+        loop=None,
+    ):
         try:
             self.loop = loop or asyncio.get_event_loop()
             if not reuse_running_loop and self.loop.is_running():
-                raise NotImplementedError("Cannot use aioutils in "
-                                          "asynchroneous environment")
+                raise NotImplementedError(
+                    "Cannot use aioutils in " "asynchroneous environment"
+                )
         except Exception as e:
-            Config.dummy_logger.debug(
-                "Rebuilding a new loop for exception: %s" % e)
+            Config.dummy_logger.debug("Rebuilding a new loop for exception: %s" % e)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
         self.default_callback = default_callback
@@ -503,7 +505,8 @@ class Requests(Loop):
         super().__init__(
             loop=loop,
             default_callback=default_callback,
-            reuse_running_loop=reuse_running_loop)
+            reuse_running_loop=reuse_running_loop,
+        )
         # Requests object use its own frequency control.
         self.sem = asyncio.Semaphore(n)
         self.n = n
@@ -561,15 +564,20 @@ class Requests(Loop):
             frequency = self.global_frequency
         sem, interval = frequency.sem, frequency.interval
         proxies = kwargs.pop("proxies", None)
-        encoding = kwargs.pop("encoding", None)
-        kwargs['verify_ssl'] = kwargs.pop('verify_ssl', None) or kwargs.pop('verify', None)
-        referer_info = kwargs.pop("referer_info", None)
+        verify_ssl = kwargs.pop("verify_ssl", None) or kwargs.pop("verify", None)
+        if verify_ssl:
+            kwargs["verify_ssl"] = verify_ssl
         if proxies:
             kwargs["proxy"] = "%s://%s" % (scheme, proxies[scheme])
+        kwargs["url"] = url
+        kwargs["method"] = method
+        # non-official request args
+        referer_info = kwargs.pop("referer_info", None)
+        encoding = kwargs.pop("encoding", None)
         for retries in range(retry + 1):
             with await sem:
                 try:
-                    async with self.session.request(method, url, **kwargs) as resp:
+                    async with self.session.request(**kwargs) as resp:
                         await resp.read()
                         r = NewResponse(resp, encoding=encoding)
                         r.referer_info = referer_info
@@ -582,9 +590,11 @@ class Requests(Loop):
                         await asyncio.sleep(interval)
         else:
             kwargs["retry"] = retry
-            error_info = dict(
-                url=url, kwargs=kwargs, type=type(error), error_msg=str(error)
-            )
+            if referer_info:
+                kwargs["referer_info"] = referer_info
+            if encoding:
+                kwargs["encoding"] = encoding
+            error_info = dict(request=kwargs, type=type(error), error_msg=str(error))
             error.args = (error_info,)
             Config.dummy_logger.debug("Retry %s & failed: %s." % (retry, error_info))
             if self.catch_exception:
