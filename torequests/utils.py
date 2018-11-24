@@ -1441,6 +1441,11 @@ class RegMatch(object):
             'c'
             >>> item[3]
             ''
+            >>> import re
+            >>> re.findone = find_one
+            >>> re.findone('a(b)', 'abcd')[1] or 'default'
+            'b'
+
         """
         item = re.search(pattern, string, flags=flags)
         return cls(item)
