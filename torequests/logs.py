@@ -18,7 +18,7 @@ def init_logger(
     datefmt="%Y-%m-%d %H:%M:%S",
 ):
     """Add a default handler for logger.
-    
+
     Args:
 
     name = '' or logger obj.
@@ -48,7 +48,7 @@ def init_logger(
         if formatter_str:
             formatter_str = formatter_str
         else:
-            formatter_str = "%(levelname)-7s %(asctime)s %(name)s (%(filename)s: %(lineno)s): %(message)s"
+            formatter_str = "%(asctime)s %(levelname)-5s [%(name)s] %(filename)s(%(lineno)s): %(message)s"
         formatter = logging.Formatter(formatter_str, datefmt=datefmt)
     logger = name if isinstance(name, logging.Logger) else logging.getLogger(str(name))
     logger.setLevel(level)
