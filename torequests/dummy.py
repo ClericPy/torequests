@@ -130,6 +130,7 @@ class Loop:
         self,
         n=None,
         interval=0,
+        timeout=None,
         default_callback=None,
         reuse_running_loop=False,
         loop=None,
@@ -148,6 +149,7 @@ class Loop:
         self.async_running = False
         self.n = n
         self.interval = interval
+        self._timeout = timeout
         self.frequency = Frequency(self.n, self.interval, "loop_sem")
 
     def _wrap_coro_function_with_sem(self, coro_func):
@@ -289,6 +291,7 @@ class Loop:
 
     def run(self, tasks=None, timeout=None):
         """Block, run loop until all tasks completed."""
+        timeout = self._timeout if timeout is None else timeout
         if self.async_running or self.loop.is_running():
             return self.wait_all_tasks_done(timeout)
         else:
@@ -301,6 +304,7 @@ class Loop:
 
     def wait_all_tasks_done(self, timeout=None, delay=0.5, interval=0.1):
         """Block, only be used while loop running in a single non-main thread."""
+        timeout = self._timeout if timeout is None else timeout
         timeout = timeout or float("inf")
         start_time = time.time()
         time.sleep(delay)
@@ -451,7 +455,7 @@ class Requests(Loop):
             so n=100 by default.
     :param interval: asyncio.sleep after each task done.
     :param session: special aiohttp.ClientSession.
-    :param return_exceptions: whether catch and return the Exception instead of raising it.
+    :param catch_exception: whether catch and return the Exception instead of raising it.
     :param default_callback: None
     :param frequencies: None or {host: Frequency obj} or {host: [n, interval]}
     :param default_host_frequency: None
@@ -492,7 +496,7 @@ class Requests(Loop):
         n=100,
         interval=0,
         session=None,
-        return_exceptions=True,
+        catch_exception=True,
         default_callback=None,
         frequencies=None,
         default_host_frequency=None,
@@ -500,8 +504,6 @@ class Requests(Loop):
         **kwargs
     ):
         loop = kwargs.pop("loop", None)
-        # for old version arg `catch_exception`
-        catch_exception = kwargs.pop("catch_exception", None)
         super().__init__(
             loop=loop,
             default_callback=default_callback,
@@ -511,8 +513,10 @@ class Requests(Loop):
         self.sem = asyncio.Semaphore(n)
         self.n = n
         self.interval = interval
+        # be compatible with old version's arg `return_exceptions`
+        return_exceptions = kwargs.pop("return_exceptions", None)
         self.catch_exception = (
-            catch_exception if catch_exception is not None else return_exceptions
+            return_exceptions if return_exceptions is not None else catch_exception
         )
         self.default_host_frequency = default_host_frequency
         if self.default_host_frequency:
