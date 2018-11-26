@@ -26,10 +26,18 @@ class CommonException(Exception):
 class FailureException(CommonException):
     """Use `self.error` to review the origin exception."""
 
+    def __new__(cls, error, name=None):
+        if isinstance(error, cls):
+            return error
+        else:
+            return super(FailureException, cls).__new__(cls, error, name=name)
+
     def __init__(self, error, name=None):
+        if isinstance(error, self.__class__):
+            error = error.error
         self.__dict__ = error.__dict__
         self.error = error
-        self.name = self.error.__class__.__name__
+        self.name = name or self.error.__class__.__name__
         self.ok = False
 
     def __str__(self):
