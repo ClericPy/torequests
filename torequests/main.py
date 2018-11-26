@@ -4,7 +4,18 @@
 import atexit
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from concurrent.futures._base import Error, Executor, Future, TimeoutError
+from concurrent.futures._base import (
+    Error,
+    Executor,
+    Future,
+    TimeoutError,
+    PENDING,
+    RUNNING,
+    CANCELLED,
+    CANCELLED_AND_NOTIFIED,
+    FINISHED,
+    CancelledError,
+)
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
 from threading import Timer
@@ -90,9 +101,11 @@ class NewExecutorPoolMixin(Executor):
         # ignore the order of tasks
         tasks = tasks or self._all_futures
         fs = []
-        for f in as_completed(tasks):
-            fs.append(f.x)
-        # fs = [f.x for f in wait(tasks).done]
+        try:
+            for f in as_completed(tasks, timeout=self._timeout):
+                fs.append(f.x)
+        except TimeoutError:
+            pass
         return fs
 
 
@@ -138,7 +151,15 @@ class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
             # ['use_submit: 2', 'use_submit: 1', 'use_submit: 0', 'use_decorator: 2', 'use_decorator: 1', 'use_decorator: 0']
     """
 
-    def __init__(self, n=None, timeout=None, default_callback=None, *args, **kwargs):
+    def __init__(
+        self,
+        n=None,
+        timeout=None,
+        default_callback=None,
+        catch_exception=True,
+        *args,
+        **kwargs
+    ):
         n = n or kwargs.pop("max_workers", None)
         if PY2 and n is None:
             # python2 n!=None
@@ -150,6 +171,8 @@ class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
         self.default_callback = default_callback
         #: WeakSet of _all_futures for self.x
         self._all_futures = WeakSet()
+        #: catch_exception=True will not raise exceptions, return object FailureException(exception)
+        self.catch_exception = catch_exception
 
     @property
     def all_tasks(self):
@@ -163,7 +186,13 @@ class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
             if self._shutdown:
                 raise RuntimeError("cannot schedule new futures after shutdown")
             callback = kwargs.pop("callback", self.default_callback)
-            future = NewFuture(self._timeout, args, kwargs, callback=callback)
+            future = NewFuture(
+                self._timeout,
+                args,
+                kwargs,
+                callback=callback,
+                catch_exception=self.catch_exception,
+            )
             w = _WorkItem(future, func, args, kwargs)
             self._work_queue.put(w)
             self._adjust_thread_count()
@@ -174,7 +203,7 @@ class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
 class ProcessPool(ProcessPoolExecutor, NewExecutorPoolMixin):
     """Simple ProcessPool covered ProcessPoolExecutor.
     ::
-    
+
         from torequests.main import ProcessPool
         import time
 
@@ -205,7 +234,15 @@ class ProcessPool(ProcessPoolExecutor, NewExecutorPoolMixin):
         # use_submit: 2
     """
 
-    def __init__(self, n=None, timeout=None, default_callback=None, *args, **kwargs):
+    def __init__(
+        self,
+        n=None,
+        timeout=None,
+        default_callback=None,
+        catch_exception=True,
+        *args,
+        **kwargs
+    ):
         n = n or kwargs.pop("max_workers", None)
         if PY2 and n is None:
             # python2 n!=None
@@ -214,6 +251,7 @@ class ProcessPool(ProcessPoolExecutor, NewExecutorPoolMixin):
         self._timeout = timeout
         self.default_callback = default_callback
         self._all_futures = WeakSet()
+        self.catch_exception = catch_exception
 
     def submit(self, func, *args, **kwargs):
         """Submit a function to the pool, `self.submit(function,arg1,arg2,arg3=3)`"""
@@ -227,7 +265,13 @@ class ProcessPool(ProcessPoolExecutor, NewExecutorPoolMixin):
             if self._shutdown_thread:
                 raise RuntimeError("cannot schedule new futures after shutdown")
             callback = kwargs.pop("callback", self.default_callback)
-            future = NewFuture(self._timeout, args, kwargs, callback=callback)
+            future = NewFuture(
+                self._timeout,
+                args,
+                kwargs,
+                callback=callback,
+                catch_exception=self.catch_exception,
+            )
             w = _WorkItem(future, func, args, kwargs)
             self._pending_work_items[self._queue_count] = w
             self._work_ids.put(self._queue_count)
@@ -254,6 +298,7 @@ class NewFuture(Future):
     :attr task_start_time: timestamp when the task start up.
     :attr task_end_time: timestamp when the task end up.
     :attr task_cost_time: seconds of task costs.
+    :param catch_exception: `True` will catch all exceptions and return as :class:`FailureException <FailureException>`
     """
 
     if PY3:
@@ -261,12 +306,15 @@ class NewFuture(Future):
 
         __await__ = _new_future_await
 
-    def __init__(self, timeout=None, args=None, kwargs=None, callback=None):
+    def __init__(
+        self, timeout=None, args=None, kwargs=None, callback=None, catch_exception=True
+    ):
         super(NewFuture, self).__init__()
         self._timeout = timeout
         self._args = args or ()
         self._kwargs = kwargs or {}
         self._callback_result = None
+        self.catch_exception = catch_exception
         self.task_start_time = time.time()
         self.task_end_time = 0
         self.task_cost_time = 0
@@ -308,7 +356,7 @@ class NewFuture(Future):
     @property
     def callback_result(self):
         """Block the main thead until future finish, return the future.callback_result."""
-        if self._state in {"PENDING", "RUNNING"}:
+        if self._state in [PENDING, RUNNING]:
             self.x
         if self._user_callbacks:
             return self._callback_result
@@ -318,7 +366,29 @@ class NewFuture(Future):
     @property
     def x(self):
         """Block the main thead until future finish, return the future.result()."""
-        return self.result(self._timeout)
+        with self._condition:
+            result = None
+            if not self.done():
+                self._condition.wait(self._timeout)
+            if not self.done():
+                # timeout
+                self.set_exception(TimeoutError())
+            if self._state in [CANCELLED, CANCELLED_AND_NOTIFIED]:
+                # cancelled
+                result = CancelledError()
+            elif self._state == FINISHED:
+                # finished
+                if self._exception:
+                    result = self._exception
+                else:
+                    result = self._result
+            if isinstance(result, Exception):
+                if self.catch_exception:
+                    result = FailureException(result)
+                    return result
+                else:
+                    raise result
+            return result
 
 
 def Async(f, n=None, timeout=None):
@@ -499,11 +569,7 @@ class tPool(object):
             kwargs["referer_info"] = referer_info
         if encoding:
             kwargs["encoding"] = encoding
-        error_info = dict(
-            request=kwargs,
-            type=type(error),
-            error_msg=str(error),
-        )
+        error_info = dict(request=kwargs, type=type(error), error_msg=str(error))
         error.args = (error_info,)
         Config.main_logger.debug("Retry %s & failed: %s." % (retry, error_info))
         if self.catch_exception:
