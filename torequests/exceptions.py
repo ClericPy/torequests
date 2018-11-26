@@ -33,7 +33,7 @@ class FailureException(CommonException):
         self.ok = False
 
     def __str__(self):
-        return "%s: %s. %s" % (
+        return "%s: %s%s" % (
             self.__class__.__name__,
             self.name,
             getattr(self.error, "args", ""),

@@ -1441,8 +1441,9 @@ class RegMatch(object):
             'c'
             >>> item[3]
             ''
-            >>> import re
-            >>> re.findone = find_one
+            >>> # import re
+            >>> # re.findone = find_one
+            >>> register_re_findone()
             >>> re.findone('a(b)', 'abcd')[1] or 'default'
             'b'
 
@@ -1452,3 +1453,8 @@ class RegMatch(object):
 
 
 find_one = RegMatch.find_one
+
+
+def register_re_findone():
+    """import re; re.findone = find_one"""
+    re.findone = find_one
