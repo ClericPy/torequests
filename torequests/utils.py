@@ -59,7 +59,7 @@ if PY3:
 
     unicode = str
 
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone".split(
     " "
 )
 
@@ -389,7 +389,7 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en"):
         else:
             valid_index = x
         result_str = [
-            "%d %s%s" % (num, unit, "s" if num > 1 and lang == "en" else "")
+            "%d %s%s" % (num, unit, "s" if num > 1 and unit != "ms" else "")
             for num, unit in zip(times, units)
         ][valid_index:][:accuracy]
         result_str = " ".join(result_str)
