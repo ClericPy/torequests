@@ -90,7 +90,7 @@ def simple_cmd():
     func_name = params.func_name
     func = globals().get(func_name)
     if not (callable(func)):
-        Config.utils_logger.warn("invalid func_name: %s" % func_name)
+        Config.utils_logger.warning("invalid func_name: %s" % func_name)
         return
     args = params.args or []
     kwargs = params.kwargs or {}
@@ -710,7 +710,7 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
     except ImportError:
         if warn:
             if warn is True:
-                Config.utils_logger.warn(
+                Config.utils_logger.warning(
                     "Module `%s` not found. Install it to remove this warning"
                     % module_name
                 )
@@ -1015,6 +1015,42 @@ class Saver(object):
 
     _instances = {}
     _locks = {}
+    _protected_keys = {
+        "_auto_backup",
+        "_lock",
+        "_path",
+        "_saver_args",
+        "_save_mode",
+        "_cache",
+        "__getitem__",
+        "_keys",
+        "_values",
+        "__getattr__",
+        "__len__",
+        "_popitem",
+        "_shutdown",
+        "__setitem__",
+        "__delitem__",
+        "_save_obj",
+        "_get",
+        "__dict__",
+        "_clear",
+        "_locks",
+        "__weakref__",
+        "_items",
+        "__module__",
+        "_pop",
+        "__contains__",
+        "_load",
+        "_save",
+        "_update",
+        "_set",
+        "_protected_keys",
+        "_instances",
+        "_get_home_path",
+        "_save_back_up",
+    }
+    _protected_keys = _protected_keys | set(object.__dict__.keys())
 
     def __new__(cls, path=None, save_mode="json", auto_backup=False, **saver_args):
         # BORG
@@ -1077,7 +1113,15 @@ class Saver(object):
         return self._save_obj(self._cache)
 
     def _set(self, key, value):
-        assert isinstance(key, (unicode, str)) and not key.startswith("_")
+        if self._save_mode == "json":
+            try:
+                json.dumps(value)
+            except TypeError:
+                Config.utils_logger.warning(
+                    "Saver._set(%s, %s) failed: bad type, using str(value) instead."
+                    % (key, value)
+                )
+                value = str(value)
         self._cache[key] = value
         self._save()
 
@@ -1085,13 +1129,13 @@ class Saver(object):
         return self._cache.get(key, default)
 
     def __setattr__(self, key, value):
-        if key.startswith("_") or hasattr(self.__class__, key):
+        if key in self._protected_keys:
             object.__setattr__(self, key, value)
         else:
             self._set(key, value)
 
     def __getattr__(self, key):
-        if key.startswith("_") or hasattr(self.__class__, key):
+        if key in self._protected_keys:
             return object.__getattribute__(self, key)
         return self._get(key)
 
