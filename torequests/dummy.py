@@ -160,7 +160,7 @@ class Loop:
         @wraps(coro_func)
         async def new_coro_func(*args, **kwargs):
             if sem:
-                with await sem:
+                async with sem:
                     result = await coro_func(*args, **kwargs)
                     if interval:
                         await asyncio.sleep(interval)
@@ -358,7 +358,7 @@ class Loop:
     @property
     def all_tasks(self):
         """Return all tasks of the current loop."""
-        return asyncio.Task.all_tasks(loop=self.loop)
+        return asyncio.all_tasks(loop=self.loop)
 
     async def pendings(self, tasks=None):
         """Used for await in coroutines.
@@ -579,7 +579,7 @@ class Requests(Loop):
         referer_info = kwargs.pop("referer_info", None)
         encoding = kwargs.pop("encoding", None)
         for retries in range(retry + 1):
-            with await sem:
+            async with sem:
                 try:
                     async with self.session.request(**kwargs) as resp:
                         await resp.read()
@@ -598,13 +598,12 @@ class Requests(Loop):
                 kwargs["referer_info"] = referer_info
             if encoding:
                 kwargs["encoding"] = encoding
-            error_info = dict(request=kwargs, type=type(error), error_msg=str(error))
-            error.args = (error_info,)
-            Config.dummy_logger.debug("Retry %s & failed: %s." % (retry, error_info))
+            error.request = kwargs
+            Config.dummy_logger.debug("Retry %s & failed: %s." % (retry, error))
             if self.catch_exception:
-                fail = FailureException(error)
-                fail.referer_info = referer_info
-                return fail
+                failure = FailureException(error)
+                failure.request = kwargs
+                return failure
             raise error
 
     def request(self, method, url, callback=None, retry=0, **kwargs):
