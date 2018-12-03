@@ -6,7 +6,7 @@ import codecs
 linux:
 rm -rf "dist/*";rm -rf "build/*";python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload "dist/*;rm -rf "dist/*";rm -rf "build/*""
 win32:
-rm -rf dist&rm -rf build&python3 setup.py bdist_wheel&python2 setup.py bdist_wheel&twine upload "dist/*"&rm -rf dist&rm -rf build
+rm -rf dist;rm -rf build;python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload "dist/*";rm -rf dist;rm -rf build
 """
 
 # optional_requires:
