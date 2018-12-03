@@ -47,6 +47,9 @@ class FailureException(CommonException):
             getattr(self.error, "args", ""),
         )
 
+    def __repr__(self):
+        return "<FailureException [%s]>" % (self.name)
+
     @property
     def text(self):
         return str(self)

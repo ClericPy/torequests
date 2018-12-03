@@ -21,7 +21,7 @@ from functools import wraps
 from threading import Timer
 from weakref import WeakSet
 
-from requests import RequestException, Session
+from requests import RequestException, Session, PreparedRequest
 from requests.adapters import HTTPAdapter
 from urllib3 import disable_warnings
 
@@ -461,6 +461,30 @@ def run_after_async(seconds, func, *args, **kwargs):
     return t
 
 
+class FailedRequest(PreparedRequest):
+    allow_keys = {
+        "method",
+        "url",
+        "headers",
+        "files",
+        "data",
+        "params",
+        "auth",
+        "cookies",
+        "hooks",
+        "json",
+    }
+
+    def __init__(self, **kwargs):
+        # self.kwargs for retry tPool.request
+        self.kwargs = kwargs
+        filted_kwargs = {
+            key: value for key, value in kwargs.items() if key in self.allow_keys
+        }
+        super(FailedRequest, self).__init__()
+        self.prepare(**filted_kwargs)
+
+
 class tPool(object):
     """Async wrapper for requests.
 
@@ -564,16 +588,17 @@ class tPool(object):
             finally:
                 if self.interval:
                     time.sleep(self.interval)
+        # for unofficial request args
         kwargs["retry"] = retry
         if referer_info:
             kwargs["referer_info"] = referer_info
         if encoding:
             kwargs["encoding"] = encoding
-        error_info = dict(request=kwargs, type=type(error), error_msg=str(error))
-        error.args = (error_info,)
-        Config.main_logger.debug("Retry %s & failed: %s." % (retry, error_info))
+        Config.main_logger.debug("Retry %s & failed: %s." % (retry, error))
         if self.catch_exception:
-            return FailureException(error)
+            failure = FailureException(error)
+            failure.request = FailedRequest(**kwargs)
+            return failure
         raise error
 
     def request(self, method, url, callback=None, retry=0, **kwargs):
