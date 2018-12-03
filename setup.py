@@ -29,7 +29,7 @@ with codecs.open('README.rst', encoding='u8') as f:
 
 setup(
     name='torequests',
-    version='4.8.0',
+    version='4.8.1',
     keywords=(
         'requests async multi-thread aiohttp asyncio uvloop asynchronous'),
     description=
