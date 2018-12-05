@@ -6,7 +6,7 @@ from functools import wraps
 # python3.7+ 's asyncio.all_tasks'
 try:
     _py36_all_task_patch = asyncio.all_tasks
-except ImportError:
+except (ImportError, AttributeError):
     _py36_all_task_patch = asyncio.Task.all_tasks
 
 
