@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 import aiohttp
 from aiohttp.connector import Connection
 
-from ._py3_patch import NewResponse, _aiohttp_unclosed_connection_patch
+from ._py3_patch import NewResponse, _aiohttp_unclosed_connection_patch, _py36_all_task_patch
 from .configs import Config
 from .exceptions import FailureException
 from .main import NewFuture, Pool, ProcessPool, Error
@@ -358,7 +358,7 @@ class Loop:
     @property
     def all_tasks(self):
         """Return all tasks of the current loop."""
-        return asyncio.all_tasks(loop=self.loop)
+        return _py36_all_task_patch(loop=self.loop)
 
     async def pendings(self, tasks=None):
         """Used for await in coroutines.

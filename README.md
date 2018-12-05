@@ -2,8 +2,6 @@
 
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
-*warn: v4.1.0 is not backwardly compatible with old version in about some args and function name.*
-
 ### To install:
 
 > pip install torequests -U

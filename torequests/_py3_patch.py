@@ -3,6 +3,12 @@ import asyncio
 import json
 from functools import wraps
 
+# python3.7+ 's asyncio.all_tasks'
+try:
+    _py36_all_task_patch = asyncio.all_tasks
+except ImportError:
+    _py36_all_task_patch = asyncio.Task.all_tasks
+
 
 def _new_future_await(self):
     loop = asyncio.get_event_loop()
@@ -31,7 +37,7 @@ class NewResponse(object):
         return self.r.status
 
     def __repr__(self):
-        return '<NewResponse [%s]>' % (self.status_code)
+        return "<NewResponse [%s]>" % (self.status_code)
 
     def __bool__(self):
         return self.ok
@@ -49,8 +55,7 @@ class NewResponse(object):
         """True if this Response is a well-formed HTTP redirect that could have
         been processed automatically (by :meth:`Session.resolve_redirects`).
         """
-        return ('location' in self.headers and
-                self.status_code in range(300, 400))
+        return "location" in self.headers and self.status_code in range(300, 400)
 
     @property
     def content(self):
@@ -67,7 +72,6 @@ class NewResponse(object):
 def _aiohttp_unclosed_connection_patch(Connection):
     # avoid the Unclosed connection issue for aiohttp
     def wrapper(function):
-
         @wraps(function)
         def wrapped(self, *args, **kwargs):
             if self._protocol is not None:
