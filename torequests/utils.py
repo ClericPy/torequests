@@ -1322,22 +1322,18 @@ def countdown(
         flush_print(s, sep="", end=" ")
 
     def default_finish_callback(seconds, start_time):
-        print(
-            "\ncountdown finished [%s seconds]: %s => %s."
-            % (seconds, ttime(start_time), ttime())
-        )
+        flush_print()
 
     def cd(seconds, interval):
         for s in range(seconds, 0, -interval):
             tick_callback(s, seconds, interval)
             time.sleep(interval)
-        if finish_callback:
+        if callable(finish_callback):
             finish_callback(seconds, start_time)
 
-    assert seconds or end_time
     start_time = time.time()
     tick_callback = tick_callback or default_tick_callback
-    finish_callback = finish_callback or default_finish_callback
+    finish_callback = default_finish_callback if finish_callback is None else finish_callback
 
     if unicode(seconds).isdigit():
         seconds = int(seconds)
