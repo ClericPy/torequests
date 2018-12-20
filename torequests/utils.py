@@ -389,7 +389,8 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en"):
         else:
             valid_index = x
         result_str = [
-            "%d %s%s" % (num, unit, "s" if num > 1 and unit != "ms" else "")
+            "%d %s%s"
+            % (num, unit, "s" if lang == "en" and num > 1 and unit != "ms" else "")
             for num, unit in zip(times, units)
         ][valid_index:][:accuracy]
         result_str = " ".join(result_str)
@@ -1333,7 +1334,9 @@ def countdown(
 
     start_time = time.time()
     tick_callback = tick_callback or default_tick_callback
-    finish_callback = default_finish_callback if finish_callback is None else finish_callback
+    finish_callback = (
+        default_finish_callback if finish_callback is None else finish_callback
+    )
 
     if unicode(seconds).isdigit():
         seconds = int(seconds)
