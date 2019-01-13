@@ -139,6 +139,7 @@ class _Curl:
     parser.add_argument("-u", "--user")  # <user[:password]>
     parser.add_argument("-x", "--proxy")  # proxy.com:port
     parser.add_argument("-d", "--data")
+    parser.add_argument("-F", "--form")
     parser.add_argument("--data-binary")
     parser.add_argument("--connect-timeout", type=float)
     parser.add_argument("-H", "--header", action="append", default=[])  # key: value
@@ -179,7 +180,7 @@ def curlparse(string, encoding="utf-8"):
         requests_args["auth"] = tuple(u for u in args.user.split(":", 1) + [""])[:2]
     # if args.proxy:
     # pass
-    data = args.data or args.data_binary
+    data = args.data or args.data_binary or args.form
     if data:
         if data.startswith("$"):
             data = data[1:]
@@ -196,6 +197,8 @@ def curlparse(string, encoding="utf-8"):
             data = data.encode(encoding)
             requests_args["data"] = data
     requests_args["method"] = args.method.lower()
+    if args.connect_timeout:
+        requests_args["timeout"] = args.connect_timeout
     return requests_args
 
 
