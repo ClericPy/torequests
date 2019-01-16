@@ -1,4 +1,4 @@
-# [torequests  - v4.8.3](https://github.com/ClericPy/torequests)
+# [torequests  - v4.8.4](https://github.com/ClericPy/torequests)
 
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
@@ -177,6 +177,7 @@ app.run(server='gevent', port=5000)
     slice_into_pieces: slice a sequence into n pieces, return a generation of n pieces.
     timeago: show the seconds as human-readable.
     unique: unique one sequence.
+    ...
 
 
 ### Documentation

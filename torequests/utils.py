@@ -1540,12 +1540,10 @@ class TimeItem(object):
 class Cooldown(object):
     """Thread-safe Cooldown toolkit.
 
-    :param timestamp: the timestamp float, or `time.time()` by default.
-    :param tzone: time compensation, int(-time.timezone / 3600) by default,
-                (can be set with Config.TIMEZONE).
-    :param fail: while raising an exception, return it.
-    :param fmt: %Y-%m-%d %H:%M:%S, %z not work.
-    :rtype: str
+    :param init_items: iterables to add into the default queue at first.
+    :param interval: each item will cooldown `interval` seconds before return.
+    :param born_at_now: if be set True, the item.use_at will be set time.time()
+            instead of 0 when adding to queue at the first time.
 
     >>> from torequests.logs import print_info
     >>> cd = Cooldown(range(1, 3), interval=2)
