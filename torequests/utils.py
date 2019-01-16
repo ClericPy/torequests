@@ -16,7 +16,8 @@ import time
 import timeit
 from fractions import Fraction
 from functools import wraps
-from threading import Thread, Lock
+from queue import Empty, PriorityQueue
+from threading import Lock, Thread
 
 from .configs import Config
 from .exceptions import ImportErrorModule
@@ -59,7 +60,7 @@ if PY3:
 
     unicode = str
 
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown".split(
     " "
 )
 
@@ -1504,3 +1505,99 @@ find_one = RegMatch.find_one
 def register_re_findone():
     """import re; re.findone = find_one"""
     re.findone = find_one
+
+
+class TimeItem(object):
+    """Used for Cooldown."""
+    __slots__ = ('data', 'use_at')
+
+    def __init__(self, data, use_at):
+        self.data = data
+        self.use_at = use_at
+
+    def __hash__(self):
+        return hash(self.data)
+
+    def __gt__(self, other):
+        return self.use_at > other.use_at
+
+    def __ge__(self, other):
+        return self.use_at >= other.use_at
+
+    def __lt__(self, other):
+        return self.use_at < other.use_at
+
+    def __le__(self, other):
+        return self.use_at <= other.use_at
+
+    def __eq__(self, other):
+        return self.use_at == other.use_at
+
+    def __ne__(self, other):
+        return self.use_at != other.use_at
+
+
+class Cooldown(object):
+    """Thread-safe Cooldown toolkit.
+
+    :param timestamp: the timestamp float, or `time.time()` by default.
+    :param tzone: time compensation, int(-time.timezone / 3600) by default,
+                (can be set with Config.TIMEZONE).
+    :param fail: while raising an exception, return it.
+    :param fmt: %Y-%m-%d %H:%M:%S, %z not work.
+    :rtype: str
+
+    >>> from torequests.logs import print_info
+    >>> cd = Cooldown(range(1, 3), interval=2)
+    >>> cd.add_items([3, 4])
+    >>> cd.add_item(5)
+    >>> for _ in range(7):
+    ...     print_info(cd.get(1, 'timeout'))
+
+    [2019-01-17 01:50:59] pyld.py(152): 1
+    [2019-01-17 01:50:59] pyld.py(152): 3
+    [2019-01-17 01:50:59] pyld.py(152): 5
+    [2019-01-17 01:50:59] pyld.py(152): 2
+    [2019-01-17 01:50:59] pyld.py(152): 4
+    [2019-01-17 01:51:00] pyld.py(152): timeout
+    [2019-01-17 01:51:01] pyld.py(152): 1
+    """
+
+    def __init__(self, init_items=None, interval=0, born_at_now=False):
+        self.interval = interval
+        self.queue = PriorityQueue()
+        self.use_at_function = self.get_now_timestamp if born_at_now else lambda: 0
+        self.add_items(init_items or [])
+
+    def get_now_timestamp(self):
+        return time.time()
+
+    def add_item(self, item):
+        if not isinstance(item, TimeItem):
+            item = TimeItem(item, self.use_at_function())
+        self.queue.put(item)
+
+    def add_items(self, items):
+        for item in items:
+            self.add_item(item)
+
+    def get(self, timeout=None, default=None):
+        try:
+            start_time = time.time()
+            if timeout is None:
+                timeout = float('inf')
+            while time.time() - start_time < timeout:
+                item = self.queue.get(timeout=timeout)
+                if time.time() - item.use_at < self.interval:
+                    self.queue.put(item)
+                    wait_time = self.interval - (time.time() - item.use_at)
+                    wait_time = min((wait_time, timeout))
+                    time.sleep(wait_time)
+                    continue
+                item.use_at = self.get_now_timestamp()
+                self.queue.put(item)
+                return item.data
+            else:
+                return default
+        except Empty:
+            return default

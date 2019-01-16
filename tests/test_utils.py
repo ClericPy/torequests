@@ -286,3 +286,13 @@ def test_find_one():
     assert (find_one("a(B)", string)[1]) == ""
     register_re_findone()
     assert re.findone("a(.)", string)[1] == "b"
+
+
+def test_cooldown():
+    cd = Cooldown(range(1, 2), 2)
+    cd.add_item(2)
+    cd.add_items([3, 4])
+    item_types = [True, True, True, True, False, False]
+    for _ in range(6):
+        item = cd.get(1, 0)
+        assert (item > 0) == item_types[_]
