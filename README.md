@@ -1,4 +1,4 @@
-# [torequests  - v4.8.4](https://github.com/ClericPy/torequests)
+# [torequests  - v4.8.5](https://github.com/ClericPy/torequests)
 
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
