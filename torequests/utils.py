@@ -1551,7 +1551,6 @@ class Cooldown(object):
     >>> cd.add_item(5)
     >>> for _ in range(7):
     ...     print_info(cd.get(1, 'timeout'))
-
     [2019-01-17 01:50:59] pyld.py(152): 1
     [2019-01-17 01:50:59] pyld.py(152): 3
     [2019-01-17 01:50:59] pyld.py(152): 5
@@ -1559,6 +1558,8 @@ class Cooldown(object):
     [2019-01-17 01:50:59] pyld.py(152): 4
     [2019-01-17 01:51:00] pyld.py(152): timeout
     [2019-01-17 01:51:01] pyld.py(152): 1
+    >>> cd.size
+    5
     """
 
     def __init__(self, init_items=None, interval=0, born_at_now=False):
@@ -1566,6 +1567,14 @@ class Cooldown(object):
         self.queue = PriorityQueue()
         self.use_at_function = self.get_now_timestamp if born_at_now else lambda: 0
         self.add_items(init_items or [])
+
+    @property
+    def size(self):
+        return self.queue.qsize()
+
+    @property
+    def all_items(self):
+        return [item.data for item in self.queue.queue]
 
     def get_now_timestamp(self):
         return time.time()
@@ -1578,6 +1587,14 @@ class Cooldown(object):
     def add_items(self, items):
         for item in items:
             self.add_item(item)
+
+    def remove_item(self, item):
+        self.queue.queue = [i for i in self.queue.queue if i.data != item]
+        return self.queue.qsize()
+
+    def remove_items(self, items):
+        self.queue.queue = [i for i in self.queue.queue if i.data in items]
+        return self.queue.qsize()
 
     def get(self, timeout=None, default=None):
         try:

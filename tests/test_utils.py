@@ -208,7 +208,7 @@ def test_ensure_request():
             [["a", "b", "c"], ["d", "e", "f"], ["1", "2", "3"], ["4", "5", "6"]],
             [["a", "b", "c"], ["d", "e", "f"], ["1", "2", "3"], ["4", "5", "6"]],
         ]
-        assert split_n(ss, ["\s+"], reg=1) == [
+        assert split_n(ss, ["\\s+"], reg=1) == [
             "a",
             "b",
             "c",
@@ -289,10 +289,16 @@ def test_find_one():
 
 
 def test_cooldown():
-    cd = Cooldown(range(1, 2), 2)
+    cd = Cooldown(range(1, 2), 3)
     cd.add_item(2)
     cd.add_items([3, 4])
     item_types = [True, True, True, True, False, False]
-    for _ in range(6):
+    for _ in range(5):
         item = cd.get(1, 0)
         assert (item > 0) == item_types[_]
+    # remove items
+    for _ in range(cd.size):
+        item = cd.get(6, 0)
+        if item > 2:
+            cd.remove_item(item)
+    assert cd.all_items == [1, 2]
