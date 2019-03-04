@@ -34,7 +34,7 @@ def test_dummy_Requests():
 
 
 def test_dummy_Requests_time_interval_sem(capsys):
-    """  test_dummy_Requests_time_interval_sem_run_forever """
+    """  test_dummy_Requests_time_interval_sem"""
     with capsys.disabled():
         trequests = Requests(frequencies={"p.3.cn": (2, 1)})
         print("\n")
@@ -47,7 +47,7 @@ def test_dummy_Requests_time_interval_sem(capsys):
         ]
         trequests.x
         ss = [i.cx for i in ss]
-        assert all(ss), "fail: test_dummy_Requests_time_interval_sem_run_forever"
+        assert all(ss), "fail: test_dummy_Requests_time_interval_sem"
 
 
 def test_new_future_await():

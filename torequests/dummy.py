@@ -298,10 +298,6 @@ class Loop:
             tasks = tasks or self.todo_tasks
             return self.loop.run_until_complete(asyncio.gather(*tasks, loop=self.loop))
 
-    def run_forever(self):
-        """Block, run loop forever."""
-        self.loop.run_forever()
-
     def wait_all_tasks_done(self, timeout=None, delay=0.5, interval=0.1):
         """Block, only be used while loop running in a single non-main thread."""
         timeout = self._timeout if timeout is None else timeout
@@ -315,45 +311,9 @@ class Loop:
                 return self.done_tasks
             time.sleep(interval)
 
-    def async_run_forever(self, daemon=True):
-        """Run a loop forever with a single thread.
-        ::
-
-            from torequests.dummy import Requests
-            from torequests.logs import print_info
-            trequests = Requests(frequencies={'p.3.cn': (2, 2)})
-            trequests.async_run_forever()
-            ss = [
-                trequests.get(
-                    'http://p.3.cn',
-                    callback=lambda x: (len(x.content), print_info(trequests.frequencies)))
-                for i in range(4)
-            ]
-            trequests.x
-            ss = [i.cx for i in ss]
-            print_info(ss)
-
-            # [2018-03-19 00:56:58]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-            # [2018-03-19 00:56:58]: {'p.3.cn': Frequency(sem=<0/2>, interval=2)}
-            # [2018-03-19 00:57:00]: {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-            # [2018-03-19 00:57:00]: {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-            # [2018-03-19 00:57:00]: [(612, None), (612, None), (612, None), (612, None)]
-        """
-        thread = threading.Thread(target=self.loop.run_forever)
-        thread.setDaemon(daemon)
-        thread.start()
-        self.async_running = True
-
     def close(self):
         """Close the event loop."""
         self.loop.close()
-
-    def stop(self):
-        """Stop self.loop directly, often be used with run_forever"""
-        try:
-            self.loop.stop()
-        except Exception as e:
-            Config.dummy_logger.error("can not stop loop for: %s" % e)
 
     @property
     def all_tasks(self):
