@@ -33,11 +33,10 @@ def test_dummy_Requests():
     assert r.referer_info == 0
 
 
-def test_dummy_Requests_time_interval_sem_run_forever(capsys):
+def test_dummy_Requests_time_interval_sem(capsys):
     """  test_dummy_Requests_time_interval_sem_run_forever """
     with capsys.disabled():
         trequests = Requests(frequencies={"p.3.cn": (2, 1)})
-        trequests.async_run_forever()
         print("\n")
         ss = [
             trequests.get(

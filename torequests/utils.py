@@ -22,7 +22,7 @@ from threading import Lock, Thread
 from .configs import Config
 from .exceptions import ImportErrorModule
 from .logs import print_info
-from .main import run_after_async, threads
+from .main import run_after_async, threads, tPool
 from .versions import PY2, PY3
 
 if PY2:
@@ -60,7 +60,7 @@ if PY3:
 
     unicode = str
 
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests".split(
     " "
 )
 
@@ -1616,3 +1616,25 @@ class Cooldown(object):
                 return default
         except Empty:
             return default
+
+
+def curlrequests(curl_string, **kwargs):
+    """Use tPool to request for curl string.
+    If kwargs contains the req which hasattr request method, like req=requests.
+
+    :param curl_string: standard curl string.
+    :type curl_string: str
+    :param kwargs: valid kwargs for tPool.
+    :type curl_string: dict
+
+    Basic Usage::
+
+        from torequests.utils import curlrequests
+
+
+        r = curlrequests('''curl 'http://p.3.cn/' -H 'Connection: keep-alive' -H 'Cache-Control: max-age=0' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36' -H 'DNT: 1' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8' -H 'If-None-Match: "55dd9090-264"' -H 'If-Modified-Since: Wed, 26 Aug 2015 10:10:24 GMT' --compressed''', retry=1)
+        print(r.text)
+    """
+    req = kwargs.pop('req', tPool())
+    kwargs.update(curlparse(curl_string))
+    return req.request(**kwargs)

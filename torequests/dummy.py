@@ -132,7 +132,7 @@ class Loop:
         interval=0,
         timeout=None,
         default_callback=None,
-        reuse_running_loop=False,
+        reuse_running_loop=True,
         loop=None,
     ):
         try:
@@ -500,7 +500,7 @@ class Requests(Loop):
         default_callback=None,
         frequencies=None,
         default_host_frequency=None,
-        reuse_running_loop=False,
+        reuse_running_loop=True,
         **kwargs
     ):
         loop = kwargs.pop("loop", None)
