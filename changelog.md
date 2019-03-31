@@ -3,7 +3,7 @@
 
 ---
 
-- 4.8.6
+- 4.8.7
     - support tuple type timeout for dummy, like
         - `req.get(url, timeout=(1, 3))`
 
