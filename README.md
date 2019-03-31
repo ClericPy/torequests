@@ -40,14 +40,17 @@ Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-co
 from torequests import threads, Async
 import time
 
+
 @threads(5)
 def test1(n):
     time.sleep(n)
     return 'test1 ok'
 
+
 def test2(n):
     time.sleep(n)
     return 'test1 ok'
+
 
 start = int(time.time())
 # here async_test2 is same as test1
@@ -67,41 +70,44 @@ print(future.x, ', %s s passed' % (int(time.time() - start)))
 from torequests.main import tPool
 from torequests.logs import print_info
 
-trequests = tPool()
+req = tPool()
 test_url = 'http://p.3.cn'
 ss = [
-    trequests.get(
+    req.get(
         test_url,
         retry=2,
         callback=lambda x: (len(x.content), print_info(len(x.content))))
     for i in range(3)
 ]
 # or [i.x for i in ss]
-trequests.x
+req.x
 ss = [i.cx for i in ss]
 print_info(ss)
 
-# [2018-03-18 21:18:09]: 612
-# [2018-03-18 21:18:09]: 612
-# [2018-03-18 21:18:09]: 612
-# [2018-03-18 21:18:09]: [(612, None), (612, None), (612, None)]
+# [2019-04-01 00:19:07] temp_code.py(10): 612
+# [2019-04-01 00:19:07] temp_code.py(10): 612
+# [2019-04-01 00:19:07] temp_code.py(10): 612
+# [2019-04-01 00:19:07] temp_code.py(16): [(612, None), (612, None), (612, None)]
+
 ```
-> Test the performance, slower than gevent and aiohttp.
+> Test the performance (win32+python3.7).
 ```python
 from torequests import tPool
 import time
 
 start_time = time.time()
 trequests = tPool()
-list1 = [trequests.get('http://127.0.0.1:5000/test/%s'%num) for num in range(5000)]
+list1 = [
+    trequests.get('http://127.0.0.1:5000/test/%s' % num) for num in range(5000)
+]
 # If failed, i.x may return False by default,
 # or you can reset the fail_return arg.
 list2 = [i.x.text if i.x else 'fail' for i in list1]
 end_time = time.time()
-print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
+print(list2[:5], '\n5000 requests time cost: %s s' % (end_time - start_time))
 # output:
-# ['ok 0', 'ok 1', 'ok 2', 'ok 3', 'ok 4'] 
-# 5000 requests time cost:10.918817281723022 s
+# ['test ok 0', 'test ok 1', 'test ok 2', 'test ok 3', 'test ok 4'] 
+# 5000 requests time cost: 5.906721591949463 s
 ```
 
 #### 3. Requests - aiohttp-wrapper
@@ -120,30 +126,34 @@ trequests.x
 ss = [i.cx for i in ss]
 print_info(ss)
 
-# [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-# [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<0/2>, interval=2)}
-# [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-# [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-# [2018-03-19 00:57:38]: [(612, None), (612, None), (612, None), (612, None)]
+# [2019-04-01 00:16:35] temp_code.py(7): {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
+# [2019-04-01 00:16:35] temp_code.py(7): {'p.3.cn': Frequency(sem=<0/2>, interval=2)}
+# [2019-04-01 00:16:37] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
+# [2019-04-01 00:16:37] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
+# [2019-04-01 00:16:37] temp_code.py(12): [<NewResponse [200]>, <NewResponse [200]>, <NewResponse [200]>, <NewResponse [200]>]
+
 ```
 
-> uvloop cost about 3.8s per 5000 requests; win32 5.78s per 5000 requests.
+> win32+python3.7 cost 3.9s per 5000 requests, may be much faster with uvloop.
+
 ```python
 from torequests.dummy import Requests
 import time
 
 start_time = time.time()
 trequests = Requests()
-list1 = [trequests.get('http://127.0.0.1:5000/test/%s'%num) for num in range(5000)]
+list1 = [
+    trequests.get('http://127.0.0.1:5000/test/%s' % num) for num in range(5000)
+]
 # If failed, i.x may return False by default,
 # or you can reset the fail_return arg.
 list2 = [i.x.text if i.x else 'fail' for i in list1]
 end_time = time.time()
 print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
 # output:
-# win32, without uvloop; 
-# ['ok 0', 'ok 1', 'ok 2', 'ok 3', 'ok 4'] 
-# 5000 requests time cost:5.776089191436768 s
+# win32, without uvloop;
+# ['test ok 0', 'test ok 1', 'test ok 2', 'test ok 3', 'test ok 4'] 
+# 5000 requests time cost:3.909820079803467 s
 ```
 
 > mock server

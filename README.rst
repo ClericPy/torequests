@@ -67,8 +67,8 @@ Examples:
         print(results)
 
         # use_submit: 0
-        # use_decorator: 0
-        # [<class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>]
+        # use_decorator: 0[<class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>, <class 'torequests.main.NewFuture'>]
+
         # use_submit: 1
         # use_decorator: 1
         # use_submit: 2
@@ -96,10 +96,11 @@ Examples:
         ss = [i.cx for i in ss]
         print_info(ss)
 
-        # [2018-03-18 21:18:09]: 612
-        # [2018-03-18 21:18:09]: 612
-        # [2018-03-18 21:18:09]: 612
-        # [2018-03-18 21:18:09]: [(612, None), (612, None), (612, None)]
+        # [2019-04-01 00:22:22] temp_code.py(10): 612
+        # [2019-04-01 00:22:22] temp_code.py(10): 612
+        # [2019-04-01 00:22:22] temp_code.py(10): 612
+        # [2019-04-01 00:22:22] temp_code.py(16): [(612, None), (612, None), (612, None)]
+
 
 **3. Requests - aiohttp-wrapper**
 
@@ -110,7 +111,9 @@ Examples:
         trequests = Requests(frequencies={'p.3.cn': (2, 2)})
         ss = [
             trequests.get(
-                'http://p.3.cn', retry=1, timeout=5,
+                'http://p.3.cn',
+                retry=1,
+                timeout=5,
                 callback=lambda x: (len(x.content), print_info(trequests.frequencies)))
             for i in range(4)
         ]
@@ -118,11 +121,12 @@ Examples:
         ss = [i.cx for i in ss]
         print_info(ss)
 
-        # [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-        # [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<0/2>, interval=2)}
-        # [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-        # [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-        # [2018-03-19 00:57:38]: [(612, None), (612, None), (612, None), (612, None)]
+        # [2019-04-01 00:22:51] temp_code.py(9): {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
+        # [2019-04-01 00:22:51] temp_code.py(9): {'p.3.cn': Frequency(sem=<0/2>, interval=2)}
+        # [2019-04-01 00:22:53] temp_code.py(9): {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
+        # [2019-04-01 00:22:53] temp_code.py(9): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
+        # [2019-04-01 00:22:53] temp_code.py(14): [<NewResponse [200]>, <NewResponse [200]>, <NewResponse [200]>, <NewResponse [200]>]
+
 
 **4. utils: some useful crawler toolkits**
 
