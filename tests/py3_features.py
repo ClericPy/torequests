@@ -15,9 +15,11 @@ def test_dummy_Requests():
     test_url = "https://httpbin.org/json"
     tasks = [
         trequests.get(
-            test_url, retry=0, callback=lambda r: len(r.content), referer_info=i
-        )
-        for i in range(3)
+            test_url,
+            retry=0,
+            callback=lambda r: len(r.content),
+            timeout=(1, 3),
+            referer_info=i) for i in range(3)
     ]
     trequests.x
     cb_results = [i.cx for i in tasks]
@@ -41,9 +43,9 @@ def test_dummy_Requests_time_interval_sem(capsys):
         ss = [
             trequests.get(
                 "http://p.3.cn",
-                callback=lambda x: (len(x.content), print(trequests.frequencies)),
-            )
-            for i in range(4)
+                callback=
+                lambda x: (len(x.content), print(trequests.frequencies)),
+            ) for i in range(4)
         ]
         trequests.x
         ss = [i.cx for i in ss]

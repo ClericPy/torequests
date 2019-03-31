@@ -526,6 +526,16 @@ class Requests(Loop):
             frequency = self.set_frequency(host, *self.default_host_frequency)
         else:
             frequency = self.global_frequency
+        if 'timeout' in kwargs:
+            if isinstance(kwargs['timeout'], tuple):
+                kwargs['timeout'] = aiohttp.client.ClientTimeout(
+                    sock_connect=kwargs['timeout'][0],
+                    sock_read=kwargs['timeout'][1])
+            elif isinstance(kwargs['timeout'], aiohttp.client.ClientTimeout):
+                pass
+            else:
+                kwargs['timeout'] = aiohttp.client.ClientTimeout(
+                    sock_connect=kwargs['timeout'], sock_read=kwargs['timeout'])
         sem, interval = frequency.sem, frequency.interval
         proxies = kwargs.pop("proxies", None)
         verify_ssl = kwargs.pop("verify_ssl", None) or kwargs.pop("verify", None)
