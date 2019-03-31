@@ -2,7 +2,7 @@
 
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
-### To install:
+## To install:
 
 > pip install torequests -U
 
@@ -23,7 +23,7 @@ Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie
     | python-Levenshtein
     | pyperclip
 
-### Features
+## Features
 
 Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-coding brief & smooth, compatible for win32 / python 2&3.
 
@@ -32,9 +32,9 @@ Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-co
 * simplify aiohttp, make it `requests-like`.
 * some crawler toolkits.
 
-### Getting started
+## Getting started
 
-#### 1. Async, threads - make functions asynchronous
+### 1. Async, threads - make functions asynchronous
 
 ```python
 from torequests import threads, Async
@@ -64,7 +64,7 @@ print(future.x, ', %s s passed' % (int(time.time() - start)))
 # <NewFuture at 0x34b1d30 state=running> , 0 s passed
 # test1 ok , 1 s passed
 ```
-#### 2. tPool - thread pool for async-requests
+### 2. tPool - thread pool for async-requests
 
 ```python
 from torequests.main import tPool
@@ -90,7 +90,9 @@ print_info(ss)
 # [2019-04-01 00:19:07] temp_code.py(16): [(612, None), (612, None), (612, None)]
 
 ```
-> Test the performance (win32+python3.7).
+
+#### 2.1 Test the performance (win32+python3.7).
+
 ```python
 from torequests import tPool
 import time
@@ -110,7 +112,7 @@ print(list2[:5], '\n5000 requests time cost: %s s' % (end_time - start_time))
 # 5000 requests time cost: 5.906721591949463 s
 ```
 
-#### 3. Requests - aiohttp-wrapper
+### 3. Requests - aiohttp-wrapper
 
 ```python
 from torequests.dummy import Requests
@@ -134,7 +136,7 @@ print_info(ss)
 
 ```
 
-> win32+python3.7 cost 3.9s per 5000 requests, may be much faster with uvloop.
+#### 3.1 win32+python3.7 cost 3.9s per 5000 requests, which may be much faster with uvloop.
 
 ```python
 from torequests.dummy import Requests
@@ -156,7 +158,36 @@ print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
 # 5000 requests time cost:3.909820079803467 s
 ```
 
-> mock server
+#### 3.2 using torequests.dummy.Requests in async environment.
+
+```python
+import asyncio
+
+from responder import API
+from torequests.dummy import Requests
+
+loop = asyncio.get_event_loop()
+api = API()
+
+
+@api.route('/')
+async def index(req, resp):
+    # await for request or FailureException
+    r = await api.req.get('http://p.3.cn', timeout=(1, 1))
+    print(r)
+    if r:
+        # including good request with status_code between 200 and 299
+        resp.text = 'ok' if 'Welcome to nginx!' in r.text else 'bad'
+    else:
+        resp.text = 'fail'
+
+
+if __name__ == "__main__":
+    api.req = Requests(loop=loop)
+    api.run(port=5000, loop=loop)
+```
+
+#### 3.3 mock server source code
 
 ```python
 from gevent.monkey import patch_all
@@ -169,7 +200,7 @@ def test(num):
 app.run(server='gevent', port=5000)
 ```
 
-#### 4. utils: some useful crawler toolkits
+### 4. utils: some useful crawler toolkits
 
     ClipboardWatcher: watch your clipboard changing.
     Counts: counter while every time being called.
@@ -187,14 +218,15 @@ app.run(server='gevent', port=5000)
     slice_into_pieces: slice a sequence into n pieces, return a generation of n pieces.
     timeago: show the seconds as human-readable.
     unique: unique one sequence.
+    find_one: use regex like Javascript to find one string with index(like [0], [1]).
     ...
 
 
-### Documentation
+## Documentation
 > [Document & Usage](https://torequests.readthedocs.io/en/latest/)
 
-### License
+## License
 > [MIT license](LICENSE)
 
-### Benchmarks
+## Benchmarks
 > to be continued......

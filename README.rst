@@ -127,6 +127,33 @@ Examples:
         # [2019-04-01 00:22:53] temp_code.py(9): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
         # [2019-04-01 00:22:53] temp_code.py(14): [<NewResponse [200]>, <NewResponse [200]>, <NewResponse [200]>, <NewResponse [200]>]
 
+    or using torequests.dummy.Requests in async environment.
+    ::
+        import asyncio
+
+        from responder import API
+        from torequests.dummy import Requests
+
+        loop = asyncio.get_event_loop()
+        api = API()
+
+
+        @api.route('/')
+        async def index(req, resp):
+            # await for request or FailureException
+            r = await api.req.get('http://p.3.cn', timeout=(1, 1))
+            print(r)
+            if r:
+                # including good request with status_code between 200 and 299
+                resp.text = 'ok' if 'Welcome to nginx!' in r.text else 'bad'
+            else:
+                resp.text = 'fail'
+
+
+        if __name__ == "__main__":
+            api.req = Requests(loop=loop)
+            api.run(port=5000, loop=loop)
+
 
 **4. utils: some useful crawler toolkits**
 
