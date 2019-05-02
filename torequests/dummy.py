@@ -126,31 +126,24 @@ class NewTask(asyncio.Task):
 class Loop:
     """Handle the event loop like a thread pool."""
 
-    def __init__(
-        self,
-        n=None,
-        interval=0,
-        timeout=None,
-        default_callback=None,
-        reuse_running_loop=True,
-        loop=None,
-    ):
-        try:
-            self.loop = loop or asyncio.get_event_loop()
-            if not reuse_running_loop and self.loop.is_running():
-                raise NotImplementedError(
-                    "Cannot use aioutils in " "asynchroneous environment"
-                )
-        except Exception as e:
-            Config.dummy_logger.debug("Rebuilding a new loop for exception: %s" % e)
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
+    def __init__(self,
+                 n=None,
+                 interval=0,
+                 timeout=None,
+                 default_callback=None,
+                 loop=None,
+                 **kwargs):
+        self._loop = loop
         self.default_callback = default_callback
         self.async_running = False
         self.n = n
         self.interval = interval
         self._timeout = timeout
         self.frequency = Frequency(self.n, self.interval, "loop_sem")
+
+    @property
+    def loop(self):
+        return self._loop or asyncio.get_event_loop()
 
     def _wrap_coro_function_with_sem(self, coro_func):
         """Decorator set the coro_function has sem/interval control."""
@@ -451,23 +444,19 @@ class Requests(Loop):
         # [2018-03-19 00:57:38]: [(612, None), (612, None), (612, None), (612, None)]
     """
 
-    def __init__(
-        self,
-        n=100,
-        interval=0,
-        session=None,
-        catch_exception=True,
-        default_callback=None,
-        frequencies=None,
-        default_host_frequency=None,
-        reuse_running_loop=True,
-        **kwargs
-    ):
+    def __init__(self,
+                 n=100,
+                 interval=0,
+                 session=None,
+                 catch_exception=True,
+                 default_callback=None,
+                 frequencies=None,
+                 default_host_frequency=None,
+                 **kwargs):
         loop = kwargs.pop("loop", None)
         super().__init__(
             loop=loop,
             default_callback=default_callback,
-            reuse_running_loop=reuse_running_loop,
         )
         # Requests object use its own frequency control.
         self.sem = asyncio.Semaphore(n)

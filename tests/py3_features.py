@@ -18,7 +18,7 @@ def test_dummy_Requests():
             test_url,
             retry=0,
             callback=lambda r: len(r.content),
-            timeout=(1, 3),
+            timeout=(2, 5),
             referer_info=i) for i in range(3)
     ]
     trequests.x
