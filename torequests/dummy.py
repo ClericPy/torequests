@@ -607,7 +607,8 @@ class Requests(Loop):
         try:
             if not self.session.closed:
                 if self.session._connector_owner:
-                    self.session._connector.close()
+                    if self._loop:
+                        self._loop.run_until_complete(self.session._connector.close())
                 self.session._connector = None
         except Exception as e:
             Config.dummy_logger.error("can not close session for: %s" % e)
