@@ -3,6 +3,9 @@
 
 ---
 
+- 4.8.9
+    - fix issue: close aiohttp.ClientSession as coroutine
+
 - 4.8.8
     - remove useless arg of torequests.dummy.Requests: reuse_running_loop
 

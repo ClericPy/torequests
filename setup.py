@@ -4,8 +4,6 @@ from setuptools import setup, find_packages
 import sys
 import codecs
 from torequests import __version__ as torequests_version
-
-
 """
 linux:
 rm -rf "dist/*";rm -rf "build/*";python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload "dist/*;rm -rf "dist/*";rm -rf "build/*""
@@ -28,15 +26,18 @@ if py_version.major == 3 and py_version.minor >= 5:
     # if  'Windows' not in .system():
     #     install_requires.append('uvloop')
 
-with codecs.open("README.rst", encoding="u8") as f:
-    README = f.read()
+with codecs.open("README.md", encoding="u8") as f:
+    long_description = f.read()
 
 setup(
     name="torequests",
     version=torequests_version,
-    keywords=("requests async multi-thread aiohttp asyncio uvloop asynchronous"),
-    description="Async wrapper for requests / aiohttp, and some python crawler toolkits. Let synchronization code enjoy the performance of asynchronous programming. Read more: https://github.com/ClericPy/torequests.",
-    long_description=README,
+    keywords=(
+        "requests async multi-thread aiohttp asyncio uvloop asynchronous"),
+    description=
+    "Async wrapper for requests / aiohttp, and some python crawler toolkits. Let synchronization code enjoy the performance of asynchronous programming. Read more: https://github.com/ClericPy/torequests.",
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     license="MIT License",
     install_requires=install_requires,
     py_modules=["torequests"],
