@@ -321,5 +321,8 @@ def test_sort_url_query():
     url = 'http://www.google.com?b=2&z=26&a=1'
     default_sorted = sort_url_query(url)
     reversed_sorted = sort_url_query(url, reverse=True)
+    update_https_default_sorted = sort_url_query(
+        url, _replace_kwargs={'scheme': 'https'})
     assert default_sorted == 'http://www.google.com?a=1&b=2&z=26'
     assert reversed_sorted == 'http://www.google.com?z=26&b=2&a=1'
+    assert update_https_default_sorted == 'https://www.google.com?a=1&b=2&z=26'

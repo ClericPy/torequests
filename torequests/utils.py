@@ -1640,11 +1640,14 @@ def curlrequests(curl_string, **kwargs):
     return req.request(**kwargs)
 
 
-def sort_url_query(url, reverse=False):
+def sort_url_query(url, reverse=False, _replace_kwargs=None):
     """sort url query args.
+    _replace_kwargs is a dict to update attributes before sorting  (such as scheme / netloc...).
     http://www.google.com?b=2&z=26&a=1 => http://www.google.com?a=1&b=2&z=26
     """
     parsed = urlparse(url)
+    if _replace_kwargs:
+        parsed = parsed._replace(**_replace_kwargs)
     sorted_parsed = parsed._replace(
         query=unparse_qsl(parse_qsl(parsed.query), sort=True, reverse=reverse))
     return urlunparse(sorted_parsed)
