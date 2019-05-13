@@ -3,6 +3,9 @@
 
 ---
 
+- 4.8.10
+    - add sort_url_query
+
 - 4.8.9
     - fix issue: close aiohttp.ClientSession as coroutine
 

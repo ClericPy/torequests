@@ -60,7 +60,7 @@ if PY3:
 
     unicode = str
 
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query".split(
     " "
 )
 
@@ -1638,3 +1638,13 @@ def curlrequests(curl_string, **kwargs):
     req = kwargs.pop('req', tPool())
     kwargs.update(curlparse(curl_string))
     return req.request(**kwargs)
+
+
+def sort_url_query(url, reverse=False):
+    """sort url query args.
+    http://www.google.com?b=2&z=26&a=1 => http://www.google.com?a=1&b=2&z=26
+    """
+    parsed = urlparse(url)
+    sorted_parsed = parsed._replace(
+        query=unparse_qsl(parse_qsl(parsed.query), sort=True, reverse=reverse))
+    return urlunparse(sorted_parsed)

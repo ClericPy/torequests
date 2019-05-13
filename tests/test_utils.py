@@ -44,19 +44,20 @@ def test_slice_into_pieces():
 
 
 def test_ttime_ptime():
-    assert time.time() - ptime(ttime(tzone=0), tzone=0) < 2, "fail: ttime / ptime"
+    assert time.time() - ptime(
+        ttime(tzone=0), tzone=0) < 2, "fail: ttime / ptime"
     assert ttime(1542099747428) == ttime(1542099747428 / 1000)
 
 
 def test_timeago():
-    assert (
-        timeago(93245732.0032424, 5) == "1079 days, 05:35:32,003"
-        and timeago(93245732.0032424, 4, 1) == "1079 days 5 hours 35 minutes 32 seconds"
-    )
+    assert (timeago(93245732.0032424, 5) == "1079 days, 05:35:32,003" and
+            timeago(93245732.0032424, 4,
+                    1) == "1079 days 5 hours 35 minutes 32 seconds")
 
 
 def test_escape_unescape():
-    assert escape("<>") == "&lt;&gt;" and unescape("&lt;&gt;") == "<>", "fail: escape"
+    assert escape("<>") == "&lt;&gt;" and unescape(
+        "&lt;&gt;") == "<>", "fail: escape"
 
 
 def test_counts():
@@ -66,7 +67,8 @@ def test_counts():
 
 
 def test_unique():
-    assert list(unique(list(range(4, 0, -1)) + list(range(5)))) == [4, 3, 2, 1, 0]
+    assert list(
+        unique(list(range(4, 0, -1)) + list(range(5)))) == [4, 3, 2, 1, 0]
 
 
 def test_regex():
@@ -110,14 +112,13 @@ def test_parsers():
 
     scode = u'{"items": [{"title": "a"}, {"title": "b"}, {"title": "中文"}]}'
     result = parser.parse(
-        scode, [["1-n", "json", "$.items[*]"], ["n-n", "json", "$.title"]]
-    )
+        scode, [["1-n", "json", "$.items[*]"], ["n-n", "json", "$.title"]])
     assert result == ["a", "b", u"中文"], "test json fail."
 
     scode = u'{"a": "1", "items": [{"title": "b"}, {"title": "b"}, {"title": "中文"}]}'
     result = parser.parse(
-        scode, [["1-n", "object", "$.items[@.title is b]"], ["n-n", "object", "$.*"]]
-    )
+        scode,
+        [["1-n", "object", "$.items[@.title is b]"], ["n-n", "object", "$.*"]])
     assert result == [{"title": "b"}, {"title": "b"}], "test object fail."
 
     scode = "<p> hello world </p>"
@@ -145,20 +146,19 @@ def test_parsers():
             <item>Who <em>buys</em> WonderWidgets</item>
         </slide>
 
-    </slideshow>""".encode(
-        "u8"
-    )
+    </slideshow>""".encode("u8")
     result = parser.parse(
         scode,
-        [["1-n", "xml", "//slide", "xml"], ["n-n", "xml", "/slide/title", "text"]],
+        [["1-n", "xml", "//slide", "xml"],
+         ["n-n", "xml", "/slide/title", "text"]],
     )
     assert result == [u"Wake up to WonderWidgets!", u"中文"], "test xml fail."
 
     scode = u'<div><p class="test" >Hello<br>world</p><p>Your<br>world</p>TAIL<p class>Hello<br>world中文!</p>TAIL</div>'
     result = parser.parse(
-        scode, [["1-n", "html", "p", "html"], ["n-n", "html", "p", "text"]]
-    )
-    assert result == [u"Helloworld", "Yourworld", u"Helloworld中文!"], "test html fail."
+        scode, [["1-n", "html", "p", "html"], ["n-n", "html", "p", "text"]])
+    assert result == [u"Helloworld", "Yourworld",
+                      u"Helloworld中文!"], "test html fail."
     result = parser.parse(scode, [["1-n", "html", "p", "@class"]])
     assert result == ["test", None, ""], "test html fail."
 
@@ -171,7 +171,10 @@ def test_try_import():
 
 
 def test_ensure_request():
-    assert ensure_request({"method": "get", "url": "http://github.com"}) == {
+    assert ensure_request({
+        "method": "get",
+        "url": "http://github.com"
+    }) == {
         "method": "get",
         "url": "http://github.com",
     }
@@ -201,49 +204,54 @@ def test_ensure_request():
         ss = """a b c  d e f  1 2 3  4 5 6
         a b c  d e f  1 2 3  4 5 6
         a b c  d e f  1 2 3  4 5 6"""
-        assert split_n(ss, ("\n", "  ", " ")) == [
-            [["a", "b", "c"], ["d", "e", "f"], ["1", "2", "3"], ["4", "5", "6"]],
-            [["a", "b", "c"], ["d", "e", "f"], ["1", "2", "3"], ["4", "5", "6"]],
-            [["a", "b", "c"], ["d", "e", "f"], ["1", "2", "3"], ["4", "5", "6"]],
-        ]
-        assert split_n(ss, ["\\s+"], reg=1) == [
-            "a",
-            "b",
-            "c",
-            "d",
-            "e",
-            "f",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "a",
-            "b",
-            "c",
-            "d",
-            "e",
-            "f",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "a",
-            "b",
-            "c",
-            "d",
-            "e",
-            "f",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-        ]
+        assert split_n(ss,
+                       ("\n", "  ", " ")) == [
+                           [["a", "b", "c"], ["d", "e", "f"], ["1", "2", "3"],
+                            ["4", "5", "6"]],
+                           [["a", "b", "c"], ["d", "e", "f"], ["1", "2", "3"],
+                            ["4", "5", "6"]],
+                           [["a", "b", "c"], ["d", "e", "f"], ["1", "2", "3"],
+                            ["4", "5", "6"]],
+                       ]
+        assert split_n(
+            ss, ["\\s+"], reg=1) == [
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+            ]
 
     def test_saver():
         ss = Saver("test.json", auto_backup=1)
@@ -303,5 +311,15 @@ def test_cooldown():
 
 
 def test_curlrequests():
-    r = curlrequests('''curl 'http://p.3.cn/' -H 'Connection: keep-alive' -H 'Cache-Control: max-age=0' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36' -H 'DNT: 1' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8' -H 'If-None-Match: "55dd9090-264"' -H 'If-Modified-Since: Wed, 26 Aug 2015 10:10:24 GMT' --compressed''', retry=1)
+    r = curlrequests(
+        '''curl 'http://p.3.cn/' -H 'Connection: keep-alive' -H 'Cache-Control: max-age=0' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36' -H 'DNT: 1' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8' -H 'If-None-Match: "55dd9090-264"' -H 'If-Modified-Since: Wed, 26 Aug 2015 10:10:24 GMT' --compressed''',
+        retry=1)
     assert 'Welcome to nginx!' in r.text
+
+
+def test_sort_url_query():
+    url = 'http://www.google.com?b=2&z=26&a=1'
+    default_sorted = sort_url_query(url)
+    reversed_sorted = sort_url_query(url, reverse=True)
+    assert default_sorted == 'http://www.google.com?a=1&b=2&z=26'
+    assert reversed_sorted == 'http://www.google.com?z=26&b=2&a=1'

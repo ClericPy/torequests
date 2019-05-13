@@ -1,7 +1,7 @@
 #! coding: utf-8
 from .main import *
 
-__version__ = "4.8.9"
+__version__ = "4.8.10"
 __all__ = [
     "Pool",
     "ProcessPool",
