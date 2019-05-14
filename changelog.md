@@ -4,6 +4,7 @@
 ---
 
 - 4.8.10
+    - fix dummy.Requests "Unclosed connector"
     - add sort_url_query
 
 - 4.8.9
