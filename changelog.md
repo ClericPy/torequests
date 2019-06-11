@@ -3,6 +3,9 @@
 
 ---
 
+- 4.8.12
+    - fix utils.curlparse post form encoding issue
+
 - 4.8.10
     - fix dummy.Requests "Unclosed connector"
     - add sort_url_query
