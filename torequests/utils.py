@@ -186,17 +186,8 @@ def curlparse(string, encoding="utf-8"):
         if data.startswith("$"):
             data = data[1:]
         args.method = "post"
-        if "application/x-www-form-urlencoded" in headers.get("Content-Type", ""):
-            data = dict(
-                [
-                    (i.split("=")[0], unquote_plus(i.split("=")[1]))
-                    for i in data.split("&")
-                ]
-            )
-            requests_args["data"] = data
-        else:
-            data = data.encode(encoding)
-            requests_args["data"] = data
+        data = data.encode(encoding)
+        requests_args["data"] = data
     requests_args["method"] = args.method.lower()
     if args.connect_timeout:
         requests_args["timeout"] = args.connect_timeout
