@@ -1,20 +1,16 @@
 # python3.5+ # pip install uvloop aiohttp.
 
 import asyncio
-import threading
 import time
-from functools import partial, wraps
+from functools import wraps
 from urllib.parse import urlparse
 
 import aiohttp
-from aiohttp.connector import Connection
 
-from ._py3_patch import NewResponse, _aiohttp_unclosed_connection_patch, _py36_all_task_patch
+from ._py3_patch import NewResponse, _py36_all_task_patch
 from .configs import Config
 from .exceptions import FailureException
 from .main import NewFuture, Pool, ProcessPool, Error
-
-_aiohttp_unclosed_connection_patch(Connection)
 
 try:
     import uvloop
@@ -607,7 +603,7 @@ class Requests(Loop):
         try:
             if not self.session.closed:
                 if self.session._connector is not None and self.session._connector_owner:
-                    self.session._connector._close()
+                    self.session._connector.close()
                 self.session._connector = None
         except Exception as e:
             Config.dummy_logger.error("can not close session for: %s" % e)

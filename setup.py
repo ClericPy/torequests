@@ -22,9 +22,7 @@ if py_version.major == 2:
     install_requires.append("futures")
 
 if py_version.major == 3 and py_version.minor >= 5:
-    install_requires.append("aiohttp>=3.0.5")
-    # if  'Windows' not in .system():
-    #     install_requires.append('uvloop')
+    install_requires.append("aiohttp==3.4.4")
 
 with codecs.open("README.md", encoding="u8") as f:
     long_description = f.read()

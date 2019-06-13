@@ -67,17 +67,3 @@ class NewResponse(object):
 
     def json(self, encoding=None, loads=json.loads):
         return loads(self.content.decode(encoding or self.encoding))
-
-
-def _aiohttp_unclosed_connection_patch(Connection):
-    # avoid the Unclosed connection issue for aiohttp
-    def wrapper(function):
-        @wraps(function)
-        def wrapped(self, *args, **kwargs):
-            if self._protocol is not None:
-                self.close()
-            return function(self, *args, **kwargs)
-
-        return wrapped
-
-    Connection.__del__ = wrapper(Connection.__del__)
