@@ -3,6 +3,9 @@
 
 ---
 
+- 4.8.13
+    - fix dummy unclosed connection
+
 - 4.8.12
     - fix utils.curlparse post form encoding issue
 
