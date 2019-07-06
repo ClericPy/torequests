@@ -523,9 +523,8 @@ class Requests(Loop):
                     sock_connect=kwargs['timeout'], sock_read=kwargs['timeout'])
         sem, interval = frequency.sem, frequency.interval
         proxies = kwargs.pop("proxies", None)
-        verify_ssl = kwargs.pop("verify_ssl", None) or kwargs.pop("verify", None)
-        if verify_ssl:
-            kwargs["verify_ssl"] = verify_ssl
+        if "verify" in kwargs:
+            kwargs["verify_ssl"] = kwargs.pop("verify")
         if proxies:
             kwargs["proxy"] = "%s://%s" % (scheme, proxies[scheme])
         kwargs["url"] = url

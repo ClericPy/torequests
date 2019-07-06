@@ -3,6 +3,9 @@
 
 ---
 
+- 4.8.14
+    - use ssl args for newest aiohttp
+
 - 4.8.13
     - fix dummy unclosed connection
 
