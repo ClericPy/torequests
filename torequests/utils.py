@@ -16,7 +16,6 @@ import time
 import timeit
 from fractions import Fraction
 from functools import wraps
-from queue import Empty, PriorityQueue
 from threading import Lock, Thread
 
 from .configs import Config
@@ -27,6 +26,7 @@ from .versions import PY2, PY3
 
 if PY2:
     import repr as reprlib
+    from Queue import Empty, PriorityQueue
     from urllib import quote, quote_plus, unquote_plus
     from urlparse import (
         parse_qs,
@@ -57,6 +57,7 @@ if PY3:
         urlunparse,
     )
     from html import escape, unescape
+    from queue import Empty, PriorityQueue
 
     unicode = str
 
