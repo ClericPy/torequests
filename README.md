@@ -1,5 +1,7 @@
 # [torequests](https://github.com/ClericPy/torequests)
 
+> v4.8.14  ![](https://api.travis-ci.org/ClericPy/torequests.svg?branch=master)
+
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
 ## To install:
