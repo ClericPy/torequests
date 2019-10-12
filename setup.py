@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 import sys
 import codecs
-from torequests import __version__ as torequests_version
+from torequests.versions import __version__ as torequests_version
 """
 linux:
 rm -rf "dist/*";rm -rf "build/*";python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload "dist/*;rm -rf "dist/*";rm -rf "build/*""

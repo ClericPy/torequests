@@ -8,3 +8,4 @@ PY35_PLUS = sys.version_info[0] >= 3 and sys.version_info[1] >= 5
 
 IS_WINDOWS = 'windows' in platform.platform().lower()
 IS_LINUX = 'linux' in platform.platform().lower()
+__version__ = "4.8.14"
