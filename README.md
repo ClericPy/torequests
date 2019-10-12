@@ -1,4 +1,4 @@
-# [torequests](https://github.com/ClericPy/torequests) v4.8.14
+# [torequests](https://github.com/ClericPy/torequests) v4.8.15
 
 [![Build Status](https://travis-ci.org/ClericPy/torequests.svg?branch=master)](https://travis-ci.org/ClericPy/torequests)
 

@@ -14,7 +14,7 @@ rm -rf dist;rm -rf build;python3 setup.py bdist_wheel;python2 setup.py bdist_whe
 #    lxml jsonpath_rw_ext cssselect objectpath: for SimpleParser
 #    uvloop: fastest loop for python3.5+ on non-win32 system
 
-__version__ = '4.8.14'
+__version__ = '4.8.15'
 py_version = sys.version_info
 install_requires = ["requests", "jsonpath_rw_ext", "cssselect", "objectpath"]
 
