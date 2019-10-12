@@ -3,7 +3,6 @@
 from setuptools import setup, find_packages
 import sys
 import codecs
-from torequests import __version__ as torequests_version
 """
 linux:
 rm -rf "dist/*";rm -rf "build/*";python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload "dist/*;rm -rf "dist/*";rm -rf "build/*""
@@ -15,8 +14,11 @@ rm -rf dist;rm -rf build;python3 setup.py bdist_wheel;python2 setup.py bdist_whe
 #    lxml jsonpath_rw_ext cssselect objectpath: for SimpleParser
 #    uvloop: fastest loop for python3.5+ on non-win32 system
 
+__version__ = '4.8.14'
 py_version = sys.version_info
-install_requires = ["requests"]
+install_requires = [
+    "requests", "jsonpath_rw_ext", "lxml", "cssselect", "objectpath"
+]
 
 if py_version.major == 2:
     install_requires.append("futures")
@@ -29,7 +31,7 @@ with codecs.open("README.md", encoding="u8") as f:
 
 setup(
     name="torequests",
-    version=torequests_version,
+    version=__version__,
     keywords=(
         "requests async multi-thread aiohttp asyncio uvloop asynchronous"),
     description=
