@@ -15,6 +15,7 @@ rm -rf dist;rm -rf build;python3 setup.py bdist_wheel;python2 setup.py bdist_whe
 #    lxml jsonpath_rw_ext cssselect objectpath: for SimpleParser
 #    uvloop: fastest loop for python3.5+ on non-win32 system
 
+__version__ = '4.8.14'
 py_version = sys.version_info
 install_requires = ["requests"]
 
@@ -29,7 +30,7 @@ with codecs.open("README.md", encoding="u8") as f:
 
 setup(
     name="torequests",
-    version=torequests_version,
+    version=__version__,
     keywords=(
         "requests async multi-thread aiohttp asyncio uvloop asynchronous"),
     description=
