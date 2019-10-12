@@ -217,7 +217,7 @@ class SimpleParser(object):
 
         scode = self.ensure_str(scode)
         assert self._re.match(
-            '^@|^\$\d+', args[1]), ValueError('args1 should match ^@|^\$\d+')
+            r'^@|^\$\d+', args[1]), ValueError(r'args1 should match ^@|^\$\d+')
         arg1, arg2 = args[1][0], args[1][1:]
         com = self._re.compile(args[0])
         if arg1 == '@':
@@ -273,7 +273,7 @@ class SimpleParser(object):
         scode = self.ensure_json(scode)
         # normalize jsonpath
         jsonpath = self._re.sub(
-            '\.$', '', self._re.sub('^JSON\.?|^\$?\.?', '$.', jsonpath))
+            r'\.$', '', self._re.sub(r'^JSON\.?|^\$?\.?', '$.', jsonpath))
         jp = self._jsonpath_parser(jsonpath)
         return [i.value for i in jp.find(scode)]
 
