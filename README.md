@@ -1,6 +1,6 @@
-# [torequests](https://github.com/ClericPy/torequests)
+# [torequests](https://github.com/ClericPy/torequests) v4.8.14
 
-> v4.8.14  ![](https://api.travis-ci.org/ClericPy/torequests.svg?branch=master)
+[![Build Status](https://travis-ci.org/ClericPy/torequests.svg?branch=master)](https://travis-ci.org/ClericPy/torequests)
 
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
