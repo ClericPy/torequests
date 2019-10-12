@@ -12,12 +12,13 @@ Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie
     | futures # python2
     | aiohttp >= 3.0.5 # python3
     | uvloop  # python3
+    | jsonpath_rw_ext
+    | lxml
+    | cssselect
+    | objectpath
 
 **optional:**
 
-    | jsonpath_rw_ext
-    | lxml
-    | objectpath
     | psutil
     | fuzzywuzzy
     | python-Levenshtein

@@ -58,3 +58,4 @@ temp_code.py
 doc/_build/
 obsolete/
 .*/*
+.mypy_cache
