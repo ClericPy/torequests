@@ -17,7 +17,7 @@ rm -rf dist;rm -rf build;python3 setup.py bdist_wheel;python2 setup.py bdist_whe
 __version__ = '4.8.14'
 py_version = sys.version_info
 install_requires = [
-    "futures", "requests", "jsonpath_rw_ext", "lxml", "cssselect", "objectpath"
+    "requests", "jsonpath_rw_ext", "lxml", "cssselect", "objectpath"
 ]
 
 if py_version.major == 2:
