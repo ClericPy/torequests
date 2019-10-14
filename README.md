@@ -4,23 +4,25 @@
 
 Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
-## To install:
+## Install:
 
 > pip install torequests -U
 
-**requirements:**
+#### requirements
+
+    ##### python2.7 / python3.6+
 
     | requests
     | futures # python2
     | aiohttp >= 3.0.5 # python3
     | uvloop  # python3
+
+**optional:**
+
     | jsonpath_rw_ext
     | lxml
     | cssselect
     | objectpath
-
-**optional:**
-
     | psutil
     | fuzzywuzzy
     | python-Levenshtein
