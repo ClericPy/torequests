@@ -2,6 +2,7 @@
 #! coding:utf-8
 import codecs
 import os
+import re
 import sys
 
 from setuptools import find_packages, setup
@@ -22,7 +23,7 @@ install_requires = ["requests", "jsonpath_rw_ext", "cssselect", "objectpath"]
 if py_version.major == 2:
     install_requires.append("futures")
 
-if py_version.major == 3 and py_version.minor >= 5:
+if py_version.major == 3 and py_version.minor >= 6:
     install_requires.append("aiohttp==3.4.4")
     if sys.platform not in ('win32', 'cygwin', 'cli'):
         install_requires.append("uvloop")
@@ -37,8 +38,8 @@ with codecs.open("README.md", encoding="u8") as f:
 
 here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(
-        os.path.join(here, 'torequests', '__version__'), encoding="u8") as f:
-    version = f.read().strip()
+        os.path.join(here, 'torequests', '__init__.py'), encoding="u8") as f:
+    version = re.search(r'''__version__ = ['"](.*?)['"]''', f.read()).group(1)
 
 setup(
     name="torequests",
