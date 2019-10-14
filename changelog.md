@@ -3,6 +3,10 @@
 
 ---
 
+
+- 4.8.15
+    - update setup.py requirements
+
 - 4.8.14
     - use ssl args for newest aiohttp
 
