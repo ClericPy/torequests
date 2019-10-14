@@ -3,7 +3,10 @@
 
 ---
 
-- 4.8.16
+- 4.8.17
+    - hotfix version crash of 4.8.16
+
+- 4.8.16 - [deleted]
     - upgrade aiohttp 3.6.2 for deprecation warning
 
 - 4.8.15
