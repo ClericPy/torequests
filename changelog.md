@@ -3,6 +3,12 @@
 
 ---
 
+- 4.8.16
+    - upgrade aiohttp 3.6.2 for deprecation warning
+
+- 4.8.15
+    - update setup.py requirements
+
 - 4.8.14
     - use ssl args for newest aiohttp
 

@@ -1,26 +1,26 @@
-# [torequests](https://github.com/ClericPy/torequests) v4.8.15
+# [torequests](https://github.com/ClericPy/torequests) [![Build Status](https://travis-ci.org/ClericPy/torequests.svg?branch=master)](https://travis-ci.org/ClericPy/torequests)[![PyPI version](https://badge.fury.io/py/torequests.svg)](https://badge.fury.io/py/torequests)
 
-[![Build Status](https://travis-ci.org/ClericPy/torequests.svg?branch=master)](https://travis-ci.org/ClericPy/torequests)
+Briefly speaking, requests & aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
-Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
-
-## To install:
+## Install:
 
 > pip install torequests -U
 
-**requirements:**
+#### requirements
 
+    ##### python2.7 / python3.6+
+    
     | requests
     | futures # python2
     | aiohttp >= 3.0.5 # python3
     | uvloop  # python3
+
+**optional:**
+
     | jsonpath_rw_ext
     | lxml
     | cssselect
     | objectpath
-
-**optional:**
-
     | psutil
     | fuzzywuzzy
     | python-Levenshtein
@@ -30,10 +30,11 @@ Briefly speaking, requests / aiohttp wrapper for asynchronous programming rookie
 
 Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-coding brief & smooth, compatible for win32 / python 2&3.
 
-* convert any funtions into async-mode with concurrent.futures
-* wrap requests module in future...
+* convert any funtions into async-mode with concurrent.futures.
+* wrap requests lib with concurrent.futures.
 * simplify aiohttp, make it `requests-like`.
-* some crawler toolkits.
+* add failure request class, add frequency control.
+* plenty of crawler utils.
 
 ## Getting started
 
