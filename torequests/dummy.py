@@ -20,8 +20,7 @@ except ImportError:
     Config.dummy_logger.debug("Not found uvloop, using default_event_loop.")
 
 __all__ = "NewTask Loop Asyncme coros get_results_generator Frequency Requests".split(
-    " "
-)
+    " ")
 
 
 class NewTask(asyncio.Task):
@@ -269,13 +268,17 @@ class Loop:
     @property
     def todo_tasks(self):
         """Return tasks in loop which its state is pending."""
-        tasks = [task for task in self.all_tasks if task._state == NewTask._PENDING]
+        tasks = [
+            task for task in self.all_tasks if task._state == NewTask._PENDING
+        ]
         return tasks
 
     @property
     def done_tasks(self):
         """Return tasks in loop which its state is not pending."""
-        tasks = [task for task in self.all_tasks if task._state != NewTask._PENDING]
+        tasks = [
+            task for task in self.all_tasks if task._state != NewTask._PENDING
+        ]
         return tasks
 
     def run(self, tasks=None, timeout=None):
@@ -285,7 +288,8 @@ class Loop:
             return self.wait_all_tasks_done(timeout)
         else:
             tasks = tasks or self.todo_tasks
-            return self.loop.run_until_complete(asyncio.gather(*tasks, loop=self.loop))
+            return self.loop.run_until_complete(
+                asyncio.gather(*tasks, loop=self.loop))
 
     def wait_all_tasks_done(self, timeout=None, delay=0.5, interval=0.1):
         """Block, only be used while loop running in a single non-main thread."""
@@ -326,8 +330,8 @@ def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):
 def coros(n=None, interval=0, default_callback=None, loop=None):
     """Decorator for wrap coro_function into the function return NewTask."""
     submitter = Loop(
-        n=n, interval=interval, default_callback=default_callback, loop=loop
-    ).submitter
+        n=n, interval=interval, default_callback=default_callback,
+        loop=loop).submitter
 
     return submitter
 
@@ -370,7 +374,8 @@ class Frequency:
             return sem
         elif isinstance(sem, (int, float)) and sem > 0:
             return asyncio.Semaphore(int(sem))
-        raise ValueError("sem should be an asyncio.Semaphore object or int/float")
+        raise ValueError(
+            "sem should be an asyncio.Semaphore object or int/float")
 
     @classmethod
     def ensure_frequency(cls, obj):
@@ -410,14 +415,6 @@ class Requests(Loop):
     :param default_host_frequency: None
     :param kwargs: will used for aiohttp.ClientSession.
 
-    :WARNING: if proxy is not None and **mutable**, should avoid reusing old proxy in the same connection.
-
-        `self.session.connector._force_close = True`, 
-
-        Or use the `connector` param in __init__
-
-        `Requests(connector=TCPConnector(force_close=True))`
-
     ::
 
         from torequests.dummy import Requests
@@ -448,8 +445,10 @@ class Requests(Loop):
                  default_callback=None,
                  frequencies=None,
                  default_host_frequency=None,
+                 *,
+                 loop=None,
+                 return_exceptions=None,
                  **kwargs):
-        loop = kwargs.pop("loop", None)
         super().__init__(
             loop=loop,
             default_callback=default_callback,
@@ -459,21 +458,32 @@ class Requests(Loop):
         self.n = n
         self.interval = interval
         # be compatible with old version's arg `return_exceptions`
-        return_exceptions = kwargs.pop("return_exceptions", None)
-        self.catch_exception = (
-            return_exceptions if return_exceptions is not None else catch_exception
-        )
+        self.catch_exception = (return_exceptions
+                                if return_exceptions is not None else
+                                catch_exception)
         self.default_host_frequency = default_host_frequency
         if self.default_host_frequency:
             assert isinstance(self.default_host_frequency, (list, tuple))
         self.global_frequency = Frequency(self.sem, self.interval)
         self.frequencies = self.ensure_frequencies(frequencies)
+        self.session_kwargs = kwargs
         if session:
             session._loop = self.loop
-            self.session = session
+            self._session = session
+            self._session.connector._limit = n
         else:
-            self.session = aiohttp.ClientSession(loop=self.loop, **kwargs)
-        self.session.connector._limit = n
+            self._session = None
+
+    async def _ensure_session(self):
+        if self._session is None:
+            self._session = aiohttp.ClientSession(
+                loop=self.loop, **self.session_kwargs)
+            self._session.connector._limit = self.n
+        return self._session
+
+    @property
+    def session(self):
+        return self._ensure_session()
 
     def ensure_frequencies(self, frequencies):
         """Ensure frequencies is dict of host-frequencies."""
@@ -482,7 +492,8 @@ class Requests(Loop):
         if not isinstance(frequencies, dict):
             raise ValueError("frequencies should be dict")
         frequencies = {
-            host: Frequency.ensure_frequency(frequencies[host]) for host in frequencies
+            host: Frequency.ensure_frequency(frequencies[host])
+            for host in frequencies
         }
         return frequencies
 
@@ -512,7 +523,8 @@ class Requests(Loop):
         else:
             frequency = self.global_frequency
         if 'timeout' in kwargs:
-            if isinstance(kwargs['timeout'], tuple):
+            # for timeout=(1,2) and timeout=5
+            if isinstance(kwargs['timeout'], (tuple, list)):
                 kwargs['timeout'] = aiohttp.client.ClientTimeout(
                     sock_connect=kwargs['timeout'][0],
                     sock_read=kwargs['timeout'][1])
@@ -535,7 +547,8 @@ class Requests(Loop):
         for retries in range(retry + 1):
             async with sem:
                 try:
-                    async with self.session.request(**kwargs) as resp:
+                    session = await self.session
+                    async with session.request(**kwargs) as resp:
                         await resp.read()
                         r = NewResponse(resp, encoding=encoding)
                         r.referer_info = referer_info
@@ -569,49 +582,54 @@ class Requests(Loop):
 
     def get(self, url, params=None, callback=None, retry=0, **kwargs):
         return self.request(
-            "get", url=url, params=params, callback=callback, retry=retry, **kwargs
-        )
+            "get",
+            url=url,
+            params=params,
+            callback=callback,
+            retry=retry,
+            **kwargs)
 
     def post(self, url, data=None, callback=None, retry=0, **kwargs):
         return self.request(
-            "post", url=url, data=data, callback=callback, retry=retry, **kwargs
-        )
+            "post",
+            url=url,
+            data=data,
+            callback=callback,
+            retry=retry,
+            **kwargs)
 
     def delete(self, url, callback=None, retry=0, **kwargs):
-        return self.request("delete", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request(
+            "delete", url=url, callback=callback, retry=retry, **kwargs)
 
     def put(self, url, data=None, callback=None, retry=0, **kwargs):
         return self.request(
-            "put", url=url, data=data, callback=callback, retry=retry, **kwargs
-        )
+            "put", url=url, data=data, callback=callback, retry=retry, **kwargs)
 
     def head(self, url, callback=None, retry=0, **kwargs):
-        return self.request("head", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request(
+            "head", url=url, callback=callback, retry=retry, **kwargs)
 
     def options(self, url, callback=None, retry=0, **kwargs):
         return self.request(
-            "options", url=url, callback=callback, retry=retry, **kwargs
-        )
+            "options", url=url, callback=callback, retry=retry, **kwargs)
 
     def patch(self, url, callback=None, retry=0, **kwargs):
-        return self.request("patch", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request(
+            "patch", url=url, callback=callback, retry=retry, **kwargs)
 
-    def close(self):
-        """Should be closed[explicit] while using external session or connector,
-        instead of close by self.__del__."""
+    async def close(self):
         try:
-            if not self.session.closed:
-                if self.session._connector is not None and self.session._connector_owner:
-                    self.session._connector.close()
-                self.session._connector = None
+            if not self._session.closed:
+                await self._session.close()
         except Exception as e:
             Config.dummy_logger.error("can not close session for: %s" % e)
 
     def __del__(self):
-        self.close()
+        asyncio.ensure_future(self.close(), loop=self.loop)
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
-        self.close()
+        asyncio.ensure_future(self.close(), loop=self.loop)
