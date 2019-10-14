@@ -8,8 +8,8 @@ Briefly speaking, requests & aiohttp wrapper for asynchronous programming rookie
 
 #### requirements
 
-    ##### python2.7 / python3.6+
-    
+##### python2.7 / python3.6+
+
     | requests
     | futures # python2
     | aiohttp >= 3.0.5 # python3
@@ -95,25 +95,36 @@ print_info(ss)
 
 ```
 
-#### 2.1 Test the performance (win32+python3.7).
+#### 2.1 Performance.
+
+```verilog
+[3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]]: 2000 / 2000, 100.0%, cost 4.5911 seconds, 436.0 qps.
+[2.7.15 (v2.7.15:ca079a3ea3, Apr 30 2018, 16:30:26) [MSC v.1500 64 bit (AMD64)]]: 2000 / 2000, 100%, cost 9.3587 seconds, 214.0 qps.
+```
 
 ```python
+import timeit
 from torequests import tPool
-import time
+import sys
 
-start_time = time.time()
-trequests = tPool()
-list1 = [
-    trequests.get('http://127.0.0.1:5000/test/%s' % num) for num in range(5000)
-]
-# If failed, i.x may return False by default,
-# or you can reset the fail_return arg.
-list2 = [i.x.text if i.x else 'fail' for i in list1]
-end_time = time.time()
-print(list2[:5], '\n5000 requests time cost: %s s' % (end_time - start_time))
-# output:
-# ['test ok 0', 'test ok 1', 'test ok 2', 'test ok 3', 'test ok 4'] 
-# 5000 requests time cost: 5.906721591949463 s
+req = tPool()
+start_time = timeit.default_timer()
+oks = 0
+total = 2000
+# concurrent all the tasks
+tasks = [req.get('http://127.0.0.1:9090') for num in range(total)]
+for task in tasks:
+    r = task.x
+    if r.text == 'ok':
+        oks += 1
+end_time = timeit.default_timer()
+succ_rate = oks * 100 / total
+cost_time = round(end_time - start_time, 4)
+version = sys.version
+qps = round(total / cost_time, 0)
+print(
+    '[{version}]: {oks} / {total}, {succ_rate}%, cost {cost_time} seconds, {qps} qps.'
+    .format(**vars()))
 ```
 
 ### 3. Requests - aiohttp-wrapper
@@ -140,68 +151,124 @@ print_info(ss)
 
 ```
 
-#### 3.1 win32+python3.7 cost 3.9s per 5000 requests, which may be much faster with uvloop.
+#### 3.1 Performance.
+
+>  aiohttp is almostly 3 times faster than requests + ThreadPoolExecutor, even without uvloop on windows10.
+
+```verilog
+3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
+sync_test: 2000 / 2000, 100.0%, cost 1.7625 seconds, 1135.0 qps.
+async_test: 2000 / 2000, 100.0%, cost 1.7321 seconds, 1155.0 qps.
+```
 
 ```python
-from torequests.dummy import Requests
-import time
+import asyncio
+import sys
+import timeit
 
-start_time = time.time()
-trequests = Requests()
-list1 = [
-    trequests.get('http://127.0.0.1:5000/test/%s' % num) for num in range(5000)
-]
-# If failed, i.x may return False by default,
-# or you can reset the fail_return arg.
-list2 = [i.x.text if i.x else 'fail' for i in list1]
-end_time = time.time()
-print(list2[:5], '\n5000 requests time cost:%s s' % (end_time - start_time))
-# output:
-# win32, without uvloop;
-# ['test ok 0', 'test ok 1', 'test ok 2', 'test ok 3', 'test ok 4'] 
-# 5000 requests time cost:3.909820079803467 s
+from torequests.dummy import Requests
+
+
+def sync_test():
+    req = Requests()
+    start_time = timeit.default_timer()
+    oks = 0
+    total = 2000
+    # concurrent all the tasks
+    tasks = [req.get('http://127.0.0.1:9090') for num in range(total)]
+    for task in tasks:
+        r = task.x
+        if r.text == 'ok':
+            oks += 1
+    end_time = timeit.default_timer()
+    succ_rate = oks * 100 / total
+    cost_time = round(end_time - start_time, 4)
+    qps = round(total / cost_time, 0)
+    print(
+        'sync_test: {oks} / {total}, {succ_rate}%, cost {cost_time} seconds, {qps} qps.'
+        .format(**vars()))
+
+
+async def async_test():
+    req = Requests()
+    start_time = timeit.default_timer()
+    oks = 0
+    total = 2000
+    # concurrent all the tasks
+    tasks = [req.get('http://127.0.0.1:9090') for num in range(total)]
+    for task in tasks:
+        r = await task
+        if r.text == 'ok':
+            oks += 1
+    end_time = timeit.default_timer()
+    succ_rate = oks * 100 / total
+    cost_time = round(end_time - start_time, 4)
+    qps = round(total / cost_time, 0)
+    print(
+        'async_test: {oks} / {total}, {succ_rate}%, cost {cost_time} seconds, {qps} qps.'
+        .format(**vars()))
+
+
+if __name__ == "__main__":
+    print(sys.version)
+    sync_test()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(async_test())
+
 ```
 
 #### 3.2 using torequests.dummy.Requests in async environment.
 
+> ensure the loop is unique.
+
 ```python
 import asyncio
 
-from responder import API
+import uvicorn
+from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
 from torequests.dummy import Requests
 
 loop = asyncio.get_event_loop()
-api = API()
+api = Starlette()
 
 
 @api.route('/')
-async def index(req, resp):
+async def index(req):
+    if not hasattr(api, 'req'):
+        # or use `loop` arg to init Requests in globals
+        api.req = Requests()
     # await for request or FailureException
     r = await api.req.get('http://p.3.cn', timeout=(1, 1))
     print(r)
     if r:
         # including good request with status_code between 200 and 299
-        resp.text = 'ok' if 'Welcome to nginx!' in r.text else 'bad'
+        text = 'ok' if 'Welcome to nginx!' in r.text else 'bad'
     else:
-        resp.text = 'fail'
-
+        text = 'fail'
+    return PlainTextResponse(text)
 
 if __name__ == "__main__":
-    api.req = Requests(loop=loop)
-    api.run(port=5000, loop=loop)
+    uvicorn.run(api)
 ```
 
 #### 3.3 mock server source code
 
 ```python
-from gevent.monkey import patch_all
-patch_all()
-import bottle
-app = bottle.Bottle()
-@app.get('/test/<num>')
-def test(num):
-    return 'ok %s' % num
-app.run(server='gevent', port=5000)
+from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
+
+app = Starlette()
+
+
+@app.route("/")
+async def source_redirect(req):
+    return PlainTextResponse('ok')
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, port=9090)
 ```
 
 ### 4. utils: some useful crawler toolkits
