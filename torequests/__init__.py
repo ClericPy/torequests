@@ -14,6 +14,4 @@ __all__ = [
     "run_after_async",
     "tPool",
 ]
-here = os.path.abspath(os.path.dirname(__file__))
-with codecs.open(os.path.join(here, '__version__'), encoding="u8") as f:
-    __version__ = f.read().strip()
+__version__ = '4.8.17'
