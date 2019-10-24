@@ -28,6 +28,15 @@ def test_curlparse_post():
     assert rj["form"]["test1"] == u"测试", "test fail: curlparse post & urlencode"
 
 
+def test_curlparse_post2():
+    """  test_dummy_utils """
+    cmd = """curl 'http://httpbin.org/post' -H 'Pragma: no-cache' -H 'Origin: null' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Cache-Control: no-cache' -H 'Connection: keep-alive' -H 'DNT: 1' --data-binary $'中文' --compressed"""
+    args = curlparse(cmd)
+    resp = requests.request(**args)
+    rj = resp.json()
+    assert rj["data"] == u"中文"
+
+
 def test_slice_by_size():
     assert list(slice_by_size(range(10), 6)) == [
         (0, 1, 2, 3, 4, 5),
