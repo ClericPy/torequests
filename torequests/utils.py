@@ -167,7 +167,13 @@ def curlparse(string, encoding="utf-8"):
     assert "\n" not in string, 'curl-string should not contain \\n, try r"...".'
     if string.startswith("http"):
         return {"url": string, "method": "get"}
-    args, unknown = _Curl.parser.parse_known_args(shlex.split(string.strip()))
+    try:
+        lex_list = shlex.split(string.strip())
+    except ValueError as e:
+        if str(e) == 'No closing quotation' and string.count("'") % 2 != 0:
+            print_info("If `data` has single-quote ('), the `data` should be quote by double-quote, and add the `backslash`(\\) before original \".")
+        raise e
+    args, unknown = _Curl.parser.parse_known_args(lex_list)
     requests_args = {}
     headers = {}
     requests_args["url"] = args.url
@@ -187,7 +193,11 @@ def curlparse(string, encoding="utf-8"):
         if data.startswith("$"):
             data = data[1:]
         args.method = "post"
-        data = data.encode(encoding)
+        if PY2:
+            # TODO not fix the UnicodeEncodeError, so use `replace`, damn python2.x.
+            data = data.replace(r'\r', '\r').replace(r'\n', '\n')
+        else:
+            data = data.encode('latin-1', 'backslashreplace').decode('unicode-escape').encode(encoding)
         requests_args["data"] = data
     requests_args["method"] = args.method.lower()
     if args.connect_timeout:
