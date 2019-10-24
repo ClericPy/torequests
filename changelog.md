@@ -3,6 +3,9 @@
 
 ---
 
+- 4.8.18
+    - hotfix curlparse issue by backslash string.
+
 - 4.8.17
     - hotfix version crash of 4.8.16
 

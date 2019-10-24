@@ -6,8 +6,6 @@ import time
 from torequests import *
 from torequests.dummy import *
 
-# with capsys.disabled():
-
 
 def test_dummy_Requests():
     """use default event loop"""
@@ -33,6 +31,37 @@ def test_dummy_Requests():
     assert r.status_code == 200
     assert isinstance(r.url, str)
     assert r.referer_info == 0
+
+
+def test_dummy_Requests_async():
+    """use default event loop"""
+
+    async def test_async():
+        trequests = Requests()
+        test_url = "https://httpbin.org/json"
+        tasks = [
+            trequests.get(
+                test_url,
+                retry=0,
+                callback=lambda r: len(r.content),
+                timeout=(2, 5),
+                referer_info=i) for i in range(3)
+        ]
+        result = [(await task).text for task in tasks]
+        assert all(result), "fail: test_dummy_Requests_async"
+        r = tasks[0]
+        assert isinstance(r.content, bytes)
+        assert isinstance(r.text, str)
+        assert isinstance(r.json(), dict)
+        assert not r.is_redirect
+        assert r.ok
+        assert r.status_code == 200
+        assert isinstance(r.url, str)
+        assert r.referer_info == 0
+        await trequests.close()
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(test_async())
 
 
 def test_dummy_Requests_time_interval_sem(capsys):
