@@ -58,6 +58,7 @@ def test_dummy_Requests_async():
         assert r.status_code == 200
         assert isinstance(r.url, str)
         assert r.referer_info == 0
+        await trequests.close()
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(test_async())
