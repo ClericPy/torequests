@@ -467,6 +467,7 @@ class Requests(Loop):
         self.global_frequency = Frequency(self.sem, self.interval)
         self.frequencies = self.ensure_frequencies(frequencies)
         self.session_kwargs = kwargs
+        self._closed = False
         if session:
             session._loop = self.loop
             self._session = session
@@ -622,14 +623,17 @@ class Requests(Loop):
         try:
             if not self._session.closed:
                 await self._session.close()
+            self._closed = True
         except Exception as e:
             Config.dummy_logger.error("can not close session for: %s" % e)
 
     def __del__(self):
-        asyncio.ensure_future(self.close(), loop=self.loop)
+        if not self._closed:
+            NewTask(self.close(), loop=self.loop).x
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
-        asyncio.ensure_future(self.close(), loop=self.loop)
+        if not self._closed:
+            NewTask(self.close(), loop=self.loop).x
