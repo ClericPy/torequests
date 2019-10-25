@@ -3,7 +3,6 @@ python:
   - "2.7"
   - "3.6"
   - "3.7"
-  - "3.8"
 install:
   - python setup_full.py install
 script:
