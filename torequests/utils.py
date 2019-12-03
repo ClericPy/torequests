@@ -346,7 +346,7 @@ def split_seconds(seconds):
     return result[::-1]
 
 
-def timeago(seconds=0, accuracy=4, format=0, lang="en"):
+def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
     """Translate seconds into human-readable.
 
         :param seconds: seconds (float/int).
@@ -366,9 +366,15 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en"):
     negative = "-" if seconds < 0 else ""
     seconds = abs(seconds)
     if lang == "en":
-        units = ("day", "hour", "minute", "second", "ms")
+        if short_name:
+            units = ("day", "hr", "min", "sec", "ms")
+        else:
+            units = ("day", "hour", "minute", "second", "ms")
     elif lang == "cn":
-        units = (u"天", u"小时", u"分钟", u"秒", u"毫秒")
+        if short_name:
+            units = (u"日", u"时", u"分", u"秒", u"毫秒")
+        else:
+            units = (u"天", u"小时", u"分钟", u"秒", u"毫秒")
     times = split_seconds(seconds)
     if format == 2:
         return dict(zip(units, times))
@@ -386,20 +392,24 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en"):
             mid_str += ",%03d" % ms
         return negative + day_str + mid_str
     elif format == 1:
-        # find longest valid fields index (non-zero in front)
-        valid_index = 0
-        for x, i in enumerate(times):
-            if i > 0:
-                valid_index = x
-                break
+        if seconds:
+            # find longest valid fields index (non-zero for head and tail)
+            for index, item in enumerate(times):
+                if item != 0:
+                    head_index = index
+                    break
+            for index, item in enumerate(reversed(times)):
+                if item != 0:
+                    tail_index = len(times)-index
+                    break
+            result_str = [
+                "%d %s%s"
+                % (num, unit, "s" if lang == "en" and num > 1 and unit != "ms" else "")
+                for num, unit in zip(times, units)
+            ][head_index:tail_index][:accuracy]
+            result_str = " ".join(result_str)
         else:
-            valid_index = x
-        result_str = [
-            "%d %s%s"
-            % (num, unit, "s" if lang == "en" and num > 1 and unit != "ms" else "")
-            for num, unit in zip(times, units)
-        ][valid_index:][:accuracy]
-        result_str = " ".join(result_str)
+            result_str = "0 %s" % units[-1]
         return negative + result_str
 
 
