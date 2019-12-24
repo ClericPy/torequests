@@ -10,12 +10,12 @@ if PY3:
 
 
 def init_logger(
-    name="",
-    handler_path_levels=None,
-    level=logging.INFO,
-    formatter=None,
-    formatter_str=None,
-    datefmt="%Y-%m-%d %H:%M:%S",
+        name="",
+        handler_path_levels=None,
+        level=logging.INFO,
+        formatter=None,
+        formatter_str=None,
+        datefmt="%Y-%m-%d %H:%M:%S",
 ):
     """Add a default handler for logger.
 
@@ -50,7 +50,8 @@ def init_logger(
         else:
             formatter_str = "%(asctime)s %(levelname)-5s [%(name)s] %(filename)s(%(lineno)s): %(message)s"
         formatter = logging.Formatter(formatter_str, datefmt=datefmt)
-    logger = name if isinstance(name, logging.Logger) else logging.getLogger(str(name))
+    logger = name if isinstance(name, logging.Logger) else logging.getLogger(
+        str(name))
     logger.setLevel(level)
     handler_path_levels = handler_path_levels or [["", "INFO"]]
     # ---------------------------------------
@@ -58,29 +59,19 @@ def init_logger(
         path, handler_level = each_handler
         handler = logging.FileHandler(path) if path else logging.StreamHandler()
         handler.setLevel(
-            levels.get(handler_level.upper(), 1)
-            if isinstance(handler_level, str)
-            else handler_level
-        )
+            levels.get(handler_level.upper(), 1
+                      ) if isinstance(handler_level, str) else handler_level)
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     return logger
 
 
-dummy_logger = init_logger(
-    "torequests.dummy",
-    formatter_str="%(levelname)-7s %(asctime)s %(name)s: %(message)s",
-)
-main_logger = init_logger(
-    "torequests.main", formatter_str="%(levelname)-7s %(asctime)s %(name)s: %(message)s"
-)
-utils_logger = init_logger(
-    "torequests.utils",
-    formatter_str="%(levelname)-7s %(asctime)s %(name)s: %(message)s",
-)
+dummy_logger = init_logger("torequests.dummy")
+main_logger = init_logger("torequests.main")
+utils_logger = init_logger("torequests.utils")
 print_logger = init_logger(
-    "torequests.print", formatter_str="[%(asctime)s] %(fn)s(%(ln)s): %(message)s"
-)
+    "torequests.print",
+    formatter_str="[%(asctime)s] %(fn)s(%(ln)s): %(message)s")
 
 
 def print_info(*messages, **kwargs):
@@ -103,5 +94,7 @@ def print_info(*messages, **kwargs):
     _file = frame.f_globals.get("__file__", "")
     fn = os.path.split(_file)[-1]
     return print_logger.info(
-        sep.join(map(unicode, messages)), extra={"ln": ln, "fn": fn}
-    )
+        sep.join(map(unicode, messages)), extra={
+            "ln": ln,
+            "fn": fn
+        })
