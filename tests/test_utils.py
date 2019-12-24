@@ -206,7 +206,6 @@ def test_timeago():
                 assert cases[args] == result
 
 
-
 def test_escape_unescape():
     assert escape("<>") == "&lt;&gt;" and unescape(
         "&lt;&gt;") == "<>", "fail: escape"
