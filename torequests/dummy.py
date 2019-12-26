@@ -621,7 +621,7 @@ class Requests(Loop):
 
     async def close(self):
         try:
-            if not self._session.closed:
+            if self._session and not self._session.closed:
                 await self._session.close()
             self._closed = True
         except Exception as e:
@@ -629,11 +629,11 @@ class Requests(Loop):
 
     def __del__(self):
         if not self._closed:
-            NewTask(self.close(), loop=self.loop).x
+            asyncio.ensure_future(self.close())
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         if not self._closed:
-            NewTask(self.close(), loop=self.loop).x
+            asyncio.ensure_future(self.close())
