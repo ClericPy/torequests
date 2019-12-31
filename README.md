@@ -300,4 +300,164 @@ if __name__ == "__main__":
 > [MIT license](LICENSE)
 
 ## Benchmarks
-> to be continued......
+### Test Server: golang -> gin
+
+```go
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+func main() {
+	r := gin.Default()
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "ok")
+	})
+	r.Run() // listen and serve on 0.0.0.0:8080
+}
+```
+
+### Test Source Code
+
+```python
+import asyncio
+import timeit
+
+
+async def test_aiohttp():
+    from aiohttp import ClientSession, __version__
+
+    async with ClientSession() as req:
+        ok = 0
+        bad = 0
+        start = timeit.default_timer()
+        tasks = [
+            asyncio.ensure_future(req.get(url))
+            for _ in range(TOTAL_REQUEST_COUNTS)
+        ]
+        for task in tasks:
+            r = await task
+            text = await r.text()
+            if text == 'ok':
+                ok += 1
+            else:
+                bad += 1
+        cost = timeit.default_timer() - start
+        name = f'test_aiohttp({__version__})'
+        print(
+            f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3)}s, {round(TOTAL_REQUEST_COUNTS / cost)} qps'
+        )
+
+
+async def test_dummy():
+    from torequests.dummy import Requests
+    from torequests import __version__
+
+    req = Requests()
+    start = timeit.default_timer()
+    ok = 0
+    bad = 0
+    tasks = [req.get(url) for _ in range(TOTAL_REQUEST_COUNTS)]
+    for task in tasks:
+        r = await task
+        if r.text == 'ok':
+            ok += 1
+        else:
+            bad += 1
+    cost = timeit.default_timer() - start
+    name = f'test_dummy({__version__})'
+    print(
+        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3)}s, {round(TOTAL_REQUEST_COUNTS / cost)} qps'
+    )
+
+
+def test_tPool():
+    from torequests.main import tPool
+    from torequests import __version__
+
+    req = tPool()
+    start = timeit.default_timer()
+    ok = 0
+    bad = 0
+    tasks = [req.get(url) for _ in range(TOTAL_REQUEST_COUNTS)]
+    req.x
+    for task in tasks:
+        r = task.x
+        if r.text == 'ok':
+            ok += 1
+        else:
+            bad += 1
+    cost = timeit.default_timer() - start
+    name = f'test_tPool({__version__})'
+    print(
+        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3)}s, {round(TOTAL_REQUEST_COUNTS / cost)} qps'
+    )
+
+
+async def test_httpx():
+    from httpx import Client, __version__
+    start = timeit.default_timer()
+    ok = 0
+    bad = 0
+    async with Client() as req:
+        tasks = [
+            asyncio.create_task(req.get(url))
+            for _ in range(TOTAL_REQUEST_COUNTS)
+        ]
+        for task in tasks:
+            r = await task
+            if r.text == 'ok':
+                ok += 1
+            else:
+                bad += 1
+    cost = timeit.default_timer() - start
+    name = f'test_httpx({__version__})'
+    print(
+        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3)}s, {round(TOTAL_REQUEST_COUNTS / cost)} qps'
+    )
+
+
+if __name__ == "__main__":
+    import platform
+    import sys
+    try:
+        import uvloop
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        print('Test with uvloop.')
+    except ImportError:
+        print('Test without uvloop.')
+    url = 'http://127.0.0.1:8080'
+    TOTAL_REQUEST_COUNTS = 2000
+    print(platform.platform())
+    print(sys.version)
+    print('=' * 80)
+    asyncio.run(test_aiohttp())
+    asyncio.run(test_dummy())
+    asyncio.run(test_httpx())
+    test_tPool()
+
+```
+
+### Test Result
+
+```verilog
+Test without uvloop.
+Windows-10-10.0.18362-SP0
+3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
+================================================================================
+test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 1.268s, 1578 qps
+test_dummy(4.8.20)       : 2000 / 2000 = 100.0%, cost 1.497s, 1336 qps
+test_httpx(0.9.5)        : 2000 / 2000 = 100.0%, cost 3.995s, 501 qps
+test_tPool(4.8.20)       : 2000 / 2000 = 100.0%, cost 4.829s, 414 qps
+```
+
+### Conclusion
+
+1. **aiohttp** is the fastest, for the cython's  advantage .
+
+2. **torequests.dummy.Requests** based on **aiohttp**, and has about 15% performance lost.
+3. **httpx** is faster than **requests + Thread,** but not very obviously.
+
+PS: **golang - net/http** 's performance is ` 2000 / 2000, 100.00 %, cost 0.33 seconds, 5990.95 qps. `
