@@ -300,23 +300,29 @@ if __name__ == "__main__":
 > [MIT license](LICENSE)
 
 ## Benchmarks
-### Test Server: golang -> gin
+### Test Server: golang net/http
 
 ```go
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"net/http"
 )
 
-func main() {
-	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "ok")
-	})
-	r.Run() // listen and serve on 0.0.0.0:8080
+type indexHandler struct {
+	content string
 }
+
+func (ih *indexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, ih.content)
+}
+
+func main() {
+	http.Handle("/", &indexHandler{content: "ok"})
+	http.ListenAndServe(":8080", nil)
+}
+
 ```
 
 ### Test Source Code
@@ -440,24 +446,37 @@ if __name__ == "__main__":
 
 ```
 
-### Test Result
+### Test Result on Windows
 
 ```verilog
 Test without uvloop.
 Windows-10-10.0.18362-SP0
 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
 ================================================================================
-test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 1.268s, 1578 qps
-test_dummy(4.8.20)       : 2000 / 2000 = 100.0%, cost 1.497s, 1336 qps
-test_httpx(0.9.5)        : 2000 / 2000 = 100.0%, cost 3.995s, 501 qps
-test_tPool(4.8.20)       : 2000 / 2000 = 100.0%, cost 4.829s, 414 qps
+test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 1.285s, 1556 qps
+test_dummy(4.8.20)       : 2000 / 2000 = 100.0%, cost 1.512s, 1323 qps
+test_httpx(0.9.5)        : 2000 / 2000 = 100.0%, cost 4.086s, 489 qps
+test_tPool(4.8.20)       : 2000 / 2000 = 100.0%, cost 4.736s, 422 qps
+```
+
+### Test Result on Linux with uvloop
+
+```verilog
+Test with uvloop.
+Linux-4.15.0-13-generic-x86_64-with-Ubuntu-18.04-bionic
+3.7.3 (default, Apr  3 2019, 19:16:38)
+[GCC 8.0.1 20180414 (experimental) [trunk revision 259383]]
+================================================================================
+test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 0.79s, 2530 qps
+test_dummy(4.8.20)       : 2000 / 2000 = 100.0%, cost 1.059s, 1888 qps
+test_httpx(0.10.0)       : 2000 / 2000 = 100.0%, cost 2.478s, 807 qps
+test_tPool(4.8.20)       : 2000 / 2000 = 100.0%, cost 2.79s, 717 qps
 ```
 
 ### Conclusion
 
 1. **aiohttp** is the fastest, for the cython's  advantage .
-
-2. **torequests.dummy.Requests** based on **aiohttp**, and has about 15% performance lost.
+2. **torequests.dummy.Requests** based on **aiohttp**, and has about **15%** performance lost without uvloop,  but **25%** lost with uvloop.
 3. **httpx** is faster than **requests + Thread,** but not very obviously.
 
 PS: **golang - net/http** 's performance is ` 2000 / 2000, 100.00 %, cost 0.33 seconds, 5990.95 qps. `
