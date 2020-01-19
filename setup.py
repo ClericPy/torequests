@@ -1,5 +1,5 @@
 # python
-#! coding:utf-8
+# -*- coding: utf-8 -*-
 import codecs
 import os
 import re
@@ -48,6 +48,18 @@ setup(
     license="MIT License",
     install_requires=install_requires,
     py_modules=["torequests"],
+    extras_require={
+        'security': ['pyOpenSSL >= 0.14', 'cryptography>=1.3.4', 'idna>=2.0.0'],
+        'socks': ['PySocks>=1.5.6, !=1.5.7'],
+        'socks:sys_platform == "win32" and python_version == "2.7"': [
+            'win_inet_pton'
+        ],
+        'parser': ['lxml', 'jsonpath_rw_ext', 'cssselect', 'objectpath'],
+        'all': [
+            'pyOpenSSL >= 0.14', 'cryptography>=1.3.4', 'idna>=2.0.0',
+            'PySocks>=1.5.6, !=1.5.7', 'psutil', 'fuzzywuzzy', 'pyperclip'
+        ],
+    },
     author="ClericPy",
     author_email="clericpy@gmail.com",
     url="https://github.com/ClericPy/torequests",
