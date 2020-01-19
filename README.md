@@ -300,6 +300,8 @@ if __name__ == "__main__":
 > [MIT license](LICENSE)
 
 ## Benchmarks
+> Benchmark of concurrent is not very necessary and accurate, just take a look.
+
 ### Test Server: golang net/http
 
 ```go
@@ -325,7 +327,7 @@ func main() {
 
 ```
 
-### Test Source Code
+### Client Testing Code
 
 ```python
 import asyncio
@@ -333,6 +335,7 @@ import timeit
 
 
 async def test_aiohttp():
+    global AIOHTTP_QPS
     from aiohttp import ClientSession, __version__
 
     async with ClientSession() as req:
@@ -352,8 +355,9 @@ async def test_aiohttp():
                 bad += 1
         cost = timeit.default_timer() - start
         name = f'test_aiohttp({__version__})'
+        AIOHTTP_QPS = qps = round(TOTAL_REQUEST_COUNTS / cost)
         print(
-            f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3)}s, {round(TOTAL_REQUEST_COUNTS / cost)} qps'
+            f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3): >5}s, {qps} qps, {round(qps*100/AIOHTTP_QPS, 2)}% standard.'
         )
 
 
@@ -374,8 +378,9 @@ async def test_dummy():
             bad += 1
     cost = timeit.default_timer() - start
     name = f'test_dummy({__version__})'
+    qps = round(TOTAL_REQUEST_COUNTS / cost)
     print(
-        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3)}s, {round(TOTAL_REQUEST_COUNTS / cost)} qps'
+        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3): >5}s, {qps} qps, {round(qps*100/AIOHTTP_QPS, 2)}% standard.'
     )
 
 
@@ -397,17 +402,18 @@ def test_tPool():
             bad += 1
     cost = timeit.default_timer() - start
     name = f'test_tPool({__version__})'
+    qps = round(TOTAL_REQUEST_COUNTS / cost)
     print(
-        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3)}s, {round(TOTAL_REQUEST_COUNTS / cost)} qps'
+        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3): >5}s, {qps} qps, {round(qps*100/AIOHTTP_QPS, 2)}% standard.'
     )
 
 
 async def test_httpx():
-    from httpx import Client, __version__
+    from httpx import AsyncClient, __version__
     start = timeit.default_timer()
     ok = 0
     bad = 0
-    async with Client() as req:
+    async with AsyncClient() as req:
         tasks = [
             asyncio.create_task(req.get(url))
             for _ in range(TOTAL_REQUEST_COUNTS)
@@ -420,8 +426,9 @@ async def test_httpx():
                 bad += 1
     cost = timeit.default_timer() - start
     name = f'test_httpx({__version__})'
+    qps = round(TOTAL_REQUEST_COUNTS / cost)
     print(
-        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3)}s, {round(TOTAL_REQUEST_COUNTS / cost)} qps'
+        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3): >5}s, {qps} qps, {round(qps*100/AIOHTTP_QPS, 2)}% standard.'
     )
 
 
@@ -436,30 +443,37 @@ if __name__ == "__main__":
         print('Test without uvloop.')
     url = 'http://127.0.0.1:8080'
     TOTAL_REQUEST_COUNTS = 2000
+    # use aiohttp as the standard qps
+    AIOHTTP_QPS = None
     print(platform.platform())
     print(sys.version)
     print('=' * 80)
-    asyncio.run(test_aiohttp())
-    asyncio.run(test_dummy())
-    asyncio.run(test_httpx())
-    test_tPool()
+    if len(sys.argv) > 1:
+        n = int(sys.argv[1])
+    else:
+        n = 10
+    for _ in range(n):
+        asyncio.run(test_aiohttp())
+        asyncio.run(test_dummy())
+        asyncio.run(test_httpx())
+        test_tPool()
 
 ```
 
-### Test Result on Windows
+### Test Result on [Windows]
 
 ```verilog
 Test without uvloop.
 Windows-10-10.0.18362-SP0
 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
 ================================================================================
-test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 1.285s, 1556 qps
-test_dummy(4.8.20)       : 2000 / 2000 = 100.0%, cost 1.512s, 1323 qps
-test_httpx(0.9.5)        : 2000 / 2000 = 100.0%, cost 4.086s, 489 qps
-test_tPool(4.8.20)       : 2000 / 2000 = 100.0%, cost 4.736s, 422 qps
+test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 1.169s, 1711 qps, 100.0% standard.
+test_dummy(4.8.20)       : 2000 / 2000 = 100.0%, cost 1.275s, 1568 qps, 91.64% standard.
+test_httpx(0.11.1)       : 2000 / 2000 = 100.0%, cost 3.905s, 512 qps, 31.78% standard.
+test_tPool(4.8.20)       : 2000 / 2000 = 100.0%, cost 4.526s, 442 qps, 27.44% standard.
 ```
 
-### Test Result on Linux with uvloop
+### Test Result on [Linux] (with uvloop)
 
 ```verilog
 Test with uvloop.
@@ -467,26 +481,33 @@ Linux-4.15.0-13-generic-x86_64-with-Ubuntu-18.04-bionic
 3.7.3 (default, Apr  3 2019, 19:16:38)
 [GCC 8.0.1 20180414 (experimental) [trunk revision 259383]]
 ================================================================================
-test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 0.79s, 2530 qps
-test_dummy(4.8.20)       : 2000 / 2000 = 100.0%, cost 1.059s, 1888 qps
-test_httpx(0.10.0)       : 2000 / 2000 = 100.0%, cost 2.478s, 807 qps
-test_tPool(4.8.20)       : 2000 / 2000 = 100.0%, cost 2.79s, 717 qps
+test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 0.698s, 2866 qps, 100.0% standard.
+test_dummy(4.8.21)       : 2000 / 2000 = 100.0%, cost 0.874s, 2288 qps, 79.83% standard.
+test_httpx(0.11.1)       : 2000 / 2000 = 100.0%, cost 2.337s, 856 qps, 29.87% standard.
+test_tPool(4.8.21)       : 2000 / 2000 = 100.0%, cost 3.029s, 660 qps, 23.03% standard.
 ```
 
 ### Conclusion
 
-1. **aiohttp** is the fastest, for the cython's  advantage .
-2. **torequests.dummy.Requests** based on **aiohttp**, and has about **15%** performance lost without uvloop,  but **25%** lost with uvloop.
+1. **aiohttp** is the fastest, for the cython utils
+   1. aiohttp's qps is 2866 on 1 cpu linux with uvloop, near to golang's 3300.
+2. **torequests.dummy.Requests** based on **aiohttp**.
+   1. about **2~10%** performance lost **without** uvloop.
+   2. about **20%** performance lost with uvloop.
 3. **httpx** is faster than **requests + Thread,** but not very obviously.
 
 #### PS
 
-**golang - net/http** 's performance is
+**golang - net/http** 's performance
 
-1. ` 2000 / 2000, 100.00 %, cost 0.26 seconds, 7567.38 qps` on windows
-2. `2000 / 2000, 100.00 %, cost 0.87 seconds, 2299.67 qps` on linux
+```
+`2000 / 2000, 100.00 %, cost 0.26 seconds, 7567.38 qps` on windows (12 cpus)
+`2000 / 2000, 100.00 %, cost 0.61 seconds, 3302.48 qps` on linux (1 cpu)
+   1. slower than windows, because golang benefit from multiple CPU count
+   2. linux 1 cpu, but windows is 12
+```
 
-**golang http client test source code:**
+**golang http client testing code:**
 
 ```go
 package main
