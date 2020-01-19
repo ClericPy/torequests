@@ -344,6 +344,12 @@ def get_results_generator(*args):
 class _mock_sem:
     _value = 0
 
+    async def acquire(self):
+        pass
+
+    def release(self):
+        pass
+
     def __bool__(self):
         return False
 
@@ -438,7 +444,7 @@ class Requests(Loop):
     """
 
     def __init__(self,
-                 n=100,
+                 n=None,
                  interval=0,
                  session=None,
                  catch_exception=True,
@@ -453,8 +459,7 @@ class Requests(Loop):
             loop=loop,
             default_callback=default_callback,
         )
-        # Requests object use its own frequency control.
-        self.sem = asyncio.Semaphore(n)
+        # Requests object use its own frequency control, instead of parent class's.
         self.n = n
         self.interval = interval
         # be compatible with old version's arg `return_exceptions`
@@ -464,6 +469,7 @@ class Requests(Loop):
         self.default_host_frequency = default_host_frequency
         if self.default_host_frequency:
             assert isinstance(self.default_host_frequency, (list, tuple))
+        self.sem = asyncio.Semaphore(n) if n else _mock_sem()
         self.global_frequency = Frequency(self.sem, self.interval)
         self.frequencies = self.ensure_frequencies(frequencies)
         self.session_kwargs = kwargs
@@ -471,7 +477,8 @@ class Requests(Loop):
         if session:
             session._loop = self.loop
             self._session = session
-            self._session.connector._limit = n
+            if self.n:
+                self._session.connector._limit = self.n
         else:
             self._session = None
 
@@ -479,7 +486,8 @@ class Requests(Loop):
         if self._session is None:
             self._session = aiohttp.ClientSession(
                 loop=self.loop, **self.session_kwargs)
-            self._session.connector._limit = self.n
+            if self.n:
+                self._session.connector._limit = self.n
         return self._session
 
     @property
@@ -546,20 +554,21 @@ class Requests(Loop):
         referer_info = kwargs.pop("referer_info", None)
         encoding = kwargs.pop("encoding", None)
         for retries in range(retry + 1):
-            async with sem:
-                try:
-                    session = await self.session
-                    async with session.request(**kwargs) as resp:
-                        await resp.read()
-                        r = NewResponse(resp, encoding=encoding)
-                        r.referer_info = referer_info
-                        return r
-                except (aiohttp.ClientError, Error) as err:
-                    error = err
-                    continue
-                finally:
-                    if interval:
-                        await asyncio.sleep(interval)
+            try:
+                await sem.acquire()
+                session = await self.session
+                async with session.request(**kwargs) as resp:
+                    await resp.read()
+                    r = NewResponse(resp, encoding=encoding)
+                    r.referer_info = referer_info
+                    return r
+            except (aiohttp.ClientError, Error) as err:
+                error = err
+                continue
+            finally:
+                sem.release()
+                if interval:
+                    await asyncio.sleep(interval)
         else:
             kwargs["retry"] = retry
             if referer_info:
