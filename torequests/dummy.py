@@ -575,9 +575,9 @@ class Requests(Loop):
                 error = err
                 continue
             finally:
-                sem.release()
                 if interval:
                     await asyncio.sleep(interval)
+                sem.release()
         else:
             kwargs["retry"] = retry
             if referer_info:
