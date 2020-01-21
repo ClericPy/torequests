@@ -22,7 +22,8 @@ def test_dummy_Requests():
     trequests.x
     cb_results = [i.cx for i in tasks]
     # test and ensure task.cx is callback result
-    assert all([isinstance(i, int) for i in cb_results]), "fail: test_dummy_Requests"
+    assert all(
+        [isinstance(i, int) for i in cb_results]), "fail: test_dummy_Requests"
     r = tasks[0]
     assert isinstance(r.content, bytes)
     assert isinstance(r.text, str)
@@ -78,6 +79,7 @@ def test_dummy_Requests_time_interval_sem(capsys):
             ) for i in range(4)
         ]
         trequests.x
+        assert ss[0].task_cost_time >= 1, 'fail test task_cost_time'
         ss = [i.cx for i in ss]
         assert all(ss), "fail: test_dummy_Requests_time_interval_sem"
 

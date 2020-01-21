@@ -61,7 +61,9 @@ class NewTask(asyncio.Task):
             if not isinstance(callback, (list, tuple, set)):
                 callback = [callback]
             for fn in callback:
+                # custom callback will update the _callback_result
                 self.add_done_callback(self.wrap_callback(fn))
+            self.add_done_callback(self.set_task_time)
         self.task_start_time = time.time()
         self.task_end_time = 0
         self.task_cost_time = 0
@@ -77,18 +79,10 @@ class NewTask(asyncio.Task):
 
         return wrapped
 
-    def _schedule_callbacks(self, clear_cb=False):
-        """Recording the task_end_time and task_cost_time,
-            and prevent super()._schedule_callbacks to clean self._callbacks."""
-        self.task_end_time = time.time()
-        self.task_cost_time = self.task_end_time - self.task_start_time
-        callbacks = self._callbacks[:]
-        if not callbacks:
-            return
-        if clear_cb:
-            self._callbacks[:] = []
-        for callback in callbacks:
-            self._loop.call_soon(callback, self, *self.extra_args)
+    @staticmethod
+    def set_task_time(task):
+        task.task_end_time = time.time()
+        task.task_cost_time = task.task_end_time - task.task_start_time
 
     @property
     def _done_callbacks(self):
@@ -105,10 +99,10 @@ class NewTask(asyncio.Task):
         """Blocking until the task finish and return the callback_result.until"""
         if self._state == self._PENDING:
             self._loop.run_until_complete(self)
-        if self._callback_result is not NotSet:
-            result = self._callback_result
-        else:
+        if self._callback_result is NotSet:
             result = self.result()
+        else:
+            result = self._callback_result
         return result
 
     @property
