@@ -60,10 +60,10 @@ class NewTask(asyncio.Task):
         if callback:
             if not isinstance(callback, (list, tuple, set)):
                 callback = [callback]
+            self.add_done_callback(self.set_task_time)
             for fn in callback:
                 # custom callback will update the _callback_result
                 self.add_done_callback(self.wrap_callback(fn))
-            self.add_done_callback(self.set_task_time)
         self.task_start_time = time.time()
         self.task_end_time = 0
         self.task_cost_time = 0
