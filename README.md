@@ -136,21 +136,29 @@ print(
 ```python
 from torequests.dummy import Requests
 from torequests.logs import print_info
-trequests = Requests(frequencies={'p.3.cn': (2, 2)})
+from torequests.utils import ttime
+req = Requests(frequencies={'p.3.cn': (2, 1)})
+
+
+def callback(task):
+    return (len(task.content),
+            print_info(
+                ttime(task.task_start_time), '->', ttime(task.task_end_time),
+                ',', round(task.task_cost_time * 1000), 'ms'))
+
+
 ss = [
-    trequests.get(
-        'http://p.3.cn', retry=1, timeout=5,
-        callback=lambda x: (len(x.content), print_info(trequests.frequencies)))
+    req.get('http://p.3.cn', retry=1, timeout=5, callback=callback)
     for i in range(4)
 ]
-trequests.x
+req.x  # this line can be removed
 ss = [i.cx for i in ss]
 print_info(ss)
-# [2020-01-21 16:43:02] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-# [2020-01-21 16:43:02] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-# [2020-01-21 16:43:02] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-# [2020-01-21 16:43:02] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-# [2020-01-21 16:43:02] temp_code.py(12): [(612, None), (612, None), (612, None), (612, None)]
+# [2020-01-21 18:15:33] temp_code.py(11): 2020-01-21 18:15:32 -> 2020-01-21 18:15:33 , 1060 ms
+# [2020-01-21 18:15:33] temp_code.py(11): 2020-01-21 18:15:32 -> 2020-01-21 18:15:33 , 1061 ms
+# [2020-01-21 18:15:34] temp_code.py(11): 2020-01-21 18:15:32 -> 2020-01-21 18:15:34 , 2081 ms
+# [2020-01-21 18:15:34] temp_code.py(11): 2020-01-21 18:15:32 -> 2020-01-21 18:15:34 , 2081 ms
+# [2020-01-21 18:15:34] temp_code.py(20): [(612, None), (612, None), (612, None), (612, None)]
 ```
 
 #### 3.1 Performance.
@@ -159,8 +167,10 @@ print_info(ss)
 
 ```verilog
 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
-sync_test: 2000 / 2000, 100.0%, cost 1.7625 seconds, 1135.0 qps.
-async_test: 2000 / 2000, 100.0%, cost 1.7321 seconds, 1155.0 qps.
+sync_test: 2000 / 2000, 100.0%, cost 1.2965 seconds, 1543.0 qps.
+async_test: 2000 / 2000, 100.0%, cost 1.2834 seconds, 1558.0 qps.
+
+Sync usage has little performance lost.
 ```
 
 ```python
@@ -172,43 +182,44 @@ from torequests.dummy import Requests
 
 
 def sync_test():
-    req = Requests()
-    start_time = timeit.default_timer()
-    oks = 0
-    total = 2000
-    # concurrent all the tasks
-    tasks = [req.get('http://127.0.0.1:9090') for num in range(total)]
-    for task in tasks:
-        r = task.x
-        if r.text == 'ok':
-            oks += 1
-    end_time = timeit.default_timer()
-    succ_rate = oks * 100 / total
-    cost_time = round(end_time - start_time, 4)
-    qps = round(total / cost_time, 0)
-    print(
-        'sync_test: {oks} / {total}, {succ_rate}%, cost {cost_time} seconds, {qps} qps.'
-        .format(**vars()))
+    with Requests() as req:
+        start_time = timeit.default_timer()
+        oks = 0
+        total = 2000
+        # concurrent all the tasks
+        tasks = [req.get('http://127.0.0.1:8080') for num in range(total)]
+        req.x
+        for task in tasks:
+            if task.text == 'ok':
+                oks += 1
+        end_time = timeit.default_timer()
+        succ_rate = oks * 100 / total
+        cost_time = round(end_time - start_time, 4)
+        qps = round(total / cost_time, 0)
+        print(
+            f'sync_test: {oks} / {total}, {succ_rate}%, cost {cost_time} seconds, {qps} qps.'
+        )
 
 
 async def async_test():
     req = Requests()
-    start_time = timeit.default_timer()
-    oks = 0
-    total = 2000
-    # concurrent all the tasks
-    tasks = [req.get('http://127.0.0.1:9090') for num in range(total)]
-    for task in tasks:
-        r = await task
-        if r.text == 'ok':
-            oks += 1
-    end_time = timeit.default_timer()
-    succ_rate = oks * 100 / total
-    cost_time = round(end_time - start_time, 4)
-    qps = round(total / cost_time, 0)
-    print(
-        'async_test: {oks} / {total}, {succ_rate}%, cost {cost_time} seconds, {qps} qps.'
-        .format(**vars()))
+    async with Requests() as req:
+        start_time = timeit.default_timer()
+        oks = 0
+        total = 2000
+        # concurrent all the tasks
+        tasks = [req.get('http://127.0.0.1:8080') for num in range(total)]
+        for task in tasks:
+            r = await task
+            if r.text == 'ok':
+                oks += 1
+        end_time = timeit.default_timer()
+        succ_rate = oks * 100 / total
+        cost_time = round(end_time - start_time, 4)
+        qps = round(total / cost_time, 0)
+        print(
+            f'async_test: {oks} / {total}, {succ_rate}%, cost {cost_time} seconds, {qps} qps.'
+        )
 
 
 if __name__ == "__main__":
@@ -221,8 +232,6 @@ if __name__ == "__main__":
 
 #### 3.2 using torequests.dummy.Requests in async environment.
 
-> ensure the loop is unique.
-
 ```python
 import asyncio
 
@@ -231,46 +240,20 @@ from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
 from torequests.dummy import Requests
 
-loop = asyncio.get_event_loop()
 api = Starlette()
+api.req = Requests()
 
 
 @api.route('/')
 async def index(req):
-    if not hasattr(api, 'req'):
-        # or use `loop` arg to init Requests in globals
-        api.req = Requests()
-    # await for request or FailureException
+    # await for Response or FailureException
     r = await api.req.get('http://p.3.cn', timeout=(1, 1))
-    print(r)
-    if r:
-        # including good request with status_code between 200 and 299
-        text = 'ok' if 'Welcome to nginx!' in r.text else 'bad'
-    else:
-        text = 'fail'
-    return PlainTextResponse(text)
+    return PlainTextResponse(r.content)
+
 
 if __name__ == "__main__":
     uvicorn.run(api)
-```
 
-#### 3.3 mock server source code
-
-```python
-from starlette.applications import Starlette
-from starlette.responses import PlainTextResponse
-
-app = Starlette()
-
-
-@app.route("/")
-async def source_redirect(req):
-    return PlainTextResponse('ok')
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, port=9090)
 ```
 
 ### 4. utils: some useful crawler toolkits
