@@ -483,6 +483,7 @@ class Requests(Loop):
             self._session = None
 
     async def _ensure_session(self):
+        """ensure the same loop"""
         if self._session is None:
             self._session = aiohttp.ClientSession(
                 loop=self.loop, **self.session_kwargs)
@@ -638,11 +639,28 @@ class Requests(Loop):
 
     def __del__(self):
         if not self._closed:
-            asyncio.ensure_future(self.close())
+            _exhaust_simple_coro(self.close())
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         if not self._closed:
-            asyncio.ensure_future(self.close())
+            _exhaust_simple_coro(self.close())
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        if not self._closed:
+            await self.close()
+
+
+def _exhaust_simple_coro(coro):
+    """Run coroutines without event loop, only support simple coroutines which can run without future.
+    Or it will raise RuntimeError: await wasn't used with future."""
+    while True:
+        try:
+            coro.send(None)
+        except StopIteration as e:
+            return e.value

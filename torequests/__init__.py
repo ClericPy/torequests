@@ -14,4 +14,4 @@ __all__ = [
     "run_after_async",
     "tPool",
 ]
-__version__ = '4.8.21'
+__version__ = '4.8.22'
