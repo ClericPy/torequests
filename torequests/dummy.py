@@ -23,6 +23,16 @@ __all__ = "NewTask Loop Asyncme coros get_results_generator Frequency Requests".
     " ")
 
 
+class NotSet(object):
+    __slots__ = ()
+
+    def __bool__(self):
+        return False
+
+    def __nonzero__(self):
+        return False
+
+
 class NewTask(asyncio.Task):
     """Add some special method & attribute for asyncio.Task.
 
@@ -45,16 +55,18 @@ class NewTask(asyncio.Task):
     def __init__(self, coro, *, loop=None, callback=None, extra_args=None):
         assert asyncio.coroutines.iscoroutine(coro), repr(coro)
         super().__init__(coro, loop=loop)
-        self._callback_result = None
+        self._callback_result = NotSet
         self.extra_args = extra_args or ()
-        if callback:
-            if not isinstance(callback, (list, tuple, set)):
-                callback = [callback]
-            for fn in callback:
-                self.add_done_callback(self.wrap_callback(fn))
         self.task_start_time = time.time()
         self.task_end_time = 0
         self.task_cost_time = 0
+        if callback:
+            if not isinstance(callback, (list, tuple, set)):
+                callback = [callback]
+            self.add_done_callback(self.set_task_time)
+            for fn in callback:
+                # custom callback will update the _callback_result
+                self.add_done_callback(self.wrap_callback(fn))
 
     @staticmethod
     def wrap_callback(function):
@@ -67,18 +79,10 @@ class NewTask(asyncio.Task):
 
         return wrapped
 
-    def _schedule_callbacks(self, clear_cb=False):
-        """Recording the task_end_time and task_cost_time,
-            and prevent super()._schedule_callbacks to clean self._callbacks."""
-        self.task_end_time = time.time()
-        self.task_cost_time = self.task_end_time - self.task_start_time
-        callbacks = self._callbacks[:]
-        if not callbacks:
-            return
-        if clear_cb:
-            self._callbacks[:] = []
-        for callback in callbacks:
-            self._loop.call_soon(callback, self, *self.extra_args)
+    @staticmethod
+    def set_task_time(task):
+        task.task_end_time = time.time()
+        task.task_cost_time = task.task_end_time - task.task_start_time
 
     @property
     def _done_callbacks(self):
@@ -95,10 +99,10 @@ class NewTask(asyncio.Task):
         """Blocking until the task finish and return the callback_result.until"""
         if self._state == self._PENDING:
             self._loop.run_until_complete(self)
-        if self._callbacks:
-            result = self._callback_result
-        else:
+        if self._callback_result is NotSet:
             result = self.result()
+        else:
+            result = self._callback_result
         return result
 
     @property
@@ -281,9 +285,9 @@ class Loop:
         ]
         return tasks
 
-    def run(self, tasks=None, timeout=None):
+    def run(self, tasks=None, timeout=NotSet):
         """Block, run loop until all tasks completed."""
-        timeout = self._timeout if timeout is None else timeout
+        timeout = self._timeout if timeout is NotSet else timeout
         if self.async_running or self.loop.is_running():
             return self.wait_all_tasks_done(timeout)
         else:
@@ -291,9 +295,9 @@ class Loop:
             return self.loop.run_until_complete(
                 asyncio.gather(*tasks, loop=self.loop))
 
-    def wait_all_tasks_done(self, timeout=None, delay=0.5, interval=0.1):
+    def wait_all_tasks_done(self, timeout=NotSet, delay=0.5, interval=0.1):
         """Block, only be used while loop running in a single non-main thread."""
-        timeout = self._timeout if timeout is None else timeout
+        timeout = self._timeout if timeout is NotSet else timeout
         timeout = timeout or float("inf")
         start_time = time.time()
         time.sleep(delay)
@@ -446,14 +450,14 @@ class Requests(Loop):
     def __init__(self,
                  n=None,
                  interval=0,
-                 session=None,
+                 session=NotSet,
                  catch_exception=True,
                  default_callback=None,
                  frequencies=None,
                  default_host_frequency=None,
                  *,
                  loop=None,
-                 return_exceptions=None,
+                 return_exceptions=NotSet,
                  **kwargs):
         super().__init__(
             loop=loop,
@@ -463,9 +467,8 @@ class Requests(Loop):
         self.n = n
         self.interval = interval
         # be compatible with old version's arg `return_exceptions`
-        self.catch_exception = (return_exceptions
-                                if return_exceptions is not None else
-                                catch_exception)
+        self.catch_exception = (catch_exception if return_exceptions is NotSet
+                                else return_exceptions)
         self.default_host_frequency = default_host_frequency
         if self.default_host_frequency:
             assert isinstance(self.default_host_frequency, (list, tuple))
@@ -474,17 +477,16 @@ class Requests(Loop):
         self.frequencies = self.ensure_frequencies(frequencies)
         self.session_kwargs = kwargs
         self._closed = False
-        if session:
+        self._session = session
+        if self._session is not NotSet:
             session._loop = self.loop
             self._session = session
             if self.n:
                 self._session.connector._limit = self.n
-        else:
-            self._session = None
 
     async def _ensure_session(self):
         """ensure the same loop"""
-        if self._session is None:
+        if self._session is NotSet:
             self._session = aiohttp.ClientSession(
                 loop=self.loop, **self.session_kwargs)
             if self.n:
@@ -507,11 +509,11 @@ class Requests(Loop):
         }
         return frequencies
 
-    def set_frequency(self, host, sem=None, interval=None):
+    def set_frequency(self, host, sem=None, interval=NotSet):
         """Set frequency for host with sem and interval."""
         # single sem or global sem
         sem = sem or self.sem
-        interval = self.interval if interval is None else interval
+        interval = self.interval if interval is NotSet else interval
         frequency = Frequency(sem, interval, host)
         frequencies = {host: frequency}
         self.update_frequency(frequencies)
@@ -567,9 +569,9 @@ class Requests(Loop):
                 error = err
                 continue
             finally:
-                sem.release()
                 if interval:
                     await asyncio.sleep(interval)
+                sem.release()
         else:
             kwargs["retry"] = retry
             if referer_info:
@@ -630,30 +632,30 @@ class Requests(Loop):
             "patch", url=url, callback=callback, retry=retry, **kwargs)
 
     async def close(self):
+        if self._closed:
+            return
         try:
-            if self._session and not self._session.closed:
-                await self._session.close()
+            session = await self._ensure_session()
+            if session and not session.closed:
+                await session.close()
             self._closed = True
         except Exception as e:
             Config.dummy_logger.error("can not close session for: %s" % e)
 
     def __del__(self):
-        if not self._closed:
-            _exhaust_simple_coro(self.close())
+        _exhaust_simple_coro(self.close())
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
-        if not self._closed:
-            _exhaust_simple_coro(self.close())
+        _exhaust_simple_coro(self.close())
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, *args):
-        if not self._closed:
-            await self.close()
+        await self.close()
 
 
 def _exhaust_simple_coro(coro):
