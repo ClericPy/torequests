@@ -365,23 +365,23 @@ async def test_dummy():
     from torequests.dummy import Requests
     from torequests import __version__
 
-    req = Requests()
-    start = timeit.default_timer()
-    ok = 0
-    bad = 0
-    tasks = [req.get(url) for _ in range(TOTAL_REQUEST_COUNTS)]
-    for task in tasks:
-        r = await task
-        if r.text == 'ok':
-            ok += 1
-        else:
-            bad += 1
-    cost = timeit.default_timer() - start
-    name = f'test_dummy({__version__})'
-    qps = round(TOTAL_REQUEST_COUNTS / cost)
-    print(
-        f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3): >5}s, {qps} qps, {round(qps*100/AIOHTTP_QPS, 2)}% standard.'
-    )
+    async with Requests() as req:
+        start = timeit.default_timer()
+        ok = 0
+        bad = 0
+        tasks = [req.get(url) for _ in range(TOTAL_REQUEST_COUNTS)]
+        for task in tasks:
+            r = await task
+            if r.text == 'ok':
+                ok += 1
+            else:
+                bad += 1
+        cost = timeit.default_timer() - start
+        name = f'test_dummy({__version__})'
+        qps = round(TOTAL_REQUEST_COUNTS / cost)
+        print(
+            f'{name: <25}: {ok} / {ok + bad} = {ok * 100 / (ok + bad)}%, cost {round(cost, 3): >5}s, {qps} qps, {round(qps*100/AIOHTTP_QPS, 2)}% standard.'
+        )
 
 
 def test_tPool():
@@ -457,7 +457,6 @@ if __name__ == "__main__":
         asyncio.run(test_dummy())
         asyncio.run(test_httpx())
         test_tPool()
-
 ```
 
 ### Test Result on [Windows]
@@ -553,4 +552,3 @@ func main() {
 	fmt.Printf("%d / 2000, %.2f %%, cost %.2f seconds, %.2f qps.", oks, float64(oks)*100/float64(2000.0), t, qps)
 }
 ```
-
