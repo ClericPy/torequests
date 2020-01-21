@@ -57,6 +57,9 @@ class NewTask(asyncio.Task):
         super().__init__(coro, loop=loop)
         self._callback_result = NotSet
         self.extra_args = extra_args or ()
+        self.task_start_time = time.time()
+        self.task_end_time = 0
+        self.task_cost_time = 0
         if callback:
             if not isinstance(callback, (list, tuple, set)):
                 callback = [callback]
@@ -64,9 +67,6 @@ class NewTask(asyncio.Task):
             for fn in callback:
                 # custom callback will update the _callback_result
                 self.add_done_callback(self.wrap_callback(fn))
-        self.task_start_time = time.time()
-        self.task_end_time = 0
-        self.task_cost_time = 0
 
     @staticmethod
     def wrap_callback(function):
