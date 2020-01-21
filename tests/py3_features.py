@@ -21,7 +21,8 @@ def test_dummy_Requests():
     ]
     trequests.x
     cb_results = [i.cx for i in tasks]
-    assert all(cb_results), "fail: test_dummy_Requests"
+    # test and ensure task.cx is callback result
+    assert all([isinstance(i, int) for i in cb_results]), "fail: test_dummy_Requests"
     r = tasks[0]
     assert isinstance(r.content, bytes)
     assert isinstance(r.text, str)

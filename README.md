@@ -73,33 +73,37 @@ print(future.x, ', %s s passed' % (int(time.time() - start)))
 ```python
 from torequests.main import tPool
 from torequests.logs import print_info
+from torequests.utils import ttime
 
 req = tPool()
 test_url = 'http://p.3.cn'
-ss = [
-    req.get(
-        test_url,
-        retry=2,
-        callback=lambda x: (len(x.content), print_info(len(x.content))))
-    for i in range(3)
-]
+
+
+def callback(task):
+    return (len(task.content),
+            print_info(
+                ttime(task.task_start_time), '-> ', ttime(task.task_end_time),
+                ',', round(task.task_cost_time * 1000), 'ms'))
+
+
+ss = [req.get(test_url, retry=2, callback=callback) for i in range(3)]
 # or [i.x for i in ss]
 req.x
+# task.cx returns the callback_result
 ss = [i.cx for i in ss]
 print_info(ss)
-
-# [2019-04-01 00:19:07] temp_code.py(10): 612
-# [2019-04-01 00:19:07] temp_code.py(10): 612
-# [2019-04-01 00:19:07] temp_code.py(10): 612
-# [2019-04-01 00:19:07] temp_code.py(16): [(612, None), (612, None), (612, None)]
+# [2020-01-21 16:56:23] temp_code.py(11): 2020-01-21 16:56:23 ->  2020-01-21 16:56:23 , 54 ms
+# [2020-01-21 16:56:23] temp_code.py(11): 2020-01-21 16:56:23 ->  2020-01-21 16:56:23 , 55 ms
+# [2020-01-21 16:56:23] temp_code.py(11): 2020-01-21 16:56:23 ->  2020-01-21 16:56:23 , 57 ms
+# [2020-01-21 16:56:23] temp_code.py(18): [(612, None), (612, None), (612, None)]
 
 ```
 
 #### 2.1 Performance.
 
 ```verilog
-[3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]]: 2000 / 2000, 100.0%, cost 4.5911 seconds, 436.0 qps.
-[2.7.15 (v2.7.15:ca079a3ea3, Apr 30 2018, 16:30:26) [MSC v.1500 64 bit (AMD64)]]: 2000 / 2000, 100%, cost 9.3587 seconds, 214.0 qps.
+[3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]]: 2000 / 2000, 100.0%, cost 4.2121 seconds, 475.0 qps.
+[2.7.15 (v2.7.15:ca079a3ea3, Apr 30 2018, 16:30:26) [MSC v.1500 64 bit (AMD64)]]: 2000 / 2000, 100%, cost 9.4462 seconds, 212.0 qps.
 ```
 
 ```python
@@ -112,7 +116,7 @@ start_time = timeit.default_timer()
 oks = 0
 total = 2000
 # concurrent all the tasks
-tasks = [req.get('http://127.0.0.1:9090') for num in range(total)]
+tasks = [req.get('http://127.0.0.1:8080') for num in range(total)]
 for task in tasks:
     r = task.x
     if r.text == 'ok':
@@ -142,13 +146,11 @@ ss = [
 trequests.x
 ss = [i.cx for i in ss]
 print_info(ss)
-
-# [2019-04-01 00:16:35] temp_code.py(7): {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-# [2019-04-01 00:16:35] temp_code.py(7): {'p.3.cn': Frequency(sem=<0/2>, interval=2)}
-# [2019-04-01 00:16:37] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-# [2019-04-01 00:16:37] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-# [2019-04-01 00:16:37] temp_code.py(12): [<NewResponse [200]>, <NewResponse [200]>, <NewResponse [200]>, <NewResponse [200]>]
-
+# [2020-01-21 16:43:02] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
+# [2020-01-21 16:43:02] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
+# [2020-01-21 16:43:02] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
+# [2020-01-21 16:43:02] temp_code.py(7): {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
+# [2020-01-21 16:43:02] temp_code.py(12): [(612, None), (612, None), (612, None), (612, None)]
 ```
 
 #### 3.1 Performance.
