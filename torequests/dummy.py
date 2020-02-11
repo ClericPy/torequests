@@ -244,9 +244,8 @@ class Loop:
             # loop.x can be ignore
             loop.x
             print(task.x)
-            # <NewTask pending coro=<test() running at e:\github\torequests\temp_code2.py:6>>
+            # <NewTask pending coro=<test() running at temp_code.py:6>>
             # (Frequency(None / None, pending: None, interval: 0s), 0)
-
         """
         callback = callback or self.default_callback
         if self.async_running:

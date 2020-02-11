@@ -3,7 +3,6 @@ import re
 import time
 
 import requests
-from torequests.parsers import *
 from torequests.utils import *
 
 # with capsys.disabled():
@@ -252,66 +251,6 @@ def test_failure():
     from torequests.exceptions import FailureException
 
     assert bool(FailureException(BaseException())) is False
-
-
-def test_parsers():
-    parser = SimpleParser()
-
-    scode = parser
-    result = parser.parse(scode, [["1-1", "py", "alias"]])
-    assert isinstance(result, dict), "test py parser fail."
-
-    scode = u'{"items": [{"title": "a"}, {"title": "b"}, {"title": "中文"}]}'
-    result = parser.parse(
-        scode, [["1-n", "json", "$.items[*]"], ["n-n", "json", "$.title"]])
-    assert result == ["a", "b", u"中文"], "test json fail."
-
-    scode = u'{"a": "1", "items": [{"title": "b"}, {"title": "b"}, {"title": "中文"}]}'
-    result = parser.parse(
-        scode,
-        [["1-n", "object", "$.items[@.title is b]"], ["n-n", "object", "$.*"]])
-    assert result == [{"title": "b"}, {"title": "b"}], "test object fail."
-
-    scode = "<p> hello world </p>"
-    result = parser.parse(scode, [["1-n", "re", "<(.*?)>", "@<\\1art>"]])
-    assert result == ["<part> hello world </part>"], "test re.sub fail."
-    result = parser.parse(scode, [["1-n", "re", "<(.*?)>", "$1"]])
-    assert result == ["p", "/p"], "test re.finditer fail."
-
-    scode = u"""<?xml version='1.0' encoding='utf-8'?>
-    <slideshow
-        title="Sample Slide Show"
-        date="Date of publication"
-        author="Yours Truly"
-        >
-        <!-- TITLE SLIDE -->
-        <slide type="all">
-        <title>Wake up to WonderWidgets!</title>
-        </slide>
-
-        <!-- OVERVIEW -->
-        <slide type="all">
-            <title>中文</title>
-            <item>Why <em>WonderWidgets</em> are great</item>
-            <item/>
-            <item>Who <em>buys</em> WonderWidgets</item>
-        </slide>
-
-    </slideshow>""".encode("u8")
-    result = parser.parse(
-        scode,
-        [["1-n", "xml", "//slide", "xml"],
-         ["n-n", "xml", "/slide/title", "text"]],
-    )
-    assert result == [u"Wake up to WonderWidgets!", u"中文"], "test xml fail."
-
-    scode = u'<div><p class="test" >Hello<br>world</p><p>Your<br>world</p>TAIL<p class>Hello<br>world中文!</p>TAIL</div>'
-    result = parser.parse(
-        scode, [["1-n", "html", "p", "html"], ["n-n", "html", "p", "text"]])
-    assert result == [u"Helloworld", "Yourworld",
-                      u"Helloworld中文!"], "test html fail."
-    result = parser.parse(scode, [["1-n", "html", "p", "@class"]])
-    assert result == ["test", None, ""], "test html fail."
 
 
 def test_try_import():
