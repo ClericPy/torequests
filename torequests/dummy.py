@@ -2,12 +2,15 @@
 
 import asyncio
 from asyncio import (Queue, Task, ensure_future, gather, get_event_loop,
-                     iscoroutine, set_event_loop_policy)
+                     iscoroutine, new_event_loop, set_event_loop_policy)
 from asyncio import sleep as asyncio_sleep
+from asyncio import wait
+from concurrent.futures import ALL_COMPLETED
 from functools import wraps
 from time import sleep as time_sleep
 from time import time as time_time
 from urllib.parse import urlparse
+from weakref import WeakSet
 
 import aiohttp
 
@@ -139,16 +142,19 @@ class Loop:
         self._loop = loop
         self.default_callback = default_callback
         self.async_running = False
-        self.n = n
-        self.interval = interval
         self._timeout = timeout
-        self.frequency = Frequency(self.n, self.interval, loop=self.loop)
+        self.frequency = Frequency(n, interval, loop=self.loop)
 
     @property
     def loop(self):
-        return self._loop or get_event_loop()
+        # lazy init
+        if self._loop is None:
+            self._loop = get_event_loop()
+        if self._loop.is_closed():
+            self._loop = new_event_loop()
+        return self._loop
 
-    def _wrap_coro_function_with_sem(self, coro_func):
+    def _wrap_coro_function_with_frequency(self, coro_func):
         """Decorator set the coro_function has n/interval control."""
 
         @wraps(coro_func)
@@ -214,13 +220,13 @@ class Loop:
             print(task)
             # loop.x can be ignore
             print(task.x)
-            # <NewTask pending coro=<test() running at e:\github\torequests\torequests\dummy.py:154>>
+            # <NewTask pending coro=<test() running at dummy.py:154>>
             # (Frequency(None / None, pending: None, interval: 0s), 1)
-
         """
         args = args or ()
         kwargs = kwargs or {}
-        coro = self._wrap_coro_function_with_sem(coro_function)(*args, **kwargs)
+        coro = self._wrap_coro_function_with_frequency(coro_function)(*args,
+                                                                      **kwargs)
         return self.submit(coro, callback=callback)
 
     def submit(self, coro, callback=None):
@@ -256,7 +262,7 @@ class Loop:
     def submitter(self, f):
         """Decorator to submit a coro-function as NewTask to self.loop with control.
         Use default_callback frequency of loop."""
-        f = self._wrap_coro_function_with_sem(f)
+        f = self._wrap_coro_function_with_frequency(f)
 
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -268,6 +274,10 @@ class Loop:
     def x(self):
         """return self.run()"""
         return self.run()
+
+    async def wait(self, fs, timeout=None, return_when=ALL_COMPLETED):
+        return await wait(
+            fs, loop=self.loop, timeout=timeout, return_when=return_when)
 
     @property
     def todo_tasks(self):
@@ -291,11 +301,12 @@ class Loop:
         if self.async_running or self.loop.is_running():
             return self.wait_all_tasks_done(timeout)
         else:
-            tasks = tasks or self.todo_tasks
-            return self.loop.run_until_complete(gather(*tasks, loop=self.loop))
+            tasks = [task for task in tasks or self.todo_tasks]
+            return self.loop.run_until_complete(
+                self.wait(tasks, timeout=timeout))
 
     def wait_all_tasks_done(self, timeout=NotSet, delay=0.5, interval=0.1):
-        """Block, only be used while loop running in a single non-main thread."""
+        """Block, only be used while loop running in a single non-main thread. Not SMART!"""
         timeout = self._timeout if timeout is NotSet else timeout
         timeout = timeout or float("inf")
         start_time = time_time()
@@ -324,6 +335,10 @@ class Loop:
         tasks = tasks or self.todo_tasks
         await gather(*tasks, loop=self.loop)
 
+    def __del__(self):
+        for task in self.frequency._put_tasks:
+            task.cancel()
+
 
 def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):
     """Wrap coro_function into the function return NewTask."""
@@ -344,36 +359,28 @@ def get_results_generator(*args):
     raise NotImplementedError
 
 
-class _mock_sem:
-    _value = 0
-
-    async def acquire(self):
-        pass
-
-    def release(self):
-        pass
-
-    def __bool__(self):
-        return False
-
-    def __nonzero__(self):
-        return False
-
-
 class Frequency(object):
     """Frequency controller, means concurrent running n tasks every interval seconds."""
-    __slots__ = ("n", "interval", "loop", "q")
+    __slots__ = ("interval", "loop", "q", "_put_tasks")
 
     def __init__(self, n=None, interval=0, loop=None):
-        self.n = n
         self.interval = interval
         self.loop = loop
-        if self.n:
-            self.q = Queue(self.n, loop=self.loop)
+        self._put_tasks = WeakSet()
+        if n:
+            self.q = Queue(n, loop=self.loop)
             for _ in range(n):
                 self.q.put_nowait(1)
         else:
             self.q = None
+
+    @property
+    def n(self):
+        return self.q.maxsize
+
+    def __del__(self):
+        for task in self._put_tasks:
+            task.cancel()
 
     @classmethod
     def ensure_frequency(cls, frequency, loop=None):
@@ -395,18 +402,24 @@ class Frequency(object):
 
     async def __aexit__(self, *args):
         if self.q:
-            ensure_future(self.wait_put())
+            task = ensure_future(self.wait_put(), loop=self.loop)
+            task._log_destroy_pending = False
+            self._put_tasks.add(task)
 
     def __str__(self):
         return self.__repr__()
 
     def __repr__(self):
-        return "Frequency(%s / %s, pending: %s, interval: %ss)" % (
-            self.n - self.q.qsize() if self.q else None,
-            self.n,
-            len(self.q._getters) if self.q else None,
-            self.interval,
-        )
+        if self.q:
+            n = self.n
+            return "Frequency(%s/%s, pending: %s, interval: %ss)" % (
+                n - self.q.qsize(),
+                n,
+                len(self.q._getters),
+                self.interval,
+            )
+        else:
+            return "Frequency(unlimited)"
 
     def __bool__(self):
         return bool(self.q)
@@ -428,23 +441,58 @@ class Requests(Loop):
 
     ::
 
+        # ====================== sync environment ======================
         from torequests.dummy import Requests
         from torequests.logs import print_info
-        trequests = Requests(frequencies={'p.3.cn': (2, 2)})
-        ss = [
-            trequests.get(
-                'http://p.3.cn', retry=1, timeout=5,
-                callback=lambda x: (len(x.content), print_info(trequests.frequencies)))
+        req = Requests(frequencies={'p.3.cn': (2, 1)})
+        tasks = [
+            req.get(
+                'http://p.3.cn',
+                retry=1,
+                timeout=5,
+                callback=lambda x: (len(x.content), print_info(x.status_code)))
             for i in range(4)
         ]
-        trequests.x
-        ss = [i.cx for i in ss]
-        print_info(ss)
-        # [2020-02-11 10:46:18] temp_code2.py(7): {'p.3.cn': Frequency(2 / 2, pending: 2, interval: 2s)}
-        # [2020-02-11 10:46:18] temp_code2.py(7): {'p.3.cn': Frequency(2 / 2, pending: 2, interval: 2s)}
-        # [2020-02-11 10:46:20] temp_code2.py(7): {'p.3.cn': Frequency(2 / 2, pending: 0, interval: 2s)}
-        # [2020-02-11 10:46:20] temp_code2.py(7): {'p.3.cn': Frequency(2 / 2, pending: 0, interval: 2s)}
-        # [2020-02-11 10:46:20] temp_code2.py(12): [(612, None), (612, None), (612, None), (612, None)]
+        req.x
+        results = [i.cx for i in tasks]
+        print_info(results)
+        # [2020-02-11 15:30:54] temp_code.py(11): 200
+        # [2020-02-11 15:30:54] temp_code.py(11): 200
+        # [2020-02-11 15:30:55] temp_code.py(11): 200
+        # [2020-02-11 15:30:55] temp_code.py(11): 200
+        # [2020-02-11 15:30:55] temp_code.py(16): [(612, None), (612, None), (612, None), (612, None)]
+
+        # ====================== async with ======================
+        from torequests.dummy import Requests
+        from torequests.logs import print_info
+        import asyncio
+
+
+        async def main():
+            async with Requests(frequencies={'p.3.cn': (2, 1)}) as req:
+                tasks = [
+                    req.get(
+                        'http://p.3.cn',
+                        retry=1,
+                        timeout=5,
+                        callback=lambda x: (len(x.content), print_info(x.status_code))
+                    ) for i in range(4)
+                ]
+                await req.wait(tasks)
+                results = [task.cx for task in tasks]
+                print_info(results)
+
+
+        if __name__ == "__main__":
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(main())
+            loop.close()
+        # [2020-02-11 15:30:55] temp_code.py(36): 200
+        # [2020-02-11 15:30:55] temp_code.py(36): 200
+        # [2020-02-11 15:30:56] temp_code.py(36): 200
+        # [2020-02-11 15:30:56] temp_code.py(36): 200
+        # [2020-02-11 15:30:56] temp_code.py(41): [(612, None), (612, None), (612, None), (612, None)]
+
     """
 
     def __init__(self,
@@ -469,11 +517,13 @@ class Requests(Loop):
         # be compatible with old version's arg `return_exceptions`
         self.catch_exception = (catch_exception if return_exceptions is NotSet
                                 else return_exceptions)
-        self.default_host_frequency = default_host_frequency
-        if self.default_host_frequency:
-            assert isinstance(self.default_host_frequency, (list, tuple))
-        self.global_frequency = Frequency(self.n, self.interval, loop=self.loop)
         self.frequencies = self.ensure_frequencies(frequencies)
+        if default_host_frequency:
+            self.frequencies[
+                'default_host_frequency'] = Frequency.ensure_frequency(
+                    default_host_frequency, loop=self.loop)
+        self.frequencies['global_frequency'] = Frequency(
+            self.n, self.interval, loop=self.loop)
         self.session_kwargs = kwargs
         self._closed = False
         self._session = session
@@ -526,12 +576,11 @@ class Requests(Loop):
         parsed_url = urlparse(url)
         scheme = parsed_url.scheme
         host = parsed_url.netloc
-        if host in self.frequencies:
-            frequency = self.frequencies[host]
-        elif self.default_host_frequency:
-            frequency = self.set_frequency(host, *self.default_host_frequency)
-        else:
-            frequency = self.global_frequency
+        # attempt to get a frequency, host > default_host_frequency > global_frequency
+        frequency = self.frequencies.get(
+            host,
+            self.frequencies.get('default_host_frequency',
+                                 self.frequencies.get('global_frequency')))
         if 'timeout' in kwargs:
             # for timeout=(1,2) and timeout=5
             if isinstance(kwargs['timeout'], (tuple, list)):
@@ -627,6 +676,9 @@ class Requests(Loop):
     async def close(self):
         if self._closed:
             return
+        for frequency in self.frequencies.values():
+            for task in frequency._put_tasks:
+                task.cancel()
         try:
             session = await self._ensure_session()
             if session and not session.closed:
