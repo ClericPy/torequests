@@ -108,24 +108,58 @@ Examples:
 
     ::
 
+        # ====================== sync environment ======================
         from torequests.dummy import Requests
         from torequests.logs import print_info
-        trequests = Requests(frequencies={'p.3.cn': (2, 2)})
-        ss = [
-            trequests.get(
-                'http://p.3.cn', retry=1, timeout=5,
-                callback=lambda x: (len(x.content), print_info(trequests.frequencies)))
+        req = Requests(frequencies={'p.3.cn': (2, 1)})
+        tasks = [
+            req.get(
+                'http://p.3.cn',
+                retry=1,
+                timeout=5,
+                callback=lambda x: (len(x.content), print_info(x.status_code)))
             for i in range(4)
         ]
-        trequests.x
-        ss = [i.cx for i in ss]
-        print_info(ss)
+        req.x
+        results = [i.cx for i in tasks]
+        print_info(results)
+        # [2020-02-11 15:30:54] temp_code.py(11): 200
+        # [2020-02-11 15:30:54] temp_code.py(11): 200
+        # [2020-02-11 15:30:55] temp_code.py(11): 200
+        # [2020-02-11 15:30:55] temp_code.py(11): 200
+        # [2020-02-11 15:30:55] temp_code.py(16): [(612, None), (612, None), (612, None), (612, None)]
 
-        # [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-        # [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<0/2>, interval=2)}
-        # [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-        # [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-        # [2018-03-19 00:57:38]: [(612, None), (612, None), (612, None), (612, None)]
+        # ====================== async with ======================
+        from torequests.dummy import Requests
+        from torequests.logs import print_info
+        import asyncio
+
+
+        async def main():
+            async with Requests(frequencies={'p.3.cn': (2, 1)}) as req:
+                tasks = [
+                    req.get(
+                        'http://p.3.cn',
+                        retry=1,
+                        timeout=5,
+                        callback=lambda x: (len(x.content), print_info(x.status_code))
+                    ) for i in range(4)
+                ]
+                await req.wait(tasks)
+                results = [task.cx for task in tasks]
+                print_info(results)
+
+
+        if __name__ == "__main__":
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(main())
+            loop.close()
+        # [2020-02-11 15:30:55] temp_code.py(36): 200
+        # [2020-02-11 15:30:55] temp_code.py(36): 200
+        # [2020-02-11 15:30:56] temp_code.py(36): 200
+        # [2020-02-11 15:30:56] temp_code.py(36): 200
+        # [2020-02-11 15:30:56] temp_code.py(41): [(612, None), (612, None), (612, None), (612, None)]
+
 
 **4. utils: some useful crawler toolkits**
 

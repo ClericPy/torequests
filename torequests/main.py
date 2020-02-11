@@ -110,6 +110,8 @@ class NewExecutorPoolMixin(Executor):
 class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
     """Let ThreadPoolExecutor use NewFuture instead of origin concurrent.futures.Future.
 
+    WARNING: NewFutures in Pool will not block main thread without NewFuture.x.
+
     Basic Usage::
 
             from torequests.main import Pool
@@ -565,10 +567,10 @@ class tPool(object):
         ss = [i.cx for i in ss]
         print_info(ss)
 
-        # [2020-02-11 11:36:33] temp_code2.py(10): 612
-        # [2020-02-11 11:36:33] temp_code2.py(10): 612
-        # [2020-02-11 11:36:34] temp_code2.py(10): 612
-        # [2020-02-11 11:36:34] temp_code2.py(16): [(612, None), (612, None), (612, None)]
+        # [2020-02-11 11:36:33] temp_code.py(10): 612
+        # [2020-02-11 11:36:33] temp_code.py(10): 612
+        # [2020-02-11 11:36:34] temp_code.py(10): 612
+        # [2020-02-11 11:36:34] temp_code.py(16): [(612, None), (612, None), (612, None)]
     """
 
     def __init__(
