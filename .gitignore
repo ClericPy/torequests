@@ -54,7 +54,7 @@ docs/_build/
 # vscode conf
 .vscode/*
 
-temp_code.py
+temp_code*.py
 doc/_build/
 obsolete/
 .mypy_cache
