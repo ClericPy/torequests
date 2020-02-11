@@ -3,25 +3,20 @@
 
 import atexit
 import time
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from concurrent.futures._base import (
-    Error,
-    Executor,
-    Future,
-    TimeoutError,
-    PENDING,
-    RUNNING,
-    CANCELLED,
-    CANCELLED_AND_NOTIFIED,
-    FINISHED,
-    CancelledError,
-)
+from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
+                                as_completed)
+from concurrent.futures._base import (CANCELLED, CANCELLED_AND_NOTIFIED,
+                                      FINISHED, PENDING, RUNNING,
+                                      CancelledError, Error, Executor, Future,
+                                      TimeoutError)
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
+from queue import Queue
 from threading import Timer
+from time import sleep as time_sleep
 from weakref import WeakSet
 
-from requests import RequestException, Session, PreparedRequest
+from requests import PreparedRequest, RequestException, Session
 from requests.adapters import HTTPAdapter
 from urllib3 import disable_warnings
 
@@ -151,15 +146,13 @@ class Pool(ThreadPoolExecutor, NewExecutorPoolMixin):
             # ['use_submit: 2', 'use_submit: 1', 'use_submit: 0', 'use_decorator: 2', 'use_decorator: 1', 'use_decorator: 0']
     """
 
-    def __init__(
-        self,
-        n=None,
-        timeout=None,
-        default_callback=None,
-        catch_exception=True,
-        *args,
-        **kwargs
-    ):
+    def __init__(self,
+                 n=None,
+                 timeout=None,
+                 default_callback=None,
+                 catch_exception=True,
+                 *args,
+                 **kwargs):
         n = n or kwargs.pop("max_workers", None)
         if PY2 and n is None:
             # python2 n!=None
@@ -234,15 +227,13 @@ class ProcessPool(ProcessPoolExecutor, NewExecutorPoolMixin):
         # use_submit: 2
     """
 
-    def __init__(
-        self,
-        n=None,
-        timeout=None,
-        default_callback=None,
-        catch_exception=True,
-        *args,
-        **kwargs
-    ):
+    def __init__(self,
+                 n=None,
+                 timeout=None,
+                 default_callback=None,
+                 catch_exception=True,
+                 *args,
+                 **kwargs):
         n = n or kwargs.pop("max_workers", None)
         if PY2 and n is None:
             # python2 n!=None
@@ -260,8 +251,7 @@ class ProcessPool(ProcessPoolExecutor, NewExecutorPoolMixin):
             if PY3 and self._broken:
                 raise BrokenProcessPool(
                     "A child process terminated "
-                    "abruptly, the process pool is not usable anymore"
-                )
+                    "abruptly, the process pool is not usable anymore")
             if self._shutdown_thread:
                 raise RuntimeError("cannot schedule new futures after shutdown")
             callback = kwargs.pop("callback", self.default_callback)
@@ -306,9 +296,12 @@ class NewFuture(Future):
 
         __await__ = _new_future_await
 
-    def __init__(
-        self, timeout=None, args=None, kwargs=None, callback=None, catch_exception=True
-    ):
+    def __init__(self,
+                 timeout=None,
+                 args=None,
+                 kwargs=None,
+                 callback=None,
+                 catch_exception=True):
         super(NewFuture, self).__init__()
         self._timeout = timeout
         self._args = args or ()
@@ -340,7 +333,8 @@ class NewFuture(Future):
                     if callback in self._user_callbacks:
                         self._callback_result = result
                 except Exception as e:
-                    Config.main_logger.error("exception calling callback for %s" % e)
+                    Config.main_logger.error(
+                        "exception calling callback for %s" % e)
             self._condition.notify_all()
 
     @property
@@ -479,10 +473,64 @@ class FailedRequest(PreparedRequest):
         # self.kwargs for retry tPool.request
         self.kwargs = kwargs
         filted_kwargs = {
-            key: value for key, value in kwargs.items() if key in self.allow_keys
+            key: value
+            for key, value in kwargs.items()
+            if key in self.allow_keys
         }
         super(FailedRequest, self).__init__()
         self.prepare(**filted_kwargs)
+
+
+class Frequency(object):
+    """Frequency controller, means concurrent running n tasks every interval seconds."""
+    __slots__ = ("n", "interval", "q")
+
+    def __init__(self, n=None, interval=0):
+        self.n = n
+        self.interval = interval
+        if self.n:
+            self.q = Queue(self.n)
+            for _ in range(n):
+                self.q.put_nowait(1)
+        else:
+            self.q = None
+
+    @classmethod
+    def ensure_frequency(cls, frequency):
+        if isinstance(frequency, cls):
+            return frequency
+        elif isinstance(frequency, dict):
+            return cls(**frequency)
+        else:
+            return cls(*frequency)
+
+    @threads()
+    def wait_put(self):
+        time_sleep(self.interval)
+        self.q.put(1)
+        self.q.task_done()
+
+    def __enter__(self):
+        if self.q:
+            self.q.get()
+
+    def __exit__(self, *args):
+        if self.q:
+            self.wait_put()
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return "Frequency(%s / %s, pending: %s, interval: %ss)" % (
+            self.n - self.q.qsize() if self.q else None,
+            self.n,
+            len(self.q._getters) if self.q else None,
+            self.interval,
+        )
+
+    def __bool__(self):
+        return bool(self.q)
 
 
 class tPool(object):
@@ -500,7 +548,7 @@ class tPool(object):
         from torequests.main import tPool
         from torequests.logs import print_info
 
-        trequests = tPool()
+        trequests = tPool(2, 1)
         test_url = 'http://p.3.cn'
         ss = [
             trequests.get(
@@ -514,31 +562,33 @@ class tPool(object):
         ss = [i.cx for i in ss]
         print_info(ss)
 
-        # [2018-03-18 21:18:09]: 612
-        # [2018-03-18 21:18:09]: 612
-        # [2018-03-18 21:18:09]: 612
-        # [2018-03-18 21:18:09]: [(612, None), (612, None), (612, None)]
+        # [2020-02-11 11:36:33] temp_code2.py(10): 612
+        # [2020-02-11 11:36:33] temp_code2.py(10): 612
+        # [2020-02-11 11:36:34] temp_code2.py(10): 612
+        # [2020-02-11 11:36:34] temp_code2.py(16): [(612, None), (612, None), (612, None)]
     """
 
     def __init__(
-        self,
-        n=None,
-        interval=0,
-        timeout=None,
-        session=None,
-        catch_exception=True,
-        default_callback=None,
+            self,
+            n=None,
+            interval=0,
+            timeout=None,
+            session=None,
+            catch_exception=True,
+            default_callback=None,
     ):
         self.pool = Pool(n, timeout)
         self.session = session if session else Session()
         self.n = n or 10
         # adapt the concurrent limit.
-        custom_adapter = HTTPAdapter(pool_connections=self.n, pool_maxsize=self.n)
+        custom_adapter = HTTPAdapter(
+            pool_connections=self.n, pool_maxsize=self.n)
         self.session.mount("http://", custom_adapter)
         self.session.mount("https://", custom_adapter)
         self.interval = interval
         self.catch_exception = catch_exception
         self.default_callback = default_callback
+        self.frequency = Frequency(self.n, self.interval)
 
     @property
     def all_tasks(self):
@@ -571,23 +621,20 @@ class tPool(object):
         referer_info = kwargs.pop("referer_info", None)
         encoding = kwargs.pop("encoding", None)
         for _ in range(retry + 1):
-            try:
-                resp = self.session.request(**kwargs)
-                if encoding:
-                    resp.encoding = encoding
-                Config.main_logger.debug("%s done, %s" % (url, kwargs))
-                resp.referer_info = referer_info
-                return resp
-            except (RequestException, Error) as e:
-                error = e
-                Config.main_logger.debug(
-                    "Retry %s for the %s time, Exception: %s . kwargs= %s"
-                    % (url, _ + 1, e, kwargs)
-                )
-                continue
-            finally:
-                if self.interval:
-                    time.sleep(self.interval)
+            with self.frequency:
+                try:
+                    resp = self.session.request(**kwargs)
+                    if encoding:
+                        resp.encoding = encoding
+                    Config.main_logger.debug("%s done, %s" % (url, kwargs))
+                    resp.referer_info = referer_info
+                    return resp
+                except (RequestException, Error) as e:
+                    error = e
+                    Config.main_logger.debug(
+                        "Retry %s for the %s time, Exception: %s . kwargs= %s" %
+                        (url, _ + 1, e, kwargs))
+                    continue
         # for unofficial request args
         kwargs["retry"] = retry
         if referer_info:
@@ -609,15 +656,18 @@ class tPool(object):
             url=url,
             retry=retry,
             callback=callback or self.default_callback,
-            **kwargs
-        )
+            **kwargs)
 
     def get(self, url, params=None, callback=None, retry=0, **kwargs):
         """Similar to `requests.get`, but return as NewFuture."""
         kwargs.setdefault("allow_redirects", True)
         return self.request(
-            "get", url=url, params=params, callback=callback, retry=retry, **kwargs
-        )
+            "get",
+            url=url,
+            params=params,
+            callback=callback,
+            retry=retry,
+            **kwargs)
 
     def post(self, url, data=None, json=None, callback=None, retry=0, **kwargs):
         """Similar to `requests.post`, but return as NewFuture."""
@@ -628,44 +678,44 @@ class tPool(object):
             json=json,
             callback=callback,
             retry=retry,
-            **kwargs
-        )
+            **kwargs)
 
     def delete(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.delete`, but return as NewFuture."""
-        return self.request("delete", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request(
+            "delete", url=url, callback=callback, retry=retry, **kwargs)
 
     def put(self, url, data=None, callback=None, retry=0, **kwargs):
         """Similar to `requests.put`, but return as NewFuture."""
         return self.request(
-            "put", url=url, data=data, callback=callback, retry=retry, **kwargs
-        )
+            "put", url=url, data=data, callback=callback, retry=retry, **kwargs)
 
     def head(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.head`, but return as NewFuture."""
         kwargs.setdefault("allow_redirects", False)
-        return self.request("head", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request(
+            "head", url=url, callback=callback, retry=retry, **kwargs)
 
     def options(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.options`, but return as NewFuture."""
         kwargs.setdefault("allow_redirects", True)
         return self.request(
-            "options", url=url, callback=callback, retry=retry, **kwargs
-        )
+            "options", url=url, callback=callback, retry=retry, **kwargs)
 
     def patch(self, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.patch`, but return as NewFuture."""
-        return self.request("patch", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request(
+            "patch", url=url, callback=callback, retry=retry, **kwargs)
 
 
 def get(url, params=None, callback=None, retry=0, **kwargs):
-    return tPool().get(url, params=params, callback=callback, retry=retry, **kwargs)
+    return tPool().get(
+        url, params=params, callback=callback, retry=retry, **kwargs)
 
 
 def post(url, data=None, json=None, callback=None, retry=0, **kwargs):
     return tPool().post(
-        url, data=data, json=json, callback=callback, retry=retry, **kwargs
-    )
+        url, data=data, json=json, callback=callback, retry=retry, **kwargs)
 
 
 def delete(url, callback=None, retry=0, **kwargs):
@@ -689,4 +739,5 @@ def patch(url, callback=None, retry=0, **kwargs):
 
 
 def request(method, url, callback=None, retry=0, **kwargs):
-    return tPool().request(method, url, callback=callback, retry=retry, **kwargs)
+    return tPool().request(
+        method, url, callback=callback, retry=retry, **kwargs)
