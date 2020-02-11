@@ -10,10 +10,10 @@ Briefly speaking, requests & aiohttp wrapper for asynchronous programming rookie
 
 ##### python2.7 / python3.6+
 
-    | requests
-    | futures # python2
-    | aiohttp >= 3.0.5 # python3
-    | uvloop  # python3
+    | requests			# python
+    | futures 			# python2
+    | aiohttp >= 3.0.5 	# python3
+    | uvloop  			# python3
 
 **optional:**
 
@@ -277,12 +277,6 @@ if __name__ == "__main__":
     ...
 
 
-## Documentation
-> [Document & Usage](https://torequests.readthedocs.io/en/latest/)
-
-## License
-> [MIT license](LICENSE)
-
 ## Benchmarks
 > Benchmark of concurrent is not very necessary and accurate, just take a look.
 
@@ -344,3 +338,9 @@ test_tPool(4.8.21)       : 2000 / 2000 = 100.0%, cost 3.029s, 660 qps, 23.03% st
 **golang http client testing code:**
 
 [go_test_client.go](https://github.com/ClericPy/torequests/blob/master/benchmarks/go_test_client.go)
+
+## Documentation
+> [Document & Usage](https://torequests.readthedocs.io/en/latest/)
+
+## License
+> [MIT license](LICENSE)
