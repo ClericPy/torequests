@@ -17,10 +17,6 @@ Briefly speaking, requests & aiohttp wrapper for asynchronous programming rookie
 
 **optional:**
 
-    | jsonpath_rw_ext
-    | lxml
-    | cssselect
-    | objectpath
     | psutil
     | fuzzywuzzy
     | python-Levenshtein
@@ -30,11 +26,14 @@ Briefly speaking, requests & aiohttp wrapper for asynchronous programming rookie
 
 Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-coding brief & smooth, compatible for win32 / python 2&3.
 
-* convert any funtions into async-mode with concurrent.futures.
-* wrap requests lib with concurrent.futures.
-* simplify aiohttp, make it `requests-like`.
-* add failure request class, add frequency control.
-* plenty of crawler utils.
+* Convert any funtions into async-mode with concurrent.futures.
+* Wrap requests lib with concurrent.futures to enjoy the concurrent performance.
+* Simplify aiohttp, make it `requests-like`.
+* Add FailureException to check the context of request failure.
+* Add frequency control, prevent from anti-spider based on frequency check.
+* Add retry for request.
+* Alenty of common crawler utils.
+* Compatible with [uniparser]( https://github.com/ClericPy/uniparser )
 
 ## Getting started
 

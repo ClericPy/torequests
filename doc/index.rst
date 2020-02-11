@@ -31,9 +31,6 @@ To start:
 
     **optional:**
 
-        | jsonpath_rw_ext
-        | lxml
-        | objectpath
         | psutil
         | fuzzywuzzy
         | python-Levenshtein

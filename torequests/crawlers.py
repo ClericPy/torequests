@@ -352,44 +352,6 @@ class CleanRequest(CommonRequests):
         return json.dumps(self.request, ensure_ascii=0)
 
 
-class Seed(object):
-    __slots__ = ('name', 'frequency', 'request', 'item_parsers', 'encoding')
-
-    def __init__(self, name, frequency, request, item_parsers, encoding=None):
-        """item_parsers: {'item_name1': parser_chain1, 'item_name2': parser_chain2}"""
-        assert isinstance(frequency, (float, int))
-        assert isinstance(item_parsers, dict)
-        for k, v in item_parsers.items():
-            assert isinstance(k, unicode)
-            assert isinstance(v, (list, tuple))
-        self.name = name
-        self.frequency = frequency
-        self.request = ensure_request(request)
-        self.item_parsers = item_parsers
-        self.encoding = encoding
-
-    @property
-    def as_list(self):
-        """Property return the value for keys of __slots__."""
-        return [getattr(k) for k in self.__slots__]
-
-    @property
-    def as_dict(self):
-        """Property return key-value dict from __slots__."""
-        return {k: getattr(self, k) for k in self.__slots__}
-
-    @property
-    def as_json(self, ensure_ascii=False):
-        """Property return key-value json-string from __slots__."""
-        return json.dumps(self.as_dict, ensure_ascii=ensure_ascii)
-
-    def __str__(self):
-        return self.__repr__()
-
-    def __repr__(self):
-        return 'Seed(%s)' % self.as_json
-
-
 class StressTest(CommonRequests):
     """StressTest for a request(dict/curl-string/url).
 

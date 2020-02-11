@@ -22,9 +22,6 @@ To start:
         | futures # python2
         | aiohttp >= 3.0.5 # python3
         | uvloop  # python3
-        | jsonpath_rw_ext
-        | lxml
-        | objectpath
 
     **optional:**
 

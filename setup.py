@@ -14,7 +14,6 @@ rm -rf dist;rm -rf build;python3 setup.py bdist_wheel;python2 setup.py bdist_whe
 """
 
 # optional_requires:
-#    lxml jsonpath_rw_ext cssselect objectpath: for SimpleParser
 #    uvloop: fastest loop for python3.5+ on non-win32 system
 
 py_version = sys.version_info
@@ -54,7 +53,6 @@ setup(
         'socks:sys_platform == "win32" and python_version == "2.7"': [
             'win_inet_pton'
         ],
-        'parser': ['lxml', 'jsonpath_rw_ext', 'cssselect', 'objectpath'],
         'all': [
             'pyOpenSSL >= 0.14', 'cryptography>=1.3.4', 'idna>=2.0.0',
             'PySocks>=1.5.6, !=1.5.7', 'psutil', 'fuzzywuzzy', 'pyperclip'

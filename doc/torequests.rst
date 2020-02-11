@@ -56,17 +56,3 @@ torequests.logs
 .. automodule:: torequests.logs
     :members:
     :undoc-members:
-    
-
-torequests.parsers
--------------------------
-
-.. automodule:: torequests.parsers
-    :members:
-    :undoc-members:
-    
-
-
-
-
-

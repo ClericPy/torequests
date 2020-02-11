@@ -1,6 +1,0 @@
-aiohttp==3.4.4
-requests
-lxml
-jsonpath_rw_ext
-cssselect
-objectpath
