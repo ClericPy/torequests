@@ -66,8 +66,8 @@ def test_dummy_Requests_async():
     loop.run_until_complete(test_async())
 
 
-def test_dummy_Requests_time_interval_sem(capsys):
-    """  test_dummy_Requests_time_interval_sem"""
+def test_dummy_Requests_time_interval_frequency(capsys):
+    """  test_dummy_Requests_time_interval_frequency"""
     with capsys.disabled():
         trequests = Requests(frequencies={"p.3.cn": (2, 1)})
         print("\n")
@@ -81,10 +81,10 @@ def test_dummy_Requests_time_interval_sem(capsys):
         trequests.x
         assert ss[-1].task_cost_time >= 1, 'fail test task_cost_time'
         ss = [i.cx for i in ss]
-        assert all(ss), "fail: test_dummy_Requests_time_interval_sem"
+        assert all(ss), "fail: test_dummy_Requests_time_interval_frequency"
 
 
-def test_new_future_await():
+def test_new_future_awaitable():
     loop = Loop()
 
     @threads()
