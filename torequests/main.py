@@ -26,7 +26,7 @@ from .versions import PY2, PY3
 try:
     from queue import Queue
 except ImportError:
-    from queue import queue as Queue
+    from Queue import Queue
 if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
