@@ -79,7 +79,7 @@ def test_dummy_Requests_time_interval_sem(capsys):
             ) for i in range(4)
         ]
         trequests.x
-        assert ss[0].task_cost_time >= 1, 'fail test task_cost_time'
+        assert ss[-1].task_cost_time >= 1, 'fail test task_cost_time'
         ss = [i.cx for i in ss]
         assert all(ss), "fail: test_dummy_Requests_time_interval_sem"
 

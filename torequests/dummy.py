@@ -1,8 +1,12 @@
 # python3.5+ # pip install uvloop aiohttp.
 
 import asyncio
-import time
+from asyncio import (Queue, Task, ensure_future, gather, get_event_loop,
+                     iscoroutine, set_event_loop_policy)
+from asyncio import sleep as asyncio_sleep
 from functools import wraps
+from time import sleep as time_sleep
+from time import time as time_time
 from urllib.parse import urlparse
 
 import aiohttp
@@ -10,12 +14,12 @@ import aiohttp
 from ._py3_patch import NewResponse, _py36_all_task_patch
 from .configs import Config
 from .exceptions import FailureException
-from .main import NewFuture, Pool, ProcessPool, Error
+from .main import Error, NewFuture, Pool, ProcessPool
 
 try:
     import uvloop
 
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
     Config.dummy_logger.debug("Not found uvloop, using default_event_loop.")
 
@@ -33,7 +37,7 @@ class NotSet(object):
         return False
 
 
-class NewTask(asyncio.Task):
+class NewTask(Task):
     """Add some special method & attribute for asyncio.Task.
 
     Params:
@@ -53,11 +57,11 @@ class NewTask(asyncio.Task):
     _RESPONSE_ARGS = ("encoding", "request_encoding", "content")
 
     def __init__(self, coro, *, loop=None, callback=None, extra_args=None):
-        assert asyncio.coroutines.iscoroutine(coro), repr(coro)
+        assert iscoroutine(coro), repr(coro)
         super().__init__(coro, loop=loop)
         self._callback_result = NotSet
         self.extra_args = extra_args or ()
-        self.task_start_time = time.time()
+        self.task_start_time = time_time()
         self.task_end_time = 0
         self.task_cost_time = 0
         if callback:
@@ -81,7 +85,7 @@ class NewTask(asyncio.Task):
 
     @staticmethod
     def set_task_time(task):
-        task.task_end_time = time.time()
+        task.task_end_time = time_time()
         task.task_cost_time = task.task_end_time - task.task_start_time
 
     @property
@@ -138,29 +142,23 @@ class Loop:
         self.n = n
         self.interval = interval
         self._timeout = timeout
-        self.frequency = Frequency(self.n, self.interval, "loop_sem")
+        self.frequency = Frequency(self.n, self.interval, loop=self.loop)
 
     @property
     def loop(self):
-        return self._loop or asyncio.get_event_loop()
+        return self._loop or get_event_loop()
 
     def _wrap_coro_function_with_sem(self, coro_func):
-        """Decorator set the coro_function has sem/interval control."""
-        sem = self.frequency.sem
-        interval = self.frequency.interval
+        """Decorator set the coro_function has n/interval control."""
 
         @wraps(coro_func)
         async def new_coro_func(*args, **kwargs):
-            if sem:
-                async with sem:
+            if self.frequency:
+                async with self.frequency:
                     result = await coro_func(*args, **kwargs)
-                    if interval:
-                        await asyncio.sleep(interval)
                     return result
             else:
                 result = await coro_func(*args, **kwargs)
-                if interval:
-                    await asyncio.sleep(interval)
                 return result
 
         return new_coro_func
@@ -181,7 +179,7 @@ class Loop:
 
     def run_coroutine_threadsafe(self, coro, loop=None, callback=None):
         """Be used when loop running in a single non-main thread."""
-        if not asyncio.iscoroutine(coro):
+        if not iscoroutine(coro):
             raise TypeError("A await in coroutines. object is required")
         loop = loop or self.loop
         future = NewFuture(callback=callback)
@@ -206,18 +204,19 @@ class Loop:
             import asyncio
             loop = Loop()
 
+
             async def test(i):
                 result = await asyncio.sleep(1)
                 return (loop.frequency, i)
 
+
             task = loop.apply(test, [1])
             print(task)
             # loop.x can be ignore
-            loop.x
             print(task.x)
+            # <NewTask pending coro=<test() running at e:\github\torequests\torequests\dummy.py:154>>
+            # (Frequency(None / None, pending: None, interval: 0s), 1)
 
-            # <NewTask pending coro=<new_coro_func() running at torequests/torequests/dummy.py:154>>
-            # (Frequency(sem=<0/0>, interval=0, name=loop_sem), 1)
         """
         args = args or ()
         kwargs = kwargs or {}
@@ -233,9 +232,11 @@ class Loop:
             import asyncio
             loop = Loop()
 
+
             async def test(i):
                 result = await asyncio.sleep(1)
                 return (loop.frequency, i)
+
 
             coro = test(0)
             task = loop.submit(coro)
@@ -243,9 +244,9 @@ class Loop:
             # loop.x can be ignore
             loop.x
             print(task.x)
+            # <NewTask pending coro=<test() running at e:\github\torequests\temp_code2.py:6>>
+            # (Frequency(None / None, pending: None, interval: 0s), 0)
 
-            # <NewTask pending coro=<test() running at torequests/temp_code.py:58>>
-            # (Frequency(sem=<0/0>, interval=0, name=loop_sem), 0)
         """
         callback = callback or self.default_callback
         if self.async_running:
@@ -254,7 +255,7 @@ class Loop:
             return NewTask(coro, loop=self.loop, callback=callback)
 
     def submitter(self, f):
-        """Decorator to submit a coro-function as NewTask to self.loop with sem control.
+        """Decorator to submit a coro-function as NewTask to self.loop with control.
         Use default_callback frequency of loop."""
         f = self._wrap_coro_function_with_sem(f)
 
@@ -292,21 +293,20 @@ class Loop:
             return self.wait_all_tasks_done(timeout)
         else:
             tasks = tasks or self.todo_tasks
-            return self.loop.run_until_complete(
-                asyncio.gather(*tasks, loop=self.loop))
+            return self.loop.run_until_complete(gather(*tasks, loop=self.loop))
 
     def wait_all_tasks_done(self, timeout=NotSet, delay=0.5, interval=0.1):
         """Block, only be used while loop running in a single non-main thread."""
         timeout = self._timeout if timeout is NotSet else timeout
         timeout = timeout or float("inf")
-        start_time = time.time()
-        time.sleep(delay)
+        start_time = time_time()
+        time_sleep(delay)
         while 1:
             if not self.todo_tasks:
                 return self.all_tasks
-            if time.time() - start_time > timeout:
+            if time_time() - start_time > timeout:
                 return self.done_tasks
-            time.sleep(interval)
+            time_sleep(interval)
 
     def close(self):
         """Close the event loop."""
@@ -323,7 +323,7 @@ class Loop:
         `await loop.pendings(tasks)`
         """
         tasks = tasks or self.todo_tasks
-        await asyncio.gather(*tasks, loop=self.loop)
+        await gather(*tasks, loop=self.loop)
 
 
 def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):
@@ -361,54 +361,56 @@ class _mock_sem:
         return False
 
 
-class Frequency:
-    """Use sem to control concurrent tasks, use interval to sleep after task done."""
+class Frequency(object):
+    """Frequency controller, means concurrent running n tasks every interval seconds."""
+    __slots__ = ("n", "interval", "loop", "q")
 
-    __slots__ = ("sem", "interval", "_init_sem_value", "name")
-
-    def __init__(self, sem=None, interval=0, name=""):
-        self.sem = self.ensure_sem(sem)
+    def __init__(self, n=None, interval=0, loop=None):
+        self.n = n
         self.interval = interval
-        self.name = name
-
-    def ensure_sem(self, sem):
-        sem = self._ensure_sem(sem)
-        self._init_sem_value = sem._value
-        return sem
-
-    @classmethod
-    def _ensure_sem(cls, sem):
-        if not sem:
-            return _mock_sem()
-        elif isinstance(sem, asyncio.Semaphore):
-            return sem
-        elif isinstance(sem, (int, float)) and sem > 0:
-            return asyncio.Semaphore(int(sem))
-        raise ValueError(
-            "sem should be an asyncio.Semaphore object or int/float")
-
-    @classmethod
-    def ensure_frequency(cls, obj):
-        """Trans [n, interval] into Frequency object."""
-        if isinstance(obj, cls):
-            return obj
+        self.loop = loop
+        if self.n:
+            self.q = Queue(self.n, loop=self.loop)
+            for _ in range(n):
+                self.q.put_nowait(1)
         else:
-            return cls(*obj)
+            self.q = None
 
-    def __getitem__(self, key):
-        if key in self.__slots__:
-            return self.__getattribute__(key)
+    @classmethod
+    def ensure_frequency(cls, frequency, loop=None):
+        if isinstance(frequency, cls):
+            return frequency
+        elif isinstance(frequency, dict):
+            return cls(loop=loop, **frequency)
+        else:
+            return cls(*frequency, loop=loop)
+
+    async def wait_put(self):
+        await asyncio_sleep(self.interval)
+        await self.q.put(1)
+        self.q.task_done()
+
+    async def __aenter__(self):
+        if self.q:
+            await self.q.get()
+
+    async def __aexit__(self, *args):
+        if self.q:
+            ensure_future(self.wait_put())
 
     def __str__(self):
         return self.__repr__()
 
     def __repr__(self):
-        return "Frequency(sem=<%s/%s>, interval=%s%s)" % (
-            self.sem._value,
-            self._init_sem_value,
+        return "Frequency(%s / %s, pending: %s, interval: %ss)" % (
+            self.n - self.q.qsize() if self.q else None,
+            self.n,
+            len(self.q._getters) if self.q else None,
             self.interval,
-            ", name=%s" % self.name if self.name else "",
         )
+
+    def __bool__(self):
+        return bool(self.q)
 
 
 class Requests(Loop):
@@ -417,7 +419,7 @@ class Requests(Loop):
     :param n: sometimes the performance is limited by too large "n",
             or raise ValueError: too many file descriptors on select() (win32),
             so n=100 by default.
-    :param interval: asyncio.sleep after each task done.
+    :param interval: sleep after each task done if n.
     :param session: special aiohttp.ClientSession.
     :param catch_exception: whether catch and return the Exception instead of raising it.
     :param default_callback: None
@@ -439,12 +441,11 @@ class Requests(Loop):
         trequests.x
         ss = [i.cx for i in ss]
         print_info(ss)
-
-        # [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-        # [2018-03-19 00:57:36]: {'p.3.cn': Frequency(sem=<0/2>, interval=2)}
-        # [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<1/2>, interval=2)}
-        # [2018-03-19 00:57:38]: {'p.3.cn': Frequency(sem=<2/2>, interval=2)}
-        # [2018-03-19 00:57:38]: [(612, None), (612, None), (612, None), (612, None)]
+        # [2020-02-11 10:46:18] temp_code2.py(7): {'p.3.cn': Frequency(2 / 2, pending: 2, interval: 2s)}
+        # [2020-02-11 10:46:18] temp_code2.py(7): {'p.3.cn': Frequency(2 / 2, pending: 2, interval: 2s)}
+        # [2020-02-11 10:46:20] temp_code2.py(7): {'p.3.cn': Frequency(2 / 2, pending: 0, interval: 2s)}
+        # [2020-02-11 10:46:20] temp_code2.py(7): {'p.3.cn': Frequency(2 / 2, pending: 0, interval: 2s)}
+        # [2020-02-11 10:46:20] temp_code2.py(12): [(612, None), (612, None), (612, None), (612, None)]
     """
 
     def __init__(self,
@@ -463,7 +464,7 @@ class Requests(Loop):
             loop=loop,
             default_callback=default_callback,
         )
-        # Requests object use its own frequency control, instead of parent class's.
+        # Requests object use its own frequency control, instead of the parent class's.
         self.n = n
         self.interval = interval
         # be compatible with old version's arg `return_exceptions`
@@ -472,8 +473,7 @@ class Requests(Loop):
         self.default_host_frequency = default_host_frequency
         if self.default_host_frequency:
             assert isinstance(self.default_host_frequency, (list, tuple))
-        self.sem = asyncio.Semaphore(n) if n else _mock_sem()
-        self.global_frequency = Frequency(self.sem, self.interval)
+        self.global_frequency = Frequency(self.n, self.interval, loop=self.loop)
         self.frequencies = self.ensure_frequencies(frequencies)
         self.session_kwargs = kwargs
         self._closed = False
@@ -504,19 +504,18 @@ class Requests(Loop):
         if not isinstance(frequencies, dict):
             raise ValueError("frequencies should be dict")
         frequencies = {
-            host: Frequency.ensure_frequency(frequencies[host])
+            host: Frequency.ensure_frequency(frequencies[host], loop=self.loop)
             for host in frequencies
         }
         return frequencies
 
-    def set_frequency(self, host, sem=None, interval=NotSet):
-        """Set frequency for host with sem and interval."""
-        # single sem or global sem
-        sem = sem or self.sem
-        interval = self.interval if interval is NotSet else interval
-        frequency = Frequency(sem, interval, host)
-        frequencies = {host: frequency}
-        self.update_frequency(frequencies)
+    def set_frequency(self, host, n=None, interval=NotSet):
+        """Set frequency for host with n and interval."""
+        frequency = Frequency(
+            n or self.n,
+            self.interval if interval is NotSet else interval,
+            loop=self.loop)
+        self.update_frequency({host: frequency})
         return frequency
 
     def update_frequency(self, frequencies):
@@ -545,7 +544,6 @@ class Requests(Loop):
             else:
                 kwargs['timeout'] = aiohttp.client.ClientTimeout(
                     sock_connect=kwargs['timeout'], sock_read=kwargs['timeout'])
-        sem, interval = frequency.sem, frequency.interval
         proxies = kwargs.pop("proxies", None)
         if "verify" in kwargs:
             kwargs["verify_ssl"] = kwargs.pop("verify")
@@ -557,21 +555,17 @@ class Requests(Loop):
         referer_info = kwargs.pop("referer_info", None)
         encoding = kwargs.pop("encoding", None)
         for retries in range(retry + 1):
-            try:
-                await sem.acquire()
-                session = await self.session
-                async with session.request(**kwargs) as resp:
-                    await resp.read()
-                    r = NewResponse(resp, encoding=encoding)
-                    r.referer_info = referer_info
-                    return r
-            except (aiohttp.ClientError, Error) as err:
-                error = err
-                continue
-            finally:
-                if interval:
-                    await asyncio.sleep(interval)
-                sem.release()
+            async with frequency:
+                try:
+                    session = await self.session
+                    async with session.request(**kwargs) as resp:
+                        await resp.read()
+                        r = NewResponse(resp, encoding=encoding)
+                        r.referer_info = referer_info
+                        return r
+                except (aiohttp.ClientError, Error) as err:
+                    error = err
+                    continue
         else:
             kwargs["retry"] = retry
             if referer_info:
@@ -652,6 +646,7 @@ class Requests(Loop):
         _exhaust_simple_coro(self.close())
 
     async def __aenter__(self):
+        await self.session
         return self
 
     async def __aexit__(self, *args):
