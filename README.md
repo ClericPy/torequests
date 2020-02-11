@@ -1,4 +1,4 @@
-# [torequests](https://github.com/ClericPy/torequests) [![Build Status](https://travis-ci.org/ClericPy/torequests.svg?branch=master)](https://travis-ci.org/ClericPy/torequests)[![PyPI version](https://badge.fury.io/py/torequests.svg)](https://badge.fury.io/py/torequests)
+# [torequests](https://github.com/ClericPy/torequests) [![Build Status](https://travis-ci.org/ClericPy/torequests.svg?branch=master)](https://travis-ci.org/ClericPy/torequests)[![PyPI version](https://badge.fury.io/py/torequests.svg)](https://badge.fury.io/py/torequests)[![Downloads](https://pepy.tech/badge/torequests)](https://pepy.tech/project/torequests)
 
 Briefly speaking, requests & aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
