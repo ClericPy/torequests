@@ -11,7 +11,6 @@ from concurrent.futures._base import (CANCELLED, CANCELLED_AND_NOTIFIED,
                                       TimeoutError)
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
-from queue import Queue
 from threading import Timer
 from time import sleep as time_sleep
 from weakref import WeakSet
@@ -24,6 +23,10 @@ from .configs import Config
 from .exceptions import FailureException
 from .versions import PY2, PY3
 
+try:
+    from queue import Queue
+except ImportError:
+    from queue import queue as Queue
 if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
