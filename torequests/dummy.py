@@ -1,10 +1,10 @@
 # python3.5+ # pip install uvloop aiohttp.
 
-import asyncio
 from asyncio import (Queue, Task, ensure_future, gather, get_event_loop,
                      iscoroutine, new_event_loop, set_event_loop_policy)
 from asyncio import sleep as asyncio_sleep
 from asyncio import wait
+from asyncio.futures import _chain_future
 from concurrent.futures import ALL_COMPLETED
 from functools import wraps
 from time import sleep as time_sleep
@@ -12,7 +12,7 @@ from time import time as time_time
 from urllib.parse import urlparse
 from weakref import WeakSet
 
-import aiohttp
+from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from ._py3_patch import NewResponse, _py36_all_task_patch
 from .configs import Config
@@ -192,7 +192,7 @@ class Loop:
 
         def callback_func():
             try:
-                asyncio.futures._chain_future(NewTask(coro, loop=loop), future)
+                _chain_future(NewTask(coro, loop=loop), future)
             except Exception as exc:
                 if future.set_running_or_notify_cancel():
                     future.set_exception(exc)
@@ -552,8 +552,7 @@ class Requests(Loop):
     async def _ensure_session(self):
         """ensure the same loop"""
         if self._session is NotSet:
-            self._session = aiohttp.ClientSession(
-                loop=self.loop, **self.session_kwargs)
+            self._session = ClientSession(loop=self.loop, **self.session_kwargs)
             if self.n:
                 self._session.connector._limit = self.n
         return self._session
@@ -593,26 +592,25 @@ class Requests(Loop):
         scheme = parsed_url.scheme
         host = parsed_url.netloc
         # attempt to get a frequency, host > default_host_frequency > global_frequency
-        frequency = self.frequencies.get(
-            host,
-            self.frequencies.get('default_host_frequency',
-                                 self.frequencies.get('global_frequency')))
+        frequency = self.frequencies.get(host) or self.frequencies.get(
+            'default_host_frequency') or self.frequencies['global_frequency']
         if 'timeout' in kwargs:
             # for timeout=(1,2) and timeout=5
-            if isinstance(kwargs['timeout'], (tuple, list)):
-                kwargs['timeout'] = aiohttp.client.ClientTimeout(
-                    sock_connect=kwargs['timeout'][0],
-                    sock_read=kwargs['timeout'][1])
-            elif isinstance(kwargs['timeout'], aiohttp.client.ClientTimeout):
+            timeout = kwargs['timeout']
+            if isinstance(timeout, (int, float)):
+                kwargs['timeout'] = ClientTimeout(
+                    sock_connect=timeout, sock_read=timeout)
+            elif isinstance(timeout, (tuple, list)):
+                kwargs['timeout'] = ClientTimeout(
+                    sock_connect=timeout[0], sock_read=timeout[1])
+            elif timeout is None or isinstance(timeout, ClientTimeout):
                 pass
             else:
-                kwargs['timeout'] = aiohttp.client.ClientTimeout(
-                    sock_connect=kwargs['timeout'], sock_read=kwargs['timeout'])
-        proxies = kwargs.pop("proxies", None)
+                raise ValueError('Bad timeout type')
         if "verify" in kwargs:
-            kwargs["verify_ssl"] = kwargs.pop("verify")
-        if proxies:
-            kwargs["proxy"] = "%s://%s" % (scheme, proxies[scheme])
+            kwargs["verify_ssl"] = kwargs['verify']
+        if "proxies" in kwargs:
+            kwargs["proxy"] = "%s://%s" % (scheme, kwargs['proxies'][scheme])
         kwargs["url"] = url
         kwargs["method"] = method
         # non-official request args
@@ -624,10 +622,10 @@ class Requests(Loop):
                     session = await self.session
                     async with session.request(**kwargs) as resp:
                         await resp.read()
-                        r = NewResponse(resp, encoding=encoding)
-                        r.referer_info = referer_info
+                        r = NewResponse(
+                            resp, encoding=encoding, referer_info=referer_info)
                         return r
-                except (aiohttp.ClientError, Error) as err:
+                except (ClientError, Error) as err:
                     error = err
                     continue
         else:
