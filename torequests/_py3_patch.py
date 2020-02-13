@@ -20,10 +20,12 @@ def _new_future_await(self):
 
 class NewResponse(object):
     """Wrap aiohttp's ClientResponse like requests's Response."""
+    __slots__ = ('r', 'encoding', 'referer_info')
 
-    def __init__(self, r, encoding=None):
+    def __init__(self, r, encoding=None, referer_info=None):
         self.r = r
         self.encoding = encoding or self.r.get_encoding()
+        self.referer_info = referer_info
 
     def __getattr__(self, name):
         return getattr(self.r, name)
@@ -55,7 +57,8 @@ class NewResponse(object):
         """True if this Response is a well-formed HTTP redirect that could have
         been processed automatically (by :meth:`Session.resolve_redirects`).
         """
-        return "location" in self.headers and self.status_code in range(300, 400)
+        return "location" in self.headers and self.status_code in range(
+            300, 400)
 
     @property
     def content(self):
@@ -63,7 +66,7 @@ class NewResponse(object):
 
     @property
     def text(self):
-        return self.content.decode(self.encoding)
+        return self._body.decode(self.encoding)
 
     def json(self, encoding=None, loads=json.loads):
         return loads(self.content.decode(encoding or self.encoding))

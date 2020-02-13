@@ -5,10 +5,9 @@ import atexit
 import time
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed)
-from concurrent.futures._base import (CANCELLED, CANCELLED_AND_NOTIFIED,
-                                      FINISHED, PENDING, RUNNING,
-                                      CancelledError, Error, Executor, Future,
-                                      TimeoutError)
+from concurrent.futures._base import (
+    CANCELLED, CANCELLED_AND_NOTIFIED, FINISHED, PENDING, RUNNING,
+    CancelledError, Error, Executor, Future, TimeoutError)
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
 from threading import Timer
@@ -488,7 +487,7 @@ class FailedRequest(PreparedRequest):
 
 class Frequency(object):
     """Frequency controller, means concurrent running n tasks every interval seconds."""
-    __slots__ = ("n", "interval", "q")
+    __slots__ = ("n", "interval", "q", "acquire", "release")
 
     def __init__(self, n=None, interval=0):
         self.n = n
@@ -497,8 +496,16 @@ class Frequency(object):
             self.q = Queue(self.n)
             for _ in range(n):
                 self.q.put_nowait(1)
+            self.acquire = self._acquire
+            self.release = self._release
         else:
             self.q = None
+            self.acquire = self.noting
+            self.release = self.noting
+
+    @staticmethod
+    def nothing(*args):
+        pass
 
     @classmethod
     def ensure_frequency(cls, frequency):
@@ -515,13 +522,17 @@ class Frequency(object):
         self.q.put(1)
         self.q.task_done()
 
+    def _acquire(self):
+        self.q.get()
+
+    def _release(self):
+        self.wait_put()
+
     def __enter__(self):
-        if self.q:
-            self.q.get()
+        self.acquire()
 
     def __exit__(self, *args):
-        if self.q:
-            self.wait_put()
+        self.release()
 
     def __str__(self):
         return self.__repr__()

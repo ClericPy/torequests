@@ -1,10 +1,10 @@
 # python3.5+ # pip install uvloop aiohttp.
 
-import asyncio
 from asyncio import (Queue, Task, ensure_future, gather, get_event_loop,
                      iscoroutine, new_event_loop, set_event_loop_policy)
 from asyncio import sleep as asyncio_sleep
 from asyncio import wait
+from asyncio.futures import _chain_future
 from concurrent.futures import ALL_COMPLETED
 from functools import wraps
 from time import sleep as time_sleep
@@ -12,7 +12,7 @@ from time import time as time_time
 from urllib.parse import urlparse
 from weakref import WeakSet
 
-import aiohttp
+from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from ._py3_patch import NewResponse, _py36_all_task_patch
 from .configs import Config
@@ -192,7 +192,7 @@ class Loop:
 
         def callback_func():
             try:
-                asyncio.futures._chain_future(NewTask(coro, loop=loop), future)
+                _chain_future(NewTask(coro, loop=loop), future)
             except Exception as exc:
                 if future.set_running_or_notify_cancel():
                     future.set_exception(exc)
@@ -361,7 +361,7 @@ def get_results_generator(*args):
 
 class Frequency(object):
     """Frequency controller, means concurrent running n tasks every interval seconds."""
-    __slots__ = ("interval", "loop", "q", "_put_tasks")
+    __slots__ = ("interval", "loop", "q", "_put_tasks", "acquire", "release")
 
     def __init__(self, n=None, interval=0, loop=None):
         self.interval = interval
@@ -371,8 +371,12 @@ class Frequency(object):
             self.q = Queue(n, loop=self.loop)
             for _ in range(n):
                 self.q.put_nowait(1)
+            self.acquire = self._acquire
+            self.release = self._release
         else:
             self.q = None
+            self.acquire = self.async_nothing
+            self.release = self.nothing
 
     @property
     def n(self):
@@ -396,15 +400,27 @@ class Frequency(object):
         await self.q.put(1)
         self.q.task_done()
 
+    @staticmethod
+    async def async_nothing(*args):
+        pass
+
+    @staticmethod
+    def nothing(*args):
+        pass
+
+    async def _acquire(self):
+        await self.q.get()
+
+    def _release(self):
+        task = ensure_future(self.wait_put(), loop=self.loop)
+        task._log_destroy_pending = False
+        self._put_tasks.add(task)
+
     async def __aenter__(self):
-        if self.q:
-            await self.q.get()
+        await self.acquire()
 
     async def __aexit__(self, *args):
-        if self.q:
-            task = ensure_future(self.wait_put(), loop=self.loop)
-            task._log_destroy_pending = False
-            self._put_tasks.add(task)
+        self.release()
 
     def __str__(self):
         return self.__repr__()
@@ -536,8 +552,8 @@ class Requests(Loop):
     async def _ensure_session(self):
         """ensure the same loop"""
         if self._session is NotSet:
-            self._session = aiohttp.ClientSession(
-                loop=self.loop, **self.session_kwargs)
+            # new version (>=4.0.0) of aiohttp will not need loop arg.
+            self._session = ClientSession(**self.session_kwargs)
             if self.n:
                 self._session.connector._limit = self.n
         return self._session
@@ -577,26 +593,25 @@ class Requests(Loop):
         scheme = parsed_url.scheme
         host = parsed_url.netloc
         # attempt to get a frequency, host > default_host_frequency > global_frequency
-        frequency = self.frequencies.get(
-            host,
-            self.frequencies.get('default_host_frequency',
-                                 self.frequencies.get('global_frequency')))
+        frequency = self.frequencies.get(host) or self.frequencies.get(
+            'default_host_frequency') or self.frequencies['global_frequency']
         if 'timeout' in kwargs:
             # for timeout=(1,2) and timeout=5
-            if isinstance(kwargs['timeout'], (tuple, list)):
-                kwargs['timeout'] = aiohttp.client.ClientTimeout(
-                    sock_connect=kwargs['timeout'][0],
-                    sock_read=kwargs['timeout'][1])
-            elif isinstance(kwargs['timeout'], aiohttp.client.ClientTimeout):
+            timeout = kwargs['timeout']
+            if isinstance(timeout, (int, float)):
+                kwargs['timeout'] = ClientTimeout(
+                    sock_connect=timeout, sock_read=timeout)
+            elif isinstance(timeout, (tuple, list)):
+                kwargs['timeout'] = ClientTimeout(
+                    sock_connect=timeout[0], sock_read=timeout[1])
+            elif timeout is None or isinstance(timeout, ClientTimeout):
                 pass
             else:
-                kwargs['timeout'] = aiohttp.client.ClientTimeout(
-                    sock_connect=kwargs['timeout'], sock_read=kwargs['timeout'])
-        proxies = kwargs.pop("proxies", None)
+                raise ValueError('Bad timeout type')
         if "verify" in kwargs:
-            kwargs["verify_ssl"] = kwargs.pop("verify")
-        if proxies:
-            kwargs["proxy"] = "%s://%s" % (scheme, proxies[scheme])
+            kwargs["verify_ssl"] = kwargs['verify']
+        if "proxies" in kwargs:
+            kwargs["proxy"] = "%s://%s" % (scheme, kwargs['proxies'][scheme])
         kwargs["url"] = url
         kwargs["method"] = method
         # non-official request args
@@ -608,10 +623,10 @@ class Requests(Loop):
                     session = await self.session
                     async with session.request(**kwargs) as resp:
                         await resp.read()
-                        r = NewResponse(resp, encoding=encoding)
-                        r.referer_info = referer_info
+                        r = NewResponse(
+                            resp, encoding=encoding, referer_info=referer_info)
                         return r
-                except (aiohttp.ClientError, Error) as err:
+                except (ClientError, Error) as err:
                     error = err
                     continue
         else:
