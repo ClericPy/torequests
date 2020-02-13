@@ -23,7 +23,7 @@ if py_version.major == 2:
     install_requires.append("futures")
 
 if py_version.major == 3 and py_version.minor >= 6:
-    install_requires.append("aiohttp==3.6.2")
+    install_requires.append("aiohttp>=3.6.2")
     if sys.platform not in ('win32', 'cygwin', 'cli'):
         install_requires.append("uvloop")
 
