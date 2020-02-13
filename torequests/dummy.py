@@ -361,7 +361,7 @@ def get_results_generator(*args):
 
 class Frequency(object):
     """Frequency controller, means concurrent running n tasks every interval seconds."""
-    __slots__ = ("interval", "loop", "q", "_put_tasks")
+    __slots__ = ("interval", "loop", "q", "_put_tasks", "acquire", "release")
 
     def __init__(self, n=None, interval=0, loop=None):
         self.interval = interval
@@ -371,8 +371,12 @@ class Frequency(object):
             self.q = Queue(n, loop=self.loop)
             for _ in range(n):
                 self.q.put_nowait(1)
+            self.acquire = self._acquire
+            self.release = self._release
         else:
             self.q = None
+            self.acquire = self.async_nothing
+            self.release = self.nothing
 
     @property
     def n(self):
@@ -396,15 +400,27 @@ class Frequency(object):
         await self.q.put(1)
         self.q.task_done()
 
+    @staticmethod
+    async def async_nothing(*args):
+        pass
+
+    @staticmethod
+    def nothing(*args):
+        pass
+
+    async def _acquire(self):
+        await self.q.get()
+
+    def _release(self):
+        task = ensure_future(self.wait_put(), loop=self.loop)
+        task._log_destroy_pending = False
+        self._put_tasks.add(task)
+
     async def __aenter__(self):
-        if self.q:
-            await self.q.get()
+        await self.acquire()
 
     async def __aexit__(self, *args):
-        if self.q:
-            task = ensure_future(self.wait_put(), loop=self.loop)
-            task._log_destroy_pending = False
-            self._put_tasks.add(task)
+        self.release()
 
     def __str__(self):
         return self.__repr__()
