@@ -288,23 +288,23 @@ Source code: [go_test_server.go](https://github.com/ClericPy/torequests/blob/mas
 
 Source code: [py_test_client.py](https://github.com/ClericPy/torequests/blob/master/benchmarks/py_test_client.py)
 
-### Test Result on [Windows]
+### Test Result on Windows
 
 ```verilog
-Test without uvloop.
+Test without uvloop, 12 logical CPUs.
 Windows-10-10.0.18362-SP0
 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
 ================================================================================
-test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 1.169s, 1711 qps, 100.0% standard.
-test_dummy(4.8.20)       : 2000 / 2000 = 100.0%, cost 1.275s, 1568 qps, 91.64% standard.
-test_httpx(0.11.1)       : 2000 / 2000 = 100.0%, cost 3.905s, 512 qps, 31.78% standard.
-test_tPool(4.8.20)       : 2000 / 2000 = 100.0%, cost 4.526s, 442 qps, 27.44% standard.
+test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 1.158s, 1727 qps, 100.0% standard.
+test_dummy(4.9.4)        : 2000 / 2000 = 100.0%, cost  1.25s, 1600 qps, 92.65% standard.
+test_httpx(0.11.1)       : 2000 / 2000 = 100.0%, cost 3.927s, 509 qps, 29.47% standard.
+test_tPool(4.9.4)        : 2000 / 2000 = 100.0%, cost 4.754s, 421 qps, 24.38% standard.
 ```
 
-### Test Result on [Linux] (with uvloop)
+### Test Result on Linux
 
 ```verilog
-Test with uvloop.
+Test with uvloop, 1 logical CPUs.
 Linux-4.15.0-13-generic-x86_64-with-Ubuntu-18.04-bionic
 3.7.3 (default, Apr  3 2019, 19:16:38)
 [GCC 8.0.1 20180414 (experimental) [trunk revision 259383]]
