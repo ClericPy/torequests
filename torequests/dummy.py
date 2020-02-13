@@ -552,7 +552,8 @@ class Requests(Loop):
     async def _ensure_session(self):
         """ensure the same loop"""
         if self._session is NotSet:
-            self._session = ClientSession(loop=self.loop, **self.session_kwargs)
+            # new version (>=4.0.0) of aiohttp will not need loop arg.
+            self._session = ClientSession(**self.session_kwargs)
             if self.n:
                 self._session.connector._limit = self.n
         return self._session
