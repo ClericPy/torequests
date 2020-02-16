@@ -14,7 +14,8 @@ def test_dummy_Requests():
     tasks = [
         trequests.get(
             test_url,
-            retry=0,
+            retry=1,
+            verify=True,
             callback=lambda r: len(r.content),
             timeout=(2, 5),
             referer_info=i) for i in range(3)
@@ -39,28 +40,27 @@ def test_dummy_Requests_async():
     """use default event loop"""
 
     async def test_async():
-        trequests = Requests()
-        test_url = "https://httpbin.org/json"
-        tasks = [
-            trequests.get(
-                test_url,
-                retry=0,
-                callback=lambda r: len(r.content),
-                timeout=(2, 5),
-                referer_info=i) for i in range(3)
-        ]
-        result = [(await task).text for task in tasks]
-        assert all(result), "fail: test_dummy_Requests_async"
-        r = tasks[0]
-        assert isinstance(r.content, bytes)
-        assert isinstance(r.text, str)
-        assert isinstance(r.json(), dict)
-        assert not r.is_redirect
-        assert r.ok
-        assert r.status_code == 200
-        assert isinstance(r.url, str)
-        assert r.referer_info == 0
-        await trequests.close()
+        async with Requests() as trequests:
+            test_url = "https://httpbin.org/json"
+            tasks = [
+                trequests.get(
+                    test_url,
+                    retry=1,
+                    callback=lambda r: len(r.content),
+                    timeout=(2, 5),
+                    referer_info=i) for i in range(3)
+            ]
+            result = [(await task).text for task in tasks]
+            assert all(result), "fail: test_dummy_Requests_async"
+            r = tasks[0]
+            assert isinstance(r.content, bytes)
+            assert isinstance(r.text, str)
+            assert isinstance(r.json(), dict)
+            assert not r.is_redirect
+            assert r.ok
+            assert r.status_code == 200
+            assert isinstance(r.url, str)
+            assert r.referer_info == 0
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(test_async())

@@ -609,7 +609,7 @@ class Requests(Loop):
             else:
                 raise ValueError('Bad timeout type')
         if "verify" in kwargs:
-            kwargs["verify_ssl"] = kwargs['verify']
+            kwargs["ssl"] = kwargs.pop('verify')
         if "proxies" in kwargs:
             kwargs["proxy"] = "%s://%s" % (scheme, kwargs['proxies'][scheme])
         kwargs["url"] = url
