@@ -516,9 +516,7 @@ class Frequency(object):
         else:
             return cls(*frequency)
 
-    @threads()
     def wait_put(self):
-        time_sleep(self.interval)
         self.q.put(1)
         self.q.task_done()
 
@@ -526,7 +524,9 @@ class Frequency(object):
         self.q.get()
 
     def _release(self):
-        self.wait_put()
+        t = Timer(self.interval, self.wait_put)
+        t.daemon = True
+        t.start()
 
     def __enter__(self):
         self.acquire()
