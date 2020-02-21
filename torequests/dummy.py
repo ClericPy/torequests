@@ -421,7 +421,7 @@ class Requests(Loop):
     :param catch_exception: whether catch and return the Exception instead of raising it.
     :param default_callback: None
     :param frequencies: None or {host: Frequency obj} or {host: [n, interval]}
-    :param default_host_frequency: None
+    :param default_host_frequency: None, or tuple like: (2, 1). global_frequency is shared by hosts, default_host_frequency will be setdefault as a new one.
     :param kwargs: will used for aiohttp.ClientSession.
 
     ::
@@ -503,11 +503,8 @@ class Requests(Loop):
         self.catch_exception = (catch_exception if return_exceptions is NotSet
                                 else return_exceptions)
         self.frequencies = self.ensure_frequencies(frequencies)
-        if default_host_frequency:
-            self.frequencies[
-                'default_host_frequency'] = Frequency.ensure_frequency(
-                    default_host_frequency)
-        self.frequencies['global_frequency'] = Frequency(self.n, self.interval)
+        self.default_host_frequency = default_host_frequency
+        self.global_frequency = Frequency(self.n, self.interval)
         self.session_kwargs = kwargs
         self._closed = False
         self._session = session
@@ -561,8 +558,14 @@ class Requests(Loop):
         scheme = parsed_url.scheme
         host = parsed_url.netloc
         # attempt to get a frequency, host > default_host_frequency > global_frequency
-        frequency = self.frequencies.get(host) or self.frequencies.get(
-            'default_host_frequency') or self.frequencies['global_frequency']
+        frequency = self.frequencies.get(host)
+        if not frequency:
+            if self.default_host_frequency:
+                frequency = self.frequencies.setdefault(
+                    host,
+                    Frequency.ensure_frequency(self.default_host_frequency))
+            else:
+                frequency = self.global_frequency
         if 'timeout' in kwargs:
             # for timeout=(1,2) and timeout=5
             timeout = kwargs['timeout']
