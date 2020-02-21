@@ -382,7 +382,7 @@ class Frequency(object):
                     await asyncio_sleep(interval - diff)
                     break
                 q[index] = now
-                # coroutines may not need lock
+                # python3.8+ need lock for generator contest, 3.6 3.7 not need
                 yield now
 
     @classmethod
@@ -411,86 +411,6 @@ class Frequency(object):
         return bool(self.gen)
 
 
-class Frequency1(object):
-    """Frequency controller, means concurrent running n tasks every interval seconds."""
-    __slots__ = ("interval", "loop", "q", "_put_tasks", "acquire", "release")
-
-    def __init__(self, n=None, interval=0, loop=None):
-        self.interval = interval
-        self.loop = loop
-        self._put_tasks = WeakSet()
-        if n:
-            self.q = Queue(n, loop=self.loop)
-            for _ in range(n):
-                self.q.put_nowait(1)
-            self.acquire = self._acquire
-            self.release = self._release
-        else:
-            self.q = None
-            self.acquire = self.async_nothing
-            self.release = self.nothing
-
-    @property
-    def n(self):
-        return self.q.maxsize
-
-    def __del__(self):
-        for task in self._put_tasks:
-            task.cancel()
-
-    @classmethod
-    def ensure_frequency(cls, frequency, loop=None):
-        if isinstance(frequency, cls):
-            return frequency
-        elif isinstance(frequency, dict):
-            return cls(loop=loop, **frequency)
-        else:
-            return cls(*frequency, loop=loop)
-
-    async def wait_put(self):
-        await asyncio_sleep(self.interval)
-        await self.q.put(1)
-        self.q.task_done()
-
-    @staticmethod
-    async def async_nothing(*args):
-        pass
-
-    @staticmethod
-    def nothing(*args):
-        pass
-
-    async def _acquire(self):
-        await self.q.get()
-
-    def _release(self):
-        task = ensure_future(self.wait_put(), loop=self.loop)
-        task._log_destroy_pending = False
-        self._put_tasks.add(task)
-
-    async def __aenter__(self):
-        await self.acquire()
-
-    async def __aexit__(self, *args):
-        self.release()
-
-    def __str__(self):
-        return self.__repr__()
-
-    def __repr__(self):
-        if self.q:
-            n = self.n
-            return "Frequency(%s/%s, pending: %s, interval: %ss)" % (
-                n - self.q.qsize(),
-                n,
-                len(self.q._getters),
-                self.interval,
-            )
-        else:
-            return "Frequency(unlimited)"
-
-    def __bool__(self):
-        return bool(self.q)
 class Requests(Loop):
     """Wrap the aiohttp with NewTask.
 
