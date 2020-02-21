@@ -394,7 +394,8 @@ class Frequency(object):
             return cls(*frequency)
 
     async def _acquire(self):
-        await self.gen.__anext__()
+        async for _ in self.gen:
+            break
 
     async def __aexit__(self, *args):
         pass
