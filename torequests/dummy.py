@@ -1,6 +1,6 @@
 # python3.5+ # pip install uvloop aiohttp.
 
-from asyncio import (Queue, Task, ensure_future, gather, get_event_loop,
+from asyncio import (Lock, Queue, Task, ensure_future, gather, get_event_loop,
                      iscoroutine, new_event_loop, set_event_loop_policy)
 from asyncio import sleep as asyncio_sleep
 from asyncio import wait
@@ -357,11 +357,12 @@ def get_results_generator(*args):
 
 class Frequency(object):
     """Frequency controller, means concurrent running n tasks every interval seconds."""
-    __slots__ = ("gen", "__aenter__", "repr")
+    __slots__ = ("gen", "__aenter__", "repr", "lock")
 
-    def __init__(self, n=None, interval=0):
+    def __init__(self, n=None, interval=0, loop=None):
         if n:
             self.gen = self.generator(n, interval)
+            self.lock = Lock(loop=loop)
             self.__aenter__ = self._acquire
             self.repr = f"Frequency({n}, {interval})"
         else:
@@ -394,7 +395,8 @@ class Frequency(object):
             return cls(*frequency)
 
     async def _acquire(self):
-        await self.gen.asend(None)
+        async with self.lock:
+            await self.gen.asend(None)
 
     async def __aexit__(self, *args):
         pass
