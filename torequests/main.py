@@ -2,7 +2,7 @@
 # python2 requires: pip install futures
 
 import atexit
-import time
+
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed)
 from concurrent.futures._base import (
@@ -10,8 +10,9 @@ from concurrent.futures._base import (
     CancelledError, Error, Executor, Future, TimeoutError)
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
-from threading import Timer
+from threading import Timer, Lock
 from time import sleep as time_sleep
+from time import time as time_time
 from weakref import WeakSet
 
 from requests import PreparedRequest, RequestException, Session
@@ -312,7 +313,7 @@ class NewFuture(Future):
         self._kwargs = kwargs or {}
         self._callback_result = None
         self.catch_exception = catch_exception
-        self.task_start_time = time.time()
+        self.task_start_time = time_time()
         self.task_end_time = 0
         self.task_cost_time = 0
         self._user_callbacks = set()
@@ -328,7 +329,7 @@ class NewFuture(Future):
 
     def _invoke_callbacks(self):
         """Record the task_end_time & task_cost_time, set result for self._callback_result."""
-        self.task_end_time = time.time()
+        self.task_end_time = time_time()
         self.task_cost_time = self.task_end_time - self.task_start_time
         with self._condition:
             for callback in self._done_callbacks:
@@ -487,25 +488,32 @@ class FailedRequest(PreparedRequest):
 
 class Frequency(object):
     """Frequency controller, means concurrent running n tasks every interval seconds."""
-    __slots__ = ("n", "interval", "q", "acquire", "release")
+    __slots__ = ("gen", "repr", "lock", "__enter__")
 
     def __init__(self, n=None, interval=0):
-        self.n = n
-        self.interval = interval
-        if self.n:
-            self.q = Queue(self.n)
-            for _ in range(n):
-                self.q.put_nowait(1)
-            self.acquire = self._acquire
-            self.release = self._release
+        self.repr = "Frequency({n}, {interval})".format(n=n, interval=interval)
+        if n:
+            self.lock = Lock()
+            # generator is a little faster than Queue, and using little memory
+            self.gen = self.generator(n, interval)
+            self.__enter__ = self._acquire
         else:
-            self.q = None
-            self.acquire = self.noting
-            self.release = self.noting
+            self.gen = None
+            self.__enter__ = self.__exit__
 
-    @staticmethod
-    def nothing(*args):
-        pass
+    def generator(self, num=2, interval=1):
+        q = [0] * num
+        while 1:
+            # print(q)
+            for index, i in enumerate(q):
+                # or timeit.default_timer()
+                now = time_time()
+                diff = now - i
+                if diff < interval:
+                    time_sleep(interval - diff)
+                    continue
+                q[index] = now
+                yield now
 
     @classmethod
     def ensure_frequency(cls, frequency):
@@ -516,37 +524,18 @@ class Frequency(object):
         else:
             return cls(*frequency)
 
-    def wait_put(self):
-        self.q.put(1)
-        self.q.task_done()
-
     def _acquire(self):
-        self.q.get()
-
-    def _release(self):
-        t = Timer(self.interval, self.wait_put)
-        t.daemon = True
-        t.start()
-
-    def __enter__(self):
-        self.acquire()
+        with self.lock:
+            next(self.gen)
 
     def __exit__(self, *args):
-        self.release()
+        pass
 
     def __str__(self):
-        return self.__repr__()
+        return repr(self)
 
     def __repr__(self):
-        return "Frequency(%s / %s, pending: %s, interval: %ss)" % (
-            self.n - self.q.qsize() if self.q else None,
-            self.n,
-            len(self.q._getters) if self.q else None,
-            self.interval,
-        )
-
-    def __bool__(self):
-        return bool(self.q)
+        return self.repr
 
 
 class tPool(object):

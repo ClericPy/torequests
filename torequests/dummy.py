@@ -143,7 +143,7 @@ class Loop:
         self.default_callback = default_callback
         self.async_running = False
         self._timeout = timeout
-        self.frequency = Frequency(n, interval, loop=self.loop)
+        self.frequency = Frequency(n, interval)
 
     @property
     def loop(self):
@@ -335,10 +335,6 @@ class Loop:
         tasks = tasks or self.todo_tasks
         await gather(*tasks, loop=self.loop)
 
-    def __del__(self):
-        for task in self.frequency._put_tasks:
-            task.cancel()
-
 
 def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):
     """Wrap coro_function into the function return NewTask."""
@@ -360,6 +356,60 @@ def get_results_generator(*args):
 
 
 class Frequency(object):
+    """Frequency controller, means concurrent running n tasks every interval seconds."""
+    __slots__ = ("gen", "__aenter__", "repr")
+
+    def __init__(self, n=None, interval=0):
+        if n:
+            self.gen = self.generator(n, interval)
+            self.__aenter__ = self._acquire
+            self.repr = f"Frequency({n}, {interval})"
+        else:
+            self.gen = None
+            self.__aenter__ = self.__aexit__
+            self.repr = "Frequency(unlimited)"
+
+    async def generator(self, n, interval):
+        q = [0] * n
+        while 1:
+            # print(q)
+            for index, i in enumerate(q):
+                # or timeit.default_timer()
+                now = time_time()
+                diff = now - i
+                if diff < interval:
+                    await asyncio_sleep(interval - diff)
+                    break
+                q[index] = now
+                # coroutines may not need lock
+                yield now
+
+    @classmethod
+    def ensure_frequency(cls, frequency):
+        if isinstance(frequency, cls):
+            return frequency
+        elif isinstance(frequency, dict):
+            return cls(**frequency)
+        else:
+            return cls(*frequency)
+
+    async def _acquire(self):
+        await self.gen.__anext__()
+
+    async def __aexit__(self, *args):
+        pass
+
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        return self.repr
+
+    def __bool__(self):
+        return bool(self.gen)
+
+
+class Frequency1(object):
     """Frequency controller, means concurrent running n tasks every interval seconds."""
     __slots__ = ("interval", "loop", "q", "_put_tasks", "acquire", "release")
 
@@ -439,8 +489,6 @@ class Frequency(object):
 
     def __bool__(self):
         return bool(self.q)
-
-
 class Requests(Loop):
     """Wrap the aiohttp with NewTask.
 
@@ -537,9 +585,8 @@ class Requests(Loop):
         if default_host_frequency:
             self.frequencies[
                 'default_host_frequency'] = Frequency.ensure_frequency(
-                    default_host_frequency, loop=self.loop)
-        self.frequencies['global_frequency'] = Frequency(
-            self.n, self.interval, loop=self.loop)
+                    default_host_frequency)
+        self.frequencies['global_frequency'] = Frequency(self.n, self.interval)
         self.session_kwargs = kwargs
         self._closed = False
         self._session = session
@@ -569,7 +616,7 @@ class Requests(Loop):
         if not isinstance(frequencies, dict):
             raise ValueError("frequencies should be dict")
         frequencies = {
-            host: Frequency.ensure_frequency(frequencies[host], loop=self.loop)
+            host: Frequency.ensure_frequency(frequencies[host])
             for host in frequencies
         }
         return frequencies
@@ -691,9 +738,6 @@ class Requests(Loop):
     async def close(self):
         if self._closed:
             return
-        for frequency in self.frequencies.values():
-            for task in frequency._put_tasks:
-                task.cancel()
         try:
             session = await self._ensure_session()
             if session and not session.closed:
