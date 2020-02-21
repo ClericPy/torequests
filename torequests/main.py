@@ -501,17 +501,16 @@ class Frequency(object):
             self.gen = None
             self.__enter__ = self.__exit__
 
-    def generator(self, num=2, interval=1):
-        q = [0] * num
+    def generator(self, n=2, interval=1):
+        q = [0] * n
         while 1:
-            # print(q)
             for index, i in enumerate(q):
                 # or timeit.default_timer()
                 now = time_time()
                 diff = now - i
                 if diff < interval:
                     time_sleep(interval - diff)
-                    continue
+                now = time_time()
                 q[index] = now
                 yield now
 
