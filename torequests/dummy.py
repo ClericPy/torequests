@@ -373,14 +373,13 @@ class Frequency(object):
     async def generator(self, n, interval):
         q = [0] * n
         while 1:
-            # print(q)
             for index, i in enumerate(q):
                 # or timeit.default_timer()
                 now = time_time()
                 diff = now - i
                 if diff < interval:
                     await asyncio_sleep(interval - diff)
-                    break
+                now = time_time()
                 q[index] = now
                 # python3.8+ need lock for generator contest, 3.6 3.7 not need
                 yield now
