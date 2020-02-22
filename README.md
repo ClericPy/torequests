@@ -1,4 +1,4 @@
-# [torequests](https://github.com/ClericPy/torequests) [![PyPI](https://img.shields.io/pypi/v/torequests)]((https://pypi.org/project/torequests/4.9.8/))
+# [torequests](https://github.com/ClericPy/torequests) [![PyPI](https://img.shields.io/pypi/v/torequests)](https://pypi.org/project/torequests/4.9.8/)
 
 [![Build Status](https://travis-ci.org/ClericPy/torequests.svg?branch=master)](https://travis-ci.org/ClericPy/torequests)
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/torequests?style=plastic)
