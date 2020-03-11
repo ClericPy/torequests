@@ -608,11 +608,12 @@ class Requests(Loop):
                 kwargs["encoding"] = encoding
             error.request = kwargs
             Config.dummy_logger.debug("Retry %s & failed: %s." % (retry, error))
+            failure = FailureException(error)
+            failure.request = kwargs
             if self.catch_exception:
-                failure = FailureException(error)
-                failure.request = kwargs
                 return failure
-            raise error
+            else:
+                raise failure
 
     def request(self, method, url, callback=None, retry=0, **kwargs):
         """Submit the coro of self._request to self.loop"""

@@ -62,8 +62,7 @@ if PY3:
     unicode = str
 
 __all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query".split(
-    " "
-)
+    " ")
 
 
 def simple_cmd():
@@ -108,7 +107,7 @@ def simple_cmd():
     func(*args, **kwargs)
 
 
-def print_mem(unit="MB"):
+def print_mem(unit="MB", callback=print_info):
     """Show the proc-mem-cost with psutil, use this only for lazinesssss.
 
     :param unit: B, KB, MB, GB.
@@ -120,11 +119,11 @@ def print_mem(unit="MB"):
         KB = B / 1024
         MB = KB / 1024
         GB = MB / 1024
-        result = vars()[unit]
-        print_info("memory usage: %.2f(%s)" % (result, unit))
+        result = "%.2f(%s)" % (vars()[unit], unit)
+        callback(result)
         return result
     except ImportError:
-        print_info("pip install psutil first.")
+        print("pip install psutil first.")
 
 
 class _Curl:
@@ -144,7 +143,8 @@ class _Curl:
     parser.add_argument("-F", "--form")
     parser.add_argument("--data-binary")
     parser.add_argument("--connect-timeout", type=float)
-    parser.add_argument("-H", "--header", action="append", default=[])  # key: value
+    parser.add_argument(
+        "-H", "--header", action="append", default=[])  # key: value
     parser.add_argument("--compressed", action="store_true")
 
 
@@ -171,7 +171,9 @@ def curlparse(string, encoding="utf-8"):
         lex_list = shlex.split(string.strip())
     except ValueError as e:
         if str(e) == 'No closing quotation' and string.count("'") % 2 != 0:
-            print_info("If `data` has single-quote ('), the `data` should be quote by double-quote, and add the `backslash`(\\) before original \".")
+            print_info(
+                "If `data` has single-quote ('), the `data` should be quote by double-quote, and add the `backslash`(\\) before original \"."
+            )
         raise e
     args, unknown = _Curl.parser.parse_known_args(lex_list)
     requests_args = {}
@@ -185,7 +187,8 @@ def curlparse(string, encoding="utf-8"):
     if headers:
         requests_args["headers"] = headers
     if args.user:
-        requests_args["auth"] = tuple(u for u in args.user.split(":", 1) + [""])[:2]
+        requests_args["auth"] = tuple(
+            u for u in args.user.split(":", 1) + [""])[:2]
     # if args.proxy:
     # pass
     data = args.data or args.data_binary or args.form
@@ -197,7 +200,9 @@ def curlparse(string, encoding="utf-8"):
             # TODO not fix the UnicodeEncodeError, so use `replace`, damn python2.x.
             data = data.replace(r'\r', '\r').replace(r'\n', '\n')
         else:
-            data = data.encode('latin-1', 'backslashreplace').decode('unicode-escape').encode(encoding)
+            data = data.encode(
+                'latin-1',
+                'backslashreplace').decode('unicode-escape').encode(encoding)
         requests_args["data"] = data
     requests_args["method"] = args.method.lower()
     if args.connect_timeout:
@@ -359,7 +364,8 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
     >>> timeago(-389, 4, 1)
     '-6 minutes 29 seconds 0 ms'
     """
-    assert format in [0, 1, 2], ValueError("format arg should be one of 0, 1, 2")
+    assert format in [0, 1,
+                      2], ValueError("format arg should be one of 0, 1, 2")
     negative = "-" if seconds < 0 else ""
     seconds = abs(seconds)
     if lang == "en":
@@ -379,11 +385,9 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
     day, hour, minute, second, ms = times
 
     if format == 0:
-        day_str = (
-            "%d %s%s, " % (day, units[0], "s" if day > 1 and lang == "en" else "")
-            if day
-            else ""
-        )
+        day_str = ("%d %s%s, " % (day, units[0],
+                                  "s" if day > 1 and lang == "en" else "")
+                   if day else "")
         mid_str = ":".join(("%02d" % i for i in (hour, minute, second)))
         if accuracy > 4:
             mid_str += ",%03d" % ms
@@ -397,11 +401,11 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
                     break
             for index, item in enumerate(reversed(times)):
                 if item != 0:
-                    tail_index = len(times)-index
+                    tail_index = len(times) - index
                     break
             result_str = [
-                "%d %s%s"
-                % (num, unit, "s" if lang == "en" and num > 1 and unit != "ms" else "")
+                "%d %s%s" % (num, unit, "s" if lang == "en" and num > 1 and
+                             unit != "ms" else "")
                 for num, unit in zip(times, units)
             ][head_index:tail_index][:accuracy]
             result_str = " ".join(result_str)
@@ -430,9 +434,9 @@ def md5(string, n=32, encoding="utf-8", skip_encode=False):
     if n == 32:
         return hashlib.md5(todo).hexdigest()
     elif isinstance(n, (int, float)):
-        return hashlib.md5(todo).hexdigest()[(32 - n) // 2 : (n - 32) // 2]
+        return hashlib.md5(todo).hexdigest()[(32 - n) // 2:(n - 32) // 2]
     elif isinstance(n, (tuple, list)):
-        return hashlib.md5(todo).hexdigest()[n[0] : n[1]]
+        return hashlib.md5(todo).hexdigest()[n[0]:n[1]]
 
 
 class Counts(object):
@@ -592,11 +596,11 @@ class Regex(object):
         :param reg_kwargs: kwargs for re.compile.
         """
         assert obj, "bool(obj) should be True."
-        patterns = patterns if isinstance(patterns, (list, tuple, set)) else [patterns]
+        patterns = patterns if isinstance(patterns,
+                                          (list, tuple, set)) else [patterns]
         instances = instances or []
-        instances = (
-            instances if isinstance(instances, (list, tuple, set)) else [instances]
-        )
+        instances = (instances if isinstance(instances, (list, tuple,
+                                                         set)) else [instances])
         for pattern in patterns:
             pattern_compiled = re.compile(pattern, **reg_kwargs)
             self.container.append((pattern_compiled, obj, instances))
@@ -606,12 +610,11 @@ class Regex(object):
             else:
                 # no need to check all instances.
                 for instance in instances:
-                    assert self.search(instance) == [obj] or self.match(instance) == [
+                    assert self.search(instance) == [
                         obj
-                    ], (
-                        "instance %s should fit at least one pattern %s"
-                        % (instance, pattern)
-                    )
+                    ] or self.match(instance) == [obj], (
+                        "instance %s should fit at least one pattern %s" %
+                        (instance, pattern))
 
     def register_function(self, patterns, instances=None, **reg_kwargs):
         """Decorator for register."""
@@ -669,8 +672,8 @@ class Regex(object):
         for item in self.container:
             for instance in item[2]:
                 assert self.search(instance) or self.match(
-                    instance
-                ), "instance %s not fit pattern %s" % (instance, item[0].pattern)
+                    instance), "instance %s not fit pattern %s" % (
+                        instance, item[0].pattern)
 
     def show_all(self, as_string=True):
         """, python2 will not show flags"""
@@ -678,11 +681,8 @@ class Regex(object):
         for item in self.container:
             pattern = str(item[0])[10:] if PY3 else item[0].pattern
             instances = item[2] or []
-            value = (
-                '%s "%s"' % (item[1].__name__, (item[1].__doc__ or ""))
-                if callable(item[1])
-                else str(item[1])
-            )
+            value = ('%s "%s"' % (item[1].__name__, (item[1].__doc__ or ""))
+                     if callable(item[1]) else str(item[1]))
             value = "%s %s" % (type(item[1]), value)
             result.append(" => ".join((pattern, ",".join(instances), value)))
         return "\n".join(result) if as_string else result
@@ -725,14 +725,12 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
         if warn:
             if warn is True:
                 Config.utils_logger.warning(
-                    "Module `%s` not found. Install it to remove this warning"
-                    % module_name
-                )
+                    "Module `%s` not found. Install it to remove this warning" %
+                    module_name)
             else:
                 warn(module_name, names, default)
-        module = (
-            ImportErrorModule(module_name) if default is ImportErrorModule else default
-        )
+        module = (ImportErrorModule(module_name)
+                  if default is ImportErrorModule else default)
     if not names:
         return module
     if not isinstance(names, (tuple, set, list)):
@@ -743,10 +741,8 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
             result.append(module.__getattribute__(name))
         else:
             result.append(
-                ImportErrorModule("%s.%s" % (module_name, name))
-                if default is ImportErrorModule
-                else default
-            )
+                ImportErrorModule("%s.%s" % (module_name, name)
+                                 ) if default is ImportErrorModule else default)
     return result[0] if len(result) == 1 else result
 
 
@@ -819,14 +815,14 @@ class Timer(object):
     """
 
     def __init__(
-        self,
-        name=None,
-        log_func=None,
-        default_timer=None,
-        rounding=None,
-        readable=None,
-        log_after_del=True,
-        stack_level=1,
+            self,
+            name=None,
+            log_func=None,
+            default_timer=None,
+            rounding=None,
+            readable=None,
+            log_after_del=True,
+            stack_level=1,
     ):
         readable = readable or timepass
         self._log_after_del = False
@@ -842,17 +838,10 @@ class Timer(object):
                 )
                 # f_vars = f_vars.replace(' __main__', '')
             else:
-                f_vars = (
-                    "(%s)"
-                    % ", ".join(
-                        [
-                            "%s=%s" % (i, repr(f_local[i]))
-                            for i in sorted(f_local.keys())
-                        ]
-                    )
-                    if f_local
-                    else "()"
-                )
+                f_vars = ("(%s)" % ", ".join([
+                    "%s=%s" % (i, repr(f_local[i]))
+                    for i in sorted(f_local.keys())
+                ]) if f_local else "()")
             if self not in f_local.values():
                 # add self to name space for __del__ way.
                 sys._getframe(stack_level).f_locals.update(**{uid: self})
@@ -879,13 +868,10 @@ class Timer(object):
             self.log_func(self)
         else:
             print_info(
-                "Timer [%(passed)s]: %(name)s, start at %(start)s."
-                % (
-                    dict(
-                        name=self.name, start=ttime(self.start_at), passed=passed_string
-                    )
-                )
-            )
+                "Timer [%(passed)s]: %(name)s, start at %(start)s." % (dict(
+                    name=self.name,
+                    start=ttime(self.start_at),
+                    passed=passed_string)))
         return passed_string
 
     @property
@@ -907,12 +893,14 @@ class Timer(object):
         """Decorator for Timer."""
 
         def wrapper(function):
+
             @wraps(function)
             def inner(*args, **kwargs):
                 args1 = ", ".join(map(repr, args)) if args else ""
-                kwargs1 = ", ".join(
-                    ["%s=%s" % (i, repr(kwargs[i])) for i in sorted(kwargs.keys())]
-                )
+                kwargs1 = ", ".join([
+                    "%s=%s" % (i, repr(kwargs[i]))
+                    for i in sorted(kwargs.keys())
+                ])
                 arg = ", ".join(filter(None, [args1, kwargs1]))
                 name = "%s(%s)" % (function.__name__, arg)
                 _ = Timer(name=name, *timer_args, **timer_kwargs)
@@ -1066,12 +1054,20 @@ class Saver(object):
     }
     _protected_keys = _protected_keys | set(object.__dict__.keys())
 
-    def __new__(cls, path=None, save_mode="json", auto_backup=False, **saver_args):
+    def __new__(cls,
+                path=None,
+                save_mode="json",
+                auto_backup=False,
+                **saver_args):
         # BORG
         path = path or cls._get_home_path(save_mode=save_mode)
         return cls._instances.setdefault(path, super(Saver, cls).__new__(cls))
 
-    def __init__(self, path=None, save_mode="json", auto_backup=False, **saver_args):
+    def __init__(self,
+                 path=None,
+                 save_mode="json",
+                 auto_backup=False,
+                 **saver_args):
         super(Saver, self).__init__()
         self._auto_backup = auto_backup
         self._lock = self.__class__._locks.setdefault(path, Lock())
@@ -1133,8 +1129,7 @@ class Saver(object):
             except TypeError:
                 Config.utils_logger.warning(
                     "Saver._set(%s, %s) failed: bad type, using str(value) instead."
-                    % (key, value)
-                )
+                    % (key, value))
                 value = str(value)
         self._cache[key] = value
         self._save()
@@ -1269,7 +1264,9 @@ def split_n(string, seps, reg=False):
     deep = len(seps)
     if not deep:
         return string
-    return [split_n(i, seps[1:]) for i in _re_split_mixin(string, seps[0], reg=reg)]
+    return [
+        split_n(i, seps[1:]) for i in _re_split_mixin(string, seps[0], reg=reg)
+    ]
 
 
 def bg(func):
@@ -1311,12 +1308,12 @@ def bg(func):
 
 
 def countdown(
-    seconds=None,
-    block=True,
-    interval=1,
-    daemon=True,
-    tick_callback=None,
-    finish_callback=None,
+        seconds=None,
+        block=True,
+        interval=1,
+        daemon=True,
+        tick_callback=None,
+        finish_callback=None,
 ):
     """Run a countdown function to wait something, similar to threading.Timer,
      but will show the detail tick by tick_callback.
@@ -1347,9 +1344,8 @@ def countdown(
 
     start_time = time.time()
     tick_callback = tick_callback or default_tick_callback
-    finish_callback = (
-        default_finish_callback if finish_callback is None else finish_callback
-    )
+    finish_callback = (default_finish_callback
+                       if finish_callback is None else finish_callback)
 
     if unicode(seconds).isdigit():
         seconds = int(seconds)
