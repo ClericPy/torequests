@@ -646,11 +646,12 @@ class tPool(object):
         if encoding:
             kwargs["encoding"] = encoding
         Config.main_logger.debug("Retry %s & failed: %s." % (retry, error))
+        failure = FailureException(error)
+        failure.request = FailedRequest(**kwargs)
         if self.catch_exception:
-            failure = FailureException(error)
-            failure.request = FailedRequest(**kwargs)
             return failure
-        raise error
+        else:
+            raise failure
 
     def request(self, method, url, callback=None, retry=0, **kwargs):
         """Similar to `requests.request`, but return as NewFuture."""
