@@ -66,9 +66,10 @@ def init_logger(
     return logger
 
 
-dummy_logger = init_logger("torequests.dummy")
-main_logger = init_logger("torequests.main")
-utils_logger = init_logger("torequests.utils")
+logger = logging.getLogger('torequests')
+dummy_logger = logger
+main_logger = logger
+utils_logger = logger
 print_logger = init_logger(
     "torequests.print",
     formatter_str="[%(asctime)s] %(fn)s(%(ln)s): %(message)s")

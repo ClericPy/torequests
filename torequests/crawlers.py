@@ -10,8 +10,8 @@ from functools import wraps
 
 from .logs import print_info
 from .utils import (Counts, ensure_dict_key_title, ensure_request, md5,
-                    parse_qsl, slice_by_size, timepass, ttime, unparse_qsl,
-                    urlparse, urlunparse)
+                    parse_qsl, timepass, ttime, unparse_qsl, urlparse,
+                    urlunparse)
 from .versions import PY2, PY3, PY35_PLUS
 
 if PY3:
@@ -19,7 +19,7 @@ if PY3:
     from http.cookies import SimpleCookie
     from json.decoder import JSONDecodeError
 
-if PY2:
+elif PY2:
     from Cookie import SimpleCookie
     JSONDecodeError = ValueError
 
@@ -174,7 +174,7 @@ class CleanRequest(CommonRequests):
     def sort_url_qsl(cls, raw_url, **kwargs):
         """Do nothing but sort the params of url.
 
-            raw_url: the raw url to be sorted; 
+            raw_url: the raw url to be sorted
             kwargs: (optional) same kwargs for ``sorted``.
         """
         parsed_url = urlparse(raw_url)
@@ -212,8 +212,8 @@ class CleanRequest(CommonRequests):
         return self
 
     def clean_post_data(self):
-        """Only clean the post-data and return self. 
-        
+        """Only clean the post-data and return self.
+
         Including form-data / bytes-data / json-data."""
         data = self.request.get('data')
         if not (data and self.request['method'] == 'post'):
@@ -288,8 +288,9 @@ class CleanRequest(CommonRequests):
             parsed_url, [i for i in qsl if i not in self.ignore['qsl']])
         self.new_request['url'] = new_url
         self.logger_function('ignore: %s' % self.ignore)
-        for key in self.ignore['headers']:
-            self.new_request['headers'].pop(key)
+        if 'headers' in self.new_request:
+            for key in self.ignore['headers']:
+                self.new_request['headers'].pop(key)
 
         if not self.new_request.get('headers'):
             self.new_request.pop('headers', None)
@@ -423,7 +424,7 @@ class StressTest(CommonRequests):
 
     @property
     def speed(self):
-        """Speed property, the unit can be `req / s`. 
+        """Speed property, the unit can be `req / s`.
 
         Returns: the num of request is fetched in one second."""
         return round(self.counter.now / self.passed, 2)

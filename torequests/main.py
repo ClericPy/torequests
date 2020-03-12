@@ -2,7 +2,6 @@
 # python2 requires: pip install futures
 
 import atexit
-
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed)
 from concurrent.futures._base import (
@@ -10,7 +9,8 @@ from concurrent.futures._base import (
     CancelledError, Error, Executor, Future, TimeoutError)
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
-from threading import Timer, Lock
+from logging import getLogger
+from threading import Lock, Timer
 from time import sleep as time_sleep
 from time import time as time_time
 from weakref import WeakSet
@@ -49,6 +49,7 @@ __all__ = [
     "request",
     "disable_warnings",
 ]
+logger = getLogger("torequests")
 
 
 def _abandon_all_tasks():
@@ -88,7 +89,7 @@ class NewExecutorPoolMixin(Executor):
 
             return cpu_count()
         except Exception as e:
-            Config.main_logger.error("_get_cpu_count failed for %s" % e)
+            logger.error("_get_cpu_count failed for %s" % e)
 
     @property
     def x(self):
@@ -338,8 +339,7 @@ class NewFuture(Future):
                     if callback in self._user_callbacks:
                         self._callback_result = result
                 except Exception as e:
-                    Config.main_logger.error(
-                        "exception calling callback for %s" % e)
+                    logger.error("exception calling callback for %s" % e)
             self._condition.notify_all()
 
     @property
@@ -630,12 +630,12 @@ class tPool(object):
                     resp = self.session.request(**kwargs)
                     if encoding:
                         resp.encoding = encoding
-                    Config.main_logger.debug("%s done, %s" % (url, kwargs))
+                    logger.debug("%s done, %s" % (url, kwargs))
                     resp.referer_info = referer_info
                     return resp
                 except (RequestException, Error) as e:
                     error = e
-                    Config.main_logger.debug(
+                    logger.debug(
                         "Retry %s for the %s time, Exception: %s . kwargs= %s" %
                         (url, _ + 1, e, kwargs))
                     continue
@@ -645,7 +645,7 @@ class tPool(object):
             kwargs["referer_info"] = referer_info
         if encoding:
             kwargs["encoding"] = encoding
-        Config.main_logger.debug("Retry %s & failed: %s." % (retry, error))
+        logger.debug("Retry %s & failed: %s." % (retry, error))
         failure = FailureException(error)
         failure.request = FailedRequest(**kwargs)
         if self.catch_exception:
