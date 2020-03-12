@@ -9,5 +9,5 @@ __all__ = [
     "get_results_generator", "run_after_async", "tPool", "get", "post",
     "options", "delete", "put", "head", "patch", "request", "disable_warnings"
 ]
-__version__ = '4.9.9'
+__version__ = '4.9.10'
 logging.getLogger("torequests").addHandler(logging.NullHandler())
