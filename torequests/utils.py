@@ -16,6 +16,7 @@ import time
 import timeit
 from fractions import Fraction
 from functools import wraps
+from logging import getLogger
 from threading import Lock, Thread
 
 from .configs import Config
@@ -63,6 +64,7 @@ if PY3:
 
 __all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query".split(
     " ")
+logger = getLogger("torequests")
 
 
 def simple_cmd():
@@ -91,7 +93,7 @@ def simple_cmd():
     func_name = params.func_name
     func = globals().get(func_name)
     if not (callable(func)):
-        Config.utils_logger.warning("invalid func_name: %s" % func_name)
+        logger.warning("invalid func_name: %s" % func_name)
         return
     args = params.args or []
     kwargs = params.kwargs or {}
@@ -101,8 +103,8 @@ def simple_cmd():
     if params.show:
         from inspect import getsource
 
-        Config.utils_logger.info("args: %s; kwargs: %s" % (args, kwargs))
-        Config.utils_logger.info(getsource(func))
+        logger.info("args: %s; kwargs: %s" % (args, kwargs))
+        logger.info(getsource(func))
         return
     func(*args, **kwargs)
 
@@ -302,7 +304,7 @@ def ttime(timestamp=None, tzone=None, fail="", fmt="%Y-%m-%d %H:%M:%S"):
     try:
         timestamp = time.time() if timestamp is None else timestamp
         return time.strftime(fmt, time.gmtime(timestamp + fix_tz))
-    except:
+    except Exception:
         return fail
 
 
@@ -325,7 +327,7 @@ def ptime(timestr=None, tzone=None, fail=0, fmt="%Y-%m-%d %H:%M:%S"):
     timestr = str(timestr or ttime())
     try:
         return int(time.mktime(time.strptime(timestr, fmt)) + fix_tz)
-    except:
+    except Exception:
         return fail
 
 
@@ -724,7 +726,7 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
     except ImportError:
         if warn:
             if warn is True:
-                Config.utils_logger.warning(
+                logger.warning(
                     "Module `%s` not found. Install it to remove this warning" %
                     module_name)
             else:
@@ -1127,7 +1129,7 @@ class Saver(object):
             try:
                 json.dumps(value)
             except TypeError:
-                Config.utils_logger.warning(
+                logger.warning(
                     "Saver._set(%s, %s) failed: bad type, using str(value) instead."
                     % (key, value))
                 value = str(value)

@@ -1,6 +1,5 @@
 #! coding:utf-8
 import asyncio
-import sys
 import time
 
 from torequests import *

@@ -1,30 +1,31 @@
 # python3.5+ # pip install uvloop aiohttp.
 
-from asyncio import (Lock, Queue, Task, ensure_future, gather, get_event_loop,
+from asyncio import (Lock, Task, gather, get_event_loop,
                      iscoroutine, new_event_loop, set_event_loop_policy)
 from asyncio import sleep as asyncio_sleep
 from asyncio import wait
 from asyncio.futures import _chain_future
 from concurrent.futures import ALL_COMPLETED
 from functools import wraps
+from logging import getLogger
 from time import sleep as time_sleep
 from time import time as time_time
 from urllib.parse import urlparse
-from weakref import WeakSet
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from ._py3_patch import NewResponse, _py36_all_task_patch
-from .configs import Config
 from .exceptions import FailureException
 from .main import Error, NewFuture, Pool, ProcessPool
+
+logger = getLogger("torequests")
 
 try:
     import uvloop
 
     set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
-    Config.dummy_logger.debug("Not found uvloop, using default_event_loop.")
+    logger.debug("Not found uvloop, using default_event_loop.")
 
 __all__ = "NewTask Loop Asyncme coros get_results_generator Frequency Requests".split(
     " ")
@@ -276,8 +277,9 @@ class Loop:
         return self.run()
 
     async def wait(self, fs, timeout=None, return_when=ALL_COMPLETED):
-        return await wait(
-            fs, loop=self.loop, timeout=timeout, return_when=return_when)
+        if fs:
+            return await wait(
+                fs, loop=self.loop, timeout=timeout, return_when=return_when)
 
     @property
     def todo_tasks(self):
@@ -607,7 +609,7 @@ class Requests(Loop):
             if encoding:
                 kwargs["encoding"] = encoding
             error.request = kwargs
-            Config.dummy_logger.debug("Retry %s & failed: %s." % (retry, error))
+            logger.debug("Retry %s & failed: %s." % (retry, error))
             failure = FailureException(error)
             failure.request = kwargs
             if self.catch_exception:
@@ -669,7 +671,7 @@ class Requests(Loop):
                 await session.close()
             self._closed = True
         except Exception as e:
-            Config.dummy_logger.error("can not close session for: %s" % e)
+            logger.error("can not close session for: %s" % e)
 
     def __del__(self):
         _exhaust_simple_coro(self.close())
