@@ -1,18 +1,19 @@
 # python3.5+ # pip install uvloop aiohttp.
 
-from asyncio import (Lock, Task, gather, get_event_loop,
-                     iscoroutine, new_event_loop, set_event_loop_policy)
-from asyncio import sleep as asyncio_sleep
-from asyncio import wait
+from asyncio import (Task, gather, get_event_loop, iscoroutine, new_event_loop,
+                     set_event_loop_policy, wait)
 from asyncio.futures import _chain_future
 from concurrent.futures import ALL_COMPLETED
 from functools import wraps
 from logging import getLogger
 from time import sleep as time_sleep
 from time import time as time_time
+from typing import (Callable, Coroutine, Dict, List, Optional, Sequence, Set,
+                    Union)
 from urllib.parse import urlparse
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
+from frequency_controller.async_tools import Frequency
 
 from ._py3_patch import NewResponse, _py36_all_task_patch
 from .exceptions import FailureException
@@ -30,15 +31,7 @@ except ImportError:
 __all__ = "NewTask Loop Asyncme coros get_results_generator Frequency Requests".split(
     " ")
 
-
-class NotSet(object):
-    __slots__ = ()
-
-    def __bool__(self):
-        return False
-
-    def __nonzero__(self):
-        return False
+NotSet = object()
 
 
 class NewTask(Task):
@@ -60,14 +53,19 @@ class NewTask(Task):
     _FINISHED = "FINISHED"
     _RESPONSE_ARGS = ("encoding", "request_encoding", "content")
 
-    def __init__(self, coro, *, loop=None, callback=None, extra_args=None):
+    def __init__(self,
+                 coro,
+                 *,
+                 loop=None,
+                 callback: Union[Callable, Sequence] = None,
+                 extra_args=None):
         assert iscoroutine(coro), repr(coro)
         super().__init__(coro, loop=loop)
         self._callback_result = NotSet
         self.extra_args = extra_args or ()
         self.task_start_time = time_time()
-        self.task_end_time = 0
-        self.task_cost_time = 0
+        self.task_end_time = 0.0
+        self.task_cost_time = 0.0
         if callback:
             if not isinstance(callback, (list, tuple, set)):
                 callback = [callback]
@@ -77,7 +75,7 @@ class NewTask(Task):
                 self.add_done_callback(self.wrap_callback(fn))
 
     @staticmethod
-    def wrap_callback(function):
+    def wrap_callback(function: Callable) -> Callable:
         """Set the callback's result as self._callback_result."""
 
         @wraps(function)
@@ -88,12 +86,12 @@ class NewTask(Task):
         return wrapped
 
     @staticmethod
-    def set_task_time(task):
+    def set_task_time(task: 'NewTask'):
         task.task_end_time = time_time()
         task.task_cost_time = task.task_end_time - task.task_start_time
 
     @property
-    def _done_callbacks(self):
+    def _done_callbacks(self) -> list:
         """Keep same api for NewFuture."""
         return self._callbacks
 
@@ -134,10 +132,10 @@ class Loop:
     """Handle the event loop like a thread pool."""
 
     def __init__(self,
-                 n=None,
-                 interval=0,
-                 timeout=None,
-                 default_callback=None,
+                 n: int = None,
+                 interval: float = 0,
+                 timeout: Optional[float] = None,
+                 default_callback: Optional[Callable] = None,
                  loop=None,
                  **kwargs):
         self._loop = loop
@@ -202,7 +200,11 @@ class Loop:
         loop.call_soon_threadsafe(callback_func)
         return future
 
-    def apply(self, coro_function, args=None, kwargs=None, callback=None):
+    def apply(self,
+              coro_function: Callable,
+              args: Optional[Sequence] = None,
+              kwargs: Optional[dict] = None,
+              callback: Optional[Callable] = None):
         """Submit a coro_function(*args, **kwargs) as NewTask to self.loop with loop.frequncy control.
 
         ::
@@ -230,7 +232,7 @@ class Loop:
                                                                       **kwargs)
         return self.submit(coro, callback=callback)
 
-    def submit(self, coro, callback=None):
+    def submit(self, coro, callback: Optional[Callable] = None):
         """Submit a coro as NewTask to self.loop without loop.frequncy control.
 
         ::
@@ -260,7 +262,7 @@ class Loop:
         else:
             return NewTask(coro, loop=self.loop, callback=callback)
 
-    def submitter(self, f):
+    def submitter(self, f: Callable) -> Callable:
         """Decorator to submit a coro-function as NewTask to self.loop with control.
         Use default_callback frequency of loop."""
         f = self._wrap_coro_function_with_frequency(f)
@@ -282,7 +284,7 @@ class Loop:
                 fs, loop=self.loop, timeout=timeout, return_when=return_when)
 
     @property
-    def todo_tasks(self):
+    def todo_tasks(self) -> List[Task]:
         """Return tasks in loop which its state is pending."""
         tasks = [
             task for task in self.all_tasks if task._state == NewTask._PENDING
@@ -290,14 +292,14 @@ class Loop:
         return tasks
 
     @property
-    def done_tasks(self):
+    def done_tasks(self) -> List[Task]:
         """Return tasks in loop which its state is not pending."""
         tasks = [
             task for task in self.all_tasks if task._state != NewTask._PENDING
         ]
         return tasks
 
-    def run(self, tasks=None, timeout=NotSet):
+    def run(self, tasks: List[Task] = None, timeout=NotSet):
         """Block, run loop until all tasks completed."""
         timeout = self._timeout if timeout is NotSet else timeout
         if self.async_running or self.loop.is_running():
@@ -307,7 +309,10 @@ class Loop:
             return self.loop.run_until_complete(
                 self.wait(tasks, timeout=timeout))
 
-    def wait_all_tasks_done(self, timeout=NotSet, delay=0.5, interval=0.1):
+    def wait_all_tasks_done(self,
+                            timeout=NotSet,
+                            delay: float = 0.5,
+                            interval: float = 0.1):
         """Block, only be used while loop running in a single non-main thread. Not SMART!"""
         timeout = self._timeout if timeout is NotSet else timeout
         timeout = timeout or float("inf")
@@ -325,25 +330,34 @@ class Loop:
         self.loop.close()
 
     @property
-    def all_tasks(self):
+    def all_tasks(self) -> Set[Task]:
         """Return all tasks of the current loop."""
         return _py36_all_task_patch(loop=self.loop)
 
-    async def pendings(self, tasks=None):
+    async def pendings(self,
+                       tasks: Optional[List[Task]] = None) -> Sequence[Task]:
         """Used for await in coroutines.
         `await loop.pendings()`
         `await loop.pendings(tasks)`
         """
         tasks = tasks or self.todo_tasks
         await gather(*tasks, loop=self.loop)
+        return tasks
 
 
-def Asyncme(func, n=None, interval=0, default_callback=None, loop=None):
+def Asyncme(func,
+            n: Optional[int] = None,
+            interval: Optional[float] = 0,
+            default_callback: Optional[Callable] = None,
+            loop=None):
     """Wrap coro_function into the function return NewTask."""
     return coros(n, interval, default_callback, loop)(func)
 
 
-def coros(n=None, interval=0, default_callback=None, loop=None):
+def coros(n: Optional[int] = None,
+          interval: Optional[float] = 0,
+          default_callback: Optional[Callable] = None,
+          loop=None):
     """Decorator for wrap coro_function into the function return NewTask."""
     submitter = Loop(
         n=n, interval=interval, default_callback=default_callback,
@@ -355,61 +369,6 @@ def coros(n=None, interval=0, default_callback=None, loop=None):
 def get_results_generator(*args):
     """TODO"""
     raise NotImplementedError
-
-
-class Frequency(object):
-    """Frequency controller, means concurrent running n tasks every interval seconds."""
-    __slots__ = ("gen", "__aenter__", "repr", "lock")
-
-    def __init__(self, n=None, interval=0, loop=None):
-        if n:
-            self.gen = self.generator(n, interval)
-            self.lock = Lock(loop=loop)
-            self.__aenter__ = self._acquire
-            self.repr = f"Frequency({n}, {interval})"
-        else:
-            self.gen = None
-            self.__aenter__ = self.__aexit__
-            self.repr = "Frequency(unlimited)"
-
-    async def generator(self, n, interval):
-        q = [0] * n
-        while 1:
-            for index, i in enumerate(q):
-                # or timeit.default_timer()
-                now = time_time()
-                diff = now - i
-                if diff < interval:
-                    await asyncio_sleep(interval - diff)
-                now = time_time()
-                q[index] = now
-                # python3.8+ need lock for generator contest, 3.6 3.7 not need
-                yield now
-
-    @classmethod
-    def ensure_frequency(cls, frequency):
-        if isinstance(frequency, cls):
-            return frequency
-        elif isinstance(frequency, dict):
-            return cls(**frequency)
-        else:
-            return cls(*frequency)
-
-    async def _acquire(self):
-        async with self.lock:
-            await self.gen.asend(None)
-
-    async def __aexit__(self, *args):
-        pass
-
-    def __str__(self):
-        return repr(self)
-
-    def __repr__(self):
-        return self.repr
-
-    def __bool__(self):
-        return bool(self.gen)
 
 
 class Requests(Loop):
@@ -483,16 +442,17 @@ class Requests(Loop):
     """
 
     def __init__(self,
-                 n=None,
-                 interval=0,
-                 session=NotSet,
-                 catch_exception=True,
-                 default_callback=None,
-                 frequencies=None,
-                 default_host_frequency=None,
+                 n: Optional[int] = None,
+                 interval: Optional[float] = 0,
+                 session: Optional[ClientSession] = None,
+                 catch_exception: bool = True,
+                 default_callback: Optional[Callable] = None,
+                 frequencies: Optional[Dict[str, Frequency]] = None,
+                 default_host_frequency: Union[Frequency, None, Sequence,
+                                               Dict] = None,
                  *,
                  loop=None,
-                 return_exceptions=NotSet,
+                 return_exceptions: Optional[bool] = None,
                  **kwargs):
         super().__init__(
             loop=loop,
@@ -502,7 +462,7 @@ class Requests(Loop):
         self.n = n
         self.interval = interval
         # be compatible with old version's arg `return_exceptions`
-        self.catch_exception = (catch_exception if return_exceptions is NotSet
+        self.catch_exception = (catch_exception if return_exceptions is None
                                 else return_exceptions)
         self.frequencies = self.ensure_frequencies(frequencies)
         self.default_host_frequency = default_host_frequency
@@ -510,15 +470,15 @@ class Requests(Loop):
         self.session_kwargs = kwargs
         self._closed = False
         self._session = session
-        if self._session is not NotSet:
+        if self._session is not None:
             session._loop = self.loop
             self._session = session
             if self.n:
                 self._session.connector._limit = self.n
 
-    async def _ensure_session(self):
-        """ensure the same loop"""
-        if self._session is NotSet:
+    async def _ensure_session(self) -> ClientSession:
+        """ensure using the same loop, lazy init session."""
+        if self._session is None:
             # new version (>=4.0.0) of aiohttp will not need loop arg.
             self._session = ClientSession(**self.session_kwargs)
             if self.n:
@@ -526,10 +486,10 @@ class Requests(Loop):
         return self._session
 
     @property
-    def session(self):
+    def session(self) -> Coroutine:
         return self._ensure_session()
 
-    def ensure_frequencies(self, frequencies):
+    def ensure_frequencies(self, frequencies: Dict[str, Frequency]):
         """Ensure frequencies is dict of host-frequencies."""
         if not frequencies:
             return {}
@@ -541,7 +501,8 @@ class Requests(Loop):
         }
         return frequencies
 
-    def set_frequency(self, host, n=None, interval=NotSet):
+    def set_frequency(self, host: str, n: Optional[int] = None,
+                      interval=NotSet) -> Frequency:
         """Set frequency for host with n and interval."""
         frequency = Frequency(
             n or self.n,
@@ -550,11 +511,15 @@ class Requests(Loop):
         self.update_frequency({host: frequency})
         return frequency
 
-    def update_frequency(self, frequencies):
+    def update_frequency(self, frequencies: Dict[str, Frequency]):
         """Update the frequencies with dict of new frequencies."""
         self.frequencies.update(self.ensure_frequencies(frequencies))
 
-    async def _request(self, method, url, retry=0, **kwargs):
+    async def _request(self,
+                       method: str,
+                       url: str,
+                       retry: Optional[int] = 0,
+                       **kwargs) -> Union[NewResponse, FailureException]:
         url = url.strip()
         parsed_url = urlparse(url)
         scheme = parsed_url.scheme
@@ -608,23 +573,32 @@ class Requests(Loop):
                 kwargs["referer_info"] = referer_info
             if encoding:
                 kwargs["encoding"] = encoding
-            error.request = kwargs
             logger.debug("Retry %s & failed: %s." % (retry, error))
             failure = FailureException(error)
-            failure.request = kwargs
+            setattr(failure, 'request', kwargs)
             if self.catch_exception:
                 return failure
             else:
                 raise failure
 
-    def request(self, method, url, callback=None, retry=0, **kwargs):
+    def request(self,
+                method: str,
+                url: str,
+                callback: Optional[Callable] = None,
+                retry: Optional[int] = 0,
+                **kwargs):
         """Submit the coro of self._request to self.loop"""
         return self.submit(
             self._request(method, url=url, retry=retry, **kwargs),
             callback=(callback or self.default_callback),
         )
 
-    def get(self, url, params=None, callback=None, retry=0, **kwargs):
+    def get(self,
+            url: str,
+            params: Optional[dict] = None,
+            callback: Optional[Callable] = None,
+            retry=0,
+            **kwargs):
         return self.request(
             "get",
             url=url,
@@ -633,7 +607,12 @@ class Requests(Loop):
             retry=retry,
             **kwargs)
 
-    def post(self, url, data=None, callback=None, retry=0, **kwargs):
+    def post(self,
+             url: str,
+             data=None,
+             callback: Optional[Callable] = None,
+             retry=0,
+             **kwargs):
         return self.request(
             "post",
             url=url,
@@ -642,23 +621,44 @@ class Requests(Loop):
             retry=retry,
             **kwargs)
 
-    def delete(self, url, callback=None, retry=0, **kwargs):
+    def delete(self,
+               url: str,
+               callback: Optional[Callable] = None,
+               retry: Optional[int] = 0,
+               **kwargs):
         return self.request(
             "delete", url=url, callback=callback, retry=retry, **kwargs)
 
-    def put(self, url, data=None, callback=None, retry=0, **kwargs):
+    def put(self,
+            url: str,
+            data=None,
+            callback: Optional[Callable] = None,
+            retry: Optional[int] = 0,
+            **kwargs):
         return self.request(
             "put", url=url, data=data, callback=callback, retry=retry, **kwargs)
 
-    def head(self, url, callback=None, retry=0, **kwargs):
+    def head(self,
+             url: str,
+             callback: Optional[Callable] = None,
+             retry: Optional[int] = 0,
+             **kwargs):
         return self.request(
             "head", url=url, callback=callback, retry=retry, **kwargs)
 
-    def options(self, url, callback=None, retry=0, **kwargs):
+    def options(self,
+                url: str,
+                callback: Optional[Callable] = None,
+                retry: Optional[int] = 0,
+                **kwargs):
         return self.request(
             "options", url=url, callback=callback, retry=retry, **kwargs)
 
-    def patch(self, url, callback=None, retry=0, **kwargs):
+    def patch(self,
+              url: str,
+              callback: Optional[Callable] = None,
+              retry: Optional[int] = 0,
+              **kwargs):
         return self.request(
             "patch", url=url, callback=callback, retry=retry, **kwargs)
 
@@ -690,7 +690,7 @@ class Requests(Loop):
         await self.close()
 
 
-def _exhaust_simple_coro(coro):
+def _exhaust_simple_coro(coro: Coroutine):
     """Run coroutines without event loop, only support simple coroutines which can run without future.
     Or it will raise RuntimeError: await wasn't used with future."""
     while True:

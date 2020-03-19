@@ -10,11 +10,11 @@ from concurrent.futures._base import (
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
 from logging import getLogger
-from threading import Lock, Timer
-from time import sleep as time_sleep
+from threading import Timer
 from time import time as time_time
 from weakref import WeakSet
 
+from frequency_controller.sync_tools import Frequency
 from requests import PreparedRequest, RequestException, Session
 from requests.adapters import HTTPAdapter
 from urllib3 import disable_warnings
@@ -484,57 +484,6 @@ class FailedRequest(PreparedRequest):
         }
         super(FailedRequest, self).__init__()
         self.prepare(**filted_kwargs)
-
-
-class Frequency(object):
-    """Frequency controller, means concurrent running n tasks every interval seconds."""
-    __slots__ = ("gen", "repr", "lock", "__enter__")
-
-    def __init__(self, n=None, interval=0):
-        self.repr = "Frequency({n}, {interval})".format(n=n, interval=interval)
-        if n:
-            self.lock = Lock()
-            # generator is a little faster than Queue, and using little memory
-            self.gen = self.generator(n, interval)
-            self.__enter__ = self._acquire
-        else:
-            self.gen = None
-            self.__enter__ = self.__exit__
-
-    def generator(self, n=2, interval=1):
-        q = [0] * n
-        while 1:
-            for index, i in enumerate(q):
-                # or timeit.default_timer()
-                now = time_time()
-                diff = now - i
-                if diff < interval:
-                    time_sleep(interval - diff)
-                now = time_time()
-                q[index] = now
-                yield now
-
-    @classmethod
-    def ensure_frequency(cls, frequency):
-        if isinstance(frequency, cls):
-            return frequency
-        elif isinstance(frequency, dict):
-            return cls(**frequency)
-        else:
-            return cls(*frequency)
-
-    def _acquire(self):
-        with self.lock:
-            next(self.gen)
-
-    def __exit__(self, *args):
-        pass
-
-    def __str__(self):
-        return repr(self)
-
-    def __repr__(self):
-        return self.repr
 
 
 class tPool(object):
