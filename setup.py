@@ -17,7 +17,7 @@ rm -rf dist;rm -rf build;python3 setup.py bdist_wheel;python2 setup.py bdist_whe
 #    uvloop: fastest loop for python3.5+ on non-win32 system
 
 py_version = sys.version_info
-install_requires = ["requests"]
+install_requires = ["requests", "frequency_controller>=0.0.4"]
 
 if py_version.major == 2:
     install_requires.append("futures")
