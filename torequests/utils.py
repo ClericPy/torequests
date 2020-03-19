@@ -151,7 +151,7 @@ class _Curl:
 
 
 def curlparse(string, encoding="utf-8"):
-    """Translate curl-string into dict of request.
+    """Translate curl-string into dict of request. Do not support file upload which contains @file_path.
         :param string: standard curl-string, like `r'''curl ...'''`.
         :param encoding: encoding for post-data encoding.
 
