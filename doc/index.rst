@@ -32,8 +32,6 @@ To start:
     **optional:**
 
         | psutil
-        | fuzzywuzzy
-        | python-Levenshtein
         | pyperclip
 
 Examples:
