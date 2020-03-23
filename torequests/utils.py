@@ -665,7 +665,7 @@ class Regex(object):
         if not instances:
             return
         instances = sum(instances, [])
-        from fuzzywuzzy import process
+        from rapidfuzz import process
 
         maybe = process.extract(key, instances, limit=limit)
         return maybe

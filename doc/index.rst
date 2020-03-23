@@ -32,8 +32,7 @@ To start:
     **optional:**
 
         | psutil
-        | fuzzywuzzy
-        | python-Levenshtein
+        | rapidfuzz
         | pyperclip
 
 Examples:

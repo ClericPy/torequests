@@ -20,8 +20,7 @@ Briefly speaking, requests & aiohttp wrapper for asynchronous programming rookie
 **optional:**
 
     | psutil
-    | fuzzywuzzy
-    | python-Levenshtein
+    | rapidfuzz
     | pyperclip
 
 ## Features
