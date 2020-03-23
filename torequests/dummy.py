@@ -28,8 +28,7 @@ try:
 except ImportError:
     logger.debug("Not found uvloop, using default_event_loop.")
 
-__all__ = "NewTask Loop Asyncme coros get_results_generator Frequency Requests".split(
-    " ")
+__all__ = "NewTask Loop Asyncme coros Frequency Requests".split(" ")
 
 NotSet = object()
 
@@ -364,11 +363,6 @@ def coros(n: Optional[int] = None,
         loop=loop).submitter
 
     return submitter
-
-
-def get_results_generator(*args):
-    """TODO"""
-    raise NotImplementedError
 
 
 class Requests(Loop):
