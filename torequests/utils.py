@@ -578,8 +578,6 @@ class Regex(object):
     ('http.*cctv.*') =>  => <class 'function'> mock ""
     ('http.*HELLOWORLD', re.IGNORECASE) => http://helloworld => <class 'str'> helloworld
     ('http.*HELLOWORLD2', re.IGNORECASE) =>  => <class 'str'> helloworld2
-    >>> reg.fuzzy('non-http://helloworld')
-    [('http://helloworld', 95)]
     """
 
     def __init__(self, ensure_mapping=False):
@@ -658,17 +656,6 @@ class Regex(object):
                 result,
             )
         return result if result else default
-
-    def fuzzy(self, key, limit=5):
-        """Give suggestion from all instances."""
-        instances = [i[2] for i in self.container if i[2]]
-        if not instances:
-            return
-        instances = sum(instances, [])
-        from fuzzywuzzy import process
-
-        maybe = process.extract(key, instances, limit=limit)
-        return maybe
 
     def _check_instances(self):
         for item in self.container:
