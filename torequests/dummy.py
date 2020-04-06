@@ -483,7 +483,8 @@ class Requests(Loop):
     def session(self) -> Coroutine:
         return self._ensure_session()
 
-    def ensure_frequencies(self, frequencies: Dict[str, Frequency]):
+    @staticmethod
+    def ensure_frequencies(frequencies: Dict[str, Frequency]):
         """Ensure frequencies is dict of host-frequencies."""
         if not frequencies:
             return {}
@@ -498,10 +499,8 @@ class Requests(Loop):
     def set_frequency(self, host: str, n: Optional[int] = None,
                       interval=NotSet) -> Frequency:
         """Set frequency for host with n and interval."""
-        frequency = Frequency(
-            n or self.n,
-            self.interval if interval is NotSet else interval,
-            loop=self.loop)
+        frequency = Frequency(n or self.n,
+                              self.interval if interval is NotSet else interval)
         self.update_frequency({host: frequency})
         return frequency
 
