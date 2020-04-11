@@ -90,7 +90,7 @@ class NewTask(Task):
         task.task_cost_time = task.task_end_time - task.task_start_time
 
     @property
-    def _done_callbacks(self) -> list:
+    def _done_callbacks(self):
         """Keep same api for NewFuture."""
         return self._callbacks
 
