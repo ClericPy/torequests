@@ -59,6 +59,7 @@ if PY2:
                 if return_exceptions:
                     return error
                 raise error
+
             return retry_sync
 
         return wrapper_sync
@@ -433,8 +434,9 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
     assert format in [0, 1,
                       2], ValueError("format arg should be one of 0, 1, 2")
     negative = "-" if seconds < 0 else ""
+    is_en = lang == "en"
     seconds = abs(seconds)
-    if lang == "en":
+    if is_en:
         if short_name:
             units = ("day", "hr", "min", "sec", "ms")
         else:
@@ -451,9 +453,9 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
     day, hour, minute, second, ms = times
 
     if format == 0:
-        day_str = ("%d %s%s, " % (day, units[0],
-                                  "s" if day > 1 and lang == "en" else "")
-                   if day else "")
+        day_str = (
+            "%d %s%s, " % (day, units[0], "s" if day > 1 and is_en else "")
+            if day else "")
         mid_str = ":".join(("%02d" % i for i in (hour, minute, second)))
         if accuracy > 4:
             mid_str += ",%03d" % ms
@@ -470,8 +472,8 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
                     tail_index = len(times) - index
                     break
             result_str = [
-                "%d %s%s" % (num, unit, "s" if lang == "en" and num > 1 and
-                             unit != "ms" else "")
+                "%d %s%s" % (num, unit,
+                             "s" if is_en and num > 1 and unit != "ms" else "")
                 for num, unit in zip(times, units)
             ][head_index:tail_index][:accuracy]
             result_str = " ".join(result_str)

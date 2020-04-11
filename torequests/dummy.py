@@ -26,7 +26,7 @@ try:
 
     set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
-    logger.debug("Not found uvloop, using default_event_loop.")
+    logger.debug("Not found uvloop, using the default event loop.")
 
 __all__ = "NewTask Loop Asyncme coros Frequency Requests".split(" ")
 
