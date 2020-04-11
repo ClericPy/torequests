@@ -45,23 +45,23 @@ if PY2:
 
     unescape = HTMLParser.HTMLParser().unescape
 
-    def retry(function,
-              tries=1,
-              exceptions=(Exception,),
-              return_exceptions=False):
+    def retry(tries=1, exceptions=(Exception,), return_exceptions=False):
 
-        @wraps(function)
-        def retry_sync(*args, **kwargs):
-            for _ in range(tries):
-                try:
-                    return function(*args, **kwargs)
-                except exceptions as err:
-                    error = err
-            if return_exceptions:
-                return error
-            raise error
+        def wrapper_sync(function):
 
-        return retry_sync
+            @wraps(function)
+            def retry_sync(*args, **kwargs):
+                for _ in range(tries):
+                    try:
+                        return function(*args, **kwargs)
+                    except exceptions as err:
+                        error = err
+                if return_exceptions:
+                    return error
+                raise error
+            return retry_sync
+
+        return wrapper_sync
 elif PY3:
     import reprlib
     from urllib.parse import (
