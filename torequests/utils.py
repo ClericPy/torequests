@@ -83,8 +83,10 @@ elif PY3:
     unicode = str
 else:
     logger.warning('Unhandled python version.')
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size".split(
     " ")
+
+NotSet = object()
 
 
 def simple_cmd():
@@ -129,7 +131,52 @@ def simple_cmd():
     func(*args, **kwargs)
 
 
-def print_mem(unit="MB", callback=print_info):
+def get_readable_size(input_num,
+                      unit=None,
+                      rounded=NotSet,
+                      format="%s %s",
+                      units=None,
+                      carry=1024):
+    """Show the num readable with unit.
+
+    :param input_num: raw number
+    :type input_num: float, int
+    :param unit: target unit, defaults to None for auto set.
+    :type unit: str, optional
+    :param rounded: defaults to NotSet return raw float without round.
+    :type rounded: None or int, optional
+    :param format: output string format, defaults to "%s %s"
+    :type format: str, optional
+    :param units: unit list, defaults to None for computer storage unit
+    :type units: list, optional
+    :param carry: carry a number as in adding, defaults to 1024
+    :type carry: int, optional
+    :return: string for input_num with unit.
+    :rtype: str
+    """
+    units = units or ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'BB']
+    result_size = input_num
+    if unit in units:
+        result_size = input_num / (carry**units.index(unit))
+    else:
+        unit = units[0]
+        for idx, _unit in enumerate(units):
+            _result_size = input_num / (carry**units.index(_unit))
+            if _result_size < 1:
+                break
+            result_size = _result_size
+            unit = _unit
+    if rounded is not NotSet:
+        if rounded is None and PY2:
+            # PY2 rounded should not be None
+            result_size = int(result_size)
+        else:
+            result_size = round(result_size, rounded)
+    result = format % (result_size, unit)
+    return result
+
+
+def print_mem(unit=None, callback=print_info, rounded=2):
     """Show the proc-mem-cost with psutil, use this only for lazinesssss.
 
     :param unit: B, KB, MB, GB.
@@ -138,10 +185,7 @@ def print_mem(unit="MB", callback=print_info):
         import psutil
 
         B = float(psutil.Process(os.getpid()).memory_info().vms)
-        KB = B / 1024
-        MB = KB / 1024
-        GB = MB / 1024
-        result = "%.2f(%s)" % (vars()[unit], unit)
+        result = get_readable_size(B, unit=unit, rounded=rounded)
         callback(result)
         return result
     except ImportError:
