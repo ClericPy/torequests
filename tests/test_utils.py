@@ -61,7 +61,9 @@ def test_timeago():
     assert timeago(93245732.0032424, 5) == "1079 days, 05:35:32,003"
     assert timeago(93245732.0032424, 4,
                    1) == "1079 days 5 hours 35 minutes 32 seconds"
-    seconds = [60, 61, 62, 120, 121, 122, 3600, 3601, 86400, 864111, 0, 0.1, 60.1]
+    seconds = [
+        60, 61, 62, 120, 121, 122, 3600, 3601, 86400, 864111, 0, 0.1, 60.1
+    ]
     accuracies = range(1, 6)
     formats = range(2)
     cases = {
@@ -416,3 +418,21 @@ def test_sort_url_query():
     assert default_sorted == 'http://www.google.com?a=1&b=2&z=26'
     assert reversed_sorted == 'http://www.google.com?z=26&b=2&a=1'
     assert update_https_default_sorted == 'https://www.google.com?a=1&b=2&z=26'
+
+
+def test_get_readable_size():
+    result = get_readable_size(0)
+    assert result == '0 B'
+    result = get_readable_size(100)
+    assert result == '100.0 B'
+    result = get_readable_size(100, rounded=None)
+    assert result == '100 B'
+    result = get_readable_size(100, unit='KB', rounded=2)
+    assert result == '0.1 KB'
+    result = get_readable_size(1024, unit='KB', rounded=2)
+    assert result == '1.0 KB'
+    result = get_readable_size(1024**8 * 1.55, rounded=2)
+    assert result == '1.55 YB'
+    result = get_readable_size(
+        10000, rounded=None, units=['A', 'B', 'C'], carry=10)
+    assert result == '100 C'
