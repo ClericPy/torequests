@@ -72,34 +72,37 @@ class NewResponse(object):
         return loads(self.content.decode(encoding or self.encoding))
 
 
-def retry(function,
-          tries=1,
+def retry(tries=1,
           exceptions: Tuple[Type[BaseException]] = (Exception,),
           return_exceptions=False):
 
-    @wraps(function)
-    async def retry_async(*args, **kwargs):
-        for _ in range(tries):
-            try:
-                return await function(*args, **kwargs)
-            except exceptions as err:
-                error = err
-        if return_exceptions:
-            return error
-        raise error
+    def wrapper(function):
 
-    @wraps(function)
-    def retry_sync(*args, **kwargs):
-        for _ in range(tries):
-            try:
-                return function(*args, **kwargs)
-            except exceptions as err:
-                error = err
-        if return_exceptions:
-            return error
-        raise error
+        @wraps(function)
+        def retry_sync(*args, **kwargs):
+            for _ in range(tries):
+                try:
+                    return function(*args, **kwargs)
+                except exceptions as err:
+                    error = err
+            if return_exceptions:
+                return error
+            raise error
 
-    if asyncio.iscoroutinefunction(function):
-        return retry_async
-    else:
-        return retry_sync
+        @wraps(function)
+        async def retry_async(*args, **kwargs):
+            for _ in range(tries):
+                try:
+                    return await function(*args, **kwargs)
+                except exceptions as err:
+                    error = err
+            if return_exceptions:
+                return error
+            raise error
+
+        if asyncio.iscoroutinefunction(function):
+            return retry_async
+        else:
+            return retry_sync
+
+    return wrapper

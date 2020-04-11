@@ -436,3 +436,24 @@ def test_get_readable_size():
     result = get_readable_size(
         10000, rounded=None, units=['A', 'B', 'C'], carry=10)
     assert result == '100 C'
+
+
+def test_retry_sync():
+    # python2 & python3
+    nums = {'num': 0}
+
+    @retry(2, (ValueError,), True)
+    def test_sync():
+        nums['num'] += 1
+        if nums['num'] > 1:
+            raise ValueError()
+        return 1
+
+    result = test_sync()
+    assert isinstance(result, int)
+    result = test_sync()
+    assert isinstance(result, ValueError)
+    try:
+        test_sync()
+    except Exception as err:
+        assert isinstance(err, ValueError)
