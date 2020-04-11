@@ -1,7 +1,8 @@
 # here for python3 patch avoid of python2 SyntaxError
 import asyncio
 import json
-
+from typing import Tuple, Type
+from functools import wraps
 # python3.7+ 's asyncio.all_tasks'
 try:
     _py36_all_task_patch = asyncio.all_tasks
@@ -69,3 +70,36 @@ class NewResponse(object):
 
     def json(self, encoding=None, loads=json.loads):
         return loads(self.content.decode(encoding or self.encoding))
+
+
+def retry(function,
+          tries=1,
+          exceptions: Tuple[Type[BaseException]] = (Exception,),
+          return_exceptions=False):
+
+    @wraps(function)
+    async def retry_async(*args, **kwargs):
+        for _ in range(tries):
+            try:
+                return await function(*args, **kwargs)
+            except exceptions as err:
+                error = err
+        if return_exceptions:
+            return error
+        raise error
+
+    @wraps(function)
+    def retry_sync(*args, **kwargs):
+        for _ in range(tries):
+            try:
+                return function(*args, **kwargs)
+            except exceptions as err:
+                error = err
+        if return_exceptions:
+            return error
+        raise error
+
+    if asyncio.iscoroutinefunction(function):
+        return retry_async
+    else:
+        return retry_sync

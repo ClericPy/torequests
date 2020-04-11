@@ -25,6 +25,8 @@ from .logs import print_info
 from .main import run_after_async, threads, tPool
 from .versions import PY2, PY3
 
+logger = getLogger("torequests")
+
 if PY2:
     import repr as reprlib
     from Queue import Empty, PriorityQueue
@@ -43,7 +45,24 @@ if PY2:
 
     unescape = HTMLParser.HTMLParser().unescape
 
-if PY3:
+    def retry(function,
+              tries=1,
+              exceptions=(Exception,),
+              return_exceptions=False):
+
+        @wraps(function)
+        def retry_sync(*args, **kwargs):
+            for _ in range(tries):
+                try:
+                    return function(*args, **kwargs)
+                except exceptions as err:
+                    error = err
+            if return_exceptions:
+                return error
+            raise error
+
+        return retry_sync
+elif PY3:
     import reprlib
     from urllib.parse import (
         parse_qs,
@@ -59,12 +78,13 @@ if PY3:
     )
     from html import escape, unescape
     from queue import Empty, PriorityQueue
+    from ._py3_patch import retry
 
     unicode = str
-
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query".split(
+else:
+    logger.warning('Unhandled python version.')
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry".split(
     " ")
-logger = getLogger("torequests")
 
 
 def simple_cmd():
@@ -729,9 +749,10 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
         if hasattr(module, name):
             result.append(module.__getattribute__(name))
         else:
-            result.append(
-                ImportErrorModule("%s.%s" % (module_name, name)
-                                 ) if default is ImportErrorModule else default)
+            if default is ImportErrorModule:
+                result.append(ImportErrorModule("%s.%s" % (module_name, name)))
+            else:
+                result.append(default)
     return result[0] if len(result) == 1 else result
 
 
