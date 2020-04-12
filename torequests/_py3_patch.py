@@ -74,7 +74,7 @@ class NewResponse(object):
 
 def retry(tries=1,
           exceptions: Tuple[Type[BaseException]] = (Exception,),
-          return_exceptions=False):
+          catch_exception=False):
 
     def wrapper(function):
 
@@ -85,7 +85,7 @@ def retry(tries=1,
                     return function(*args, **kwargs)
                 except exceptions as err:
                     error = err
-            if return_exceptions:
+            if catch_exception:
                 return error
             raise error
 
@@ -96,7 +96,7 @@ def retry(tries=1,
                     return await function(*args, **kwargs)
                 except exceptions as err:
                     error = err
-            if return_exceptions:
+            if catch_exception:
                 return error
             raise error
 

@@ -33,6 +33,16 @@ __all__ = "NewTask Loop Asyncme coros Frequency Requests".split(" ")
 NotSet = object()
 
 
+def _exhaust_simple_coro(coro: Coroutine):
+    """Run coroutines without event loop, only support simple coroutines which can run without future.
+    Or it will raise RuntimeError: await wasn't used with future."""
+    while True:
+        try:
+            coro.send(None)
+        except StopIteration as e:
+            return e.value
+
+
 class NewTask(Task):
     """Add some special method & attribute for asyncio.Task.
 
@@ -681,13 +691,3 @@ class Requests(Loop):
 
     async def __aexit__(self, *args):
         await self.close()
-
-
-def _exhaust_simple_coro(coro: Coroutine):
-    """Run coroutines without event loop, only support simple coroutines which can run without future.
-    Or it will raise RuntimeError: await wasn't used with future."""
-    while True:
-        try:
-            coro.send(None)
-        except StopIteration as e:
-            return e.value
