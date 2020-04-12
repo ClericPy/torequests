@@ -45,7 +45,7 @@ if PY2:
 
     unescape = HTMLParser.HTMLParser().unescape
 
-    def retry(tries=1, exceptions=(Exception,), return_exceptions=False):
+    def retry(tries=1, exceptions=(Exception,), catch_exception=False):
 
         def wrapper_sync(function):
 
@@ -56,7 +56,7 @@ if PY2:
                         return function(*args, **kwargs)
                     except exceptions as err:
                         error = err
-                if return_exceptions:
+                if catch_exception:
                     return error
                 raise error
 
