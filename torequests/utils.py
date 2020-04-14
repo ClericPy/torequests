@@ -803,19 +803,23 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
 
 
 def ensure_request(request):
-    """Used for requests.request / Requests.request with **ensure_request(request)
+    """Used for requests.request / Requests.request with **ensure_request(request)**
     :param request: dict or curl-string or url
+    :type request: [dict]
+    :return: dict of request
+    :rtype: [dict]
 
-    >>> from torequests.utils import ensure_request
-    >>> ensure_request('''curl http://test.com''')
-    {'url': 'http://test.com', 'method': 'get'}
-    >>> ensure_request('http://test.com')
-    {'method': 'get', 'url': 'http://test.com'}
-    >>> ensure_request({'method': 'get', 'url': 'http://test.com'})
-    {'method': 'get', 'url': 'http://test.com'}
-    >>> ensure_request({'url': 'http://test.com'})
-    {'url': 'http://test.com', 'method': 'get'}
+    Basic Usage::
 
+        >>> from torequests.utils import ensure_request
+        >>> ensure_request('''curl http://test.com''')
+        {'url': 'http://test.com', 'method': 'get'}
+        >>> ensure_request('http://test.com')
+        {'method': 'get', 'url': 'http://test.com'}
+        >>> ensure_request({'method': 'get', 'url': 'http://test.com'})
+        {'method': 'get', 'url': 'http://test.com'}
+        >>> ensure_request({'url': 'http://test.com'})
+        {'url': 'http://test.com', 'method': 'get'}
     """
     if isinstance(request, dict):
         result = request
@@ -843,7 +847,7 @@ class Timer(object):
         :param rounding: None, or seconds will be round(xxx, rounding)
         :param readable: None, or use `timepass`: readable(cost_seconds) -> 00:00:01,234
 
-        ::
+        Basic Usage::
 
             from torequests.utils import Timer
             import time
@@ -1056,6 +1060,7 @@ class Saver(object):
         Set pickle's protocol < 3 for compatibility between python2/3,
         but use -1 for performance and some other optimizations.
     :param save_mode: pickle / json.
+
     >>> ss = Saver()
     >>> ss._path
     '/home/work/_saver.json'
@@ -1271,7 +1276,7 @@ class Saver(object):
 def guess_interval(nums, accuracy=0):
     """Given a seq of number, return the median, only calculate interval >= accuracy.
 
-    ::
+    Basic Usage::
 
         from torequests.utils import guess_interval
         import random
@@ -1304,7 +1309,7 @@ def _re_split_mixin(string, sep, reg=False):
 def split_n(string, seps, reg=False):
     r"""Split strings into n-dimensional list.
 
-    ::
+    Basic Usage::
 
         from torequests.utils import split_n
 
@@ -1327,7 +1332,8 @@ def split_n(string, seps, reg=False):
 
 def bg(func):
     """Run a function in background, will not block main thread's exit.(thread.daemon=True)
-    ::
+
+    Basic Usage::
 
         from torequests.utils import bg, print_info
         import time
@@ -1373,7 +1379,8 @@ def countdown(
 ):
     """Run a countdown function to wait something, similar to threading.Timer,
      but will show the detail tick by tick_callback.
-     ::
+
+    Basic Usage::
 
         from torequests.utils import countdown
 
@@ -1421,7 +1428,7 @@ def flush_print(*args, **kwargs):
     :param end: '\\n' by default
     :param flush: True by default
 
-     ::
+    Basic Usage::
 
         import time
         from torequests.utils import flush_print

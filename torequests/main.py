@@ -4,9 +4,10 @@
 import atexit
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed)
-from concurrent.futures._base import (
-    CANCELLED, CANCELLED_AND_NOTIFIED, FINISHED, PENDING, RUNNING,
-    CancelledError, Error, Executor, Future, TimeoutError)
+from concurrent.futures._base import (CANCELLED, CANCELLED_AND_NOTIFIED,
+                                      FINISHED, PENDING, RUNNING,
+                                      CancelledError, Error, Executor, Future,
+                                      TimeoutError)
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
 from logging import getLogger
@@ -14,13 +15,13 @@ from threading import Timer
 from time import time as time_time
 from weakref import WeakSet
 
-from frequency_controller.sync_tools import Frequency
 from requests import PreparedRequest, RequestException, Session
 from requests.adapters import HTTPAdapter
 from urllib3 import disable_warnings
 
 from .configs import Config
 from .exceptions import FailureException
+from .frequency_controller.sync_tools import Frequency
 from .versions import PY2, PY3
 
 try:
