@@ -4,6 +4,7 @@ import time
 
 from torequests import *
 from torequests.dummy import *
+from torequests.utils import retry
 
 
 def test_dummy_Requests():
@@ -139,3 +140,48 @@ def test_asyncme(capsys):
             "testAsyncme result",
             "testAsyncme result",
         ]
+
+
+def test_retry():
+    # python2
+    nums = {'num': 0}
+
+    @retry(2, (ValueError,), True)
+    def test_sync():
+        nums['num'] += 1
+        if nums['num'] > 1:
+            raise ValueError()
+        return 1
+
+    result = test_sync()
+    assert isinstance(result, int)
+    result = test_sync()
+    assert isinstance(result, ValueError)
+    try:
+        test_sync()
+    except Exception as err:
+        assert isinstance(err, ValueError)
+
+
+def test_retry_async():
+
+    async def async_test_func():
+        nums = {'num': 0}
+
+        @retry(2, (ValueError,), True)
+        async def test_async():
+            nums['num'] += 1
+            if nums['num'] > 1:
+                raise ValueError()
+            return 1
+
+        result = await test_async()
+        assert isinstance(result, int)
+        result = await test_async()
+        assert isinstance(result, ValueError)
+        try:
+            await test_async()
+        except Exception as err:
+            assert isinstance(err, ValueError)
+
+    asyncio.get_event_loop().run_until_complete(async_test_func())

@@ -25,6 +25,8 @@ from .logs import print_info
 from .main import run_after_async, threads, tPool
 from .versions import PY2, PY3
 
+logger = getLogger("torequests")
+
 if PY2:
     import repr as reprlib
     from Queue import Empty, PriorityQueue
@@ -43,7 +45,25 @@ if PY2:
 
     unescape = HTMLParser.HTMLParser().unescape
 
-if PY3:
+    def retry(tries=1, exceptions=(Exception,), catch_exception=False):
+
+        def wrapper_sync(function):
+
+            @wraps(function)
+            def retry_sync(*args, **kwargs):
+                for _ in range(tries):
+                    try:
+                        return function(*args, **kwargs)
+                    except exceptions as err:
+                        error = err
+                if catch_exception:
+                    return error
+                raise error
+
+            return retry_sync
+
+        return wrapper_sync
+elif PY3:
     import reprlib
     from urllib.parse import (
         parse_qs,
@@ -59,12 +79,15 @@ if PY3:
     )
     from html import escape, unescape
     from queue import Empty, PriorityQueue
+    from ._py3_patch import retry
 
     unicode = str
-
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query".split(
+else:
+    logger.warning('Unhandled python version.')
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size".split(
     " ")
-logger = getLogger("torequests")
+
+NotSet = object()
 
 
 def simple_cmd():
@@ -109,7 +132,52 @@ def simple_cmd():
     func(*args, **kwargs)
 
 
-def print_mem(unit="MB", callback=print_info):
+def get_readable_size(input_num,
+                      unit=None,
+                      rounded=NotSet,
+                      format="%s %s",
+                      units=None,
+                      carry=1024):
+    """Show the num readable with unit.
+
+    :param input_num: raw number
+    :type input_num: float, int
+    :param unit: target unit, defaults to None for auto set.
+    :type unit: str, optional
+    :param rounded: defaults to NotSet return raw float without round.
+    :type rounded: None or int, optional
+    :param format: output string format, defaults to "%s %s"
+    :type format: str, optional
+    :param units: unit list, defaults to None for computer storage unit
+    :type units: list, optional
+    :param carry: carry a number as in adding, defaults to 1024
+    :type carry: int, optional
+    :return: string for input_num with unit.
+    :rtype: str
+    """
+    units = units or ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'BB']
+    result_size = input_num
+    if unit in units:
+        result_size = input_num / (carry**units.index(unit))
+    else:
+        unit = units[0]
+        for idx, _unit in enumerate(units):
+            _result_size = input_num / (carry**units.index(_unit))
+            if _result_size < 1:
+                break
+            result_size = _result_size
+            unit = _unit
+    if rounded is not NotSet:
+        if rounded is None and PY2:
+            # PY2 rounded should not be None
+            result_size = int(result_size)
+        else:
+            result_size = round(result_size, rounded)
+    result = format % (result_size, unit)
+    return result
+
+
+def print_mem(unit=None, callback=print_info, rounded=2):
     """Show the proc-mem-cost with psutil, use this only for lazinesssss.
 
     :param unit: B, KB, MB, GB.
@@ -118,10 +186,7 @@ def print_mem(unit="MB", callback=print_info):
         import psutil
 
         B = float(psutil.Process(os.getpid()).memory_info().vms)
-        KB = B / 1024
-        MB = KB / 1024
-        GB = MB / 1024
-        result = "%.2f(%s)" % (vars()[unit], unit)
+        result = get_readable_size(B, unit=unit, rounded=rounded)
         callback(result)
         return result
     except ImportError:
@@ -369,8 +434,9 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
     assert format in [0, 1,
                       2], ValueError("format arg should be one of 0, 1, 2")
     negative = "-" if seconds < 0 else ""
+    is_en = lang == "en"
     seconds = abs(seconds)
-    if lang == "en":
+    if is_en:
         if short_name:
             units = ("day", "hr", "min", "sec", "ms")
         else:
@@ -387,9 +453,9 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
     day, hour, minute, second, ms = times
 
     if format == 0:
-        day_str = ("%d %s%s, " % (day, units[0],
-                                  "s" if day > 1 and lang == "en" else "")
-                   if day else "")
+        day_str = (
+            "%d %s%s, " % (day, units[0], "s" if day > 1 and is_en else "")
+            if day else "")
         mid_str = ":".join(("%02d" % i for i in (hour, minute, second)))
         if accuracy > 4:
             mid_str += ",%03d" % ms
@@ -406,8 +472,8 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
                     tail_index = len(times) - index
                     break
             result_str = [
-                "%d %s%s" % (num, unit, "s" if lang == "en" and num > 1 and
-                             unit != "ms" else "")
+                "%d %s%s" % (num, unit,
+                             "s" if is_en and num > 1 and unit != "ms" else "")
                 for num, unit in zip(times, units)
             ][head_index:tail_index][:accuracy]
             result_str = " ".join(result_str)
@@ -729,9 +795,10 @@ def try_import(module_name, names=None, default=ImportErrorModule, warn=True):
         if hasattr(module, name):
             result.append(module.__getattribute__(name))
         else:
-            result.append(
-                ImportErrorModule("%s.%s" % (module_name, name)
-                                 ) if default is ImportErrorModule else default)
+            if default is ImportErrorModule:
+                result.append(ImportErrorModule("%s.%s" % (module_name, name)))
+            else:
+                result.append(default)
     return result[0] if len(result) == 1 else result
 
 
