@@ -28,7 +28,7 @@ if PY35_PLUS:
 else:
     from .main import tPool as Requests
 
-__all__ = 'CleanRequest Seed StressTest'.split(' ')
+__all__ = 'CleanRequest StressTest'.split(' ')
 
 
 class CommonRequests(object):

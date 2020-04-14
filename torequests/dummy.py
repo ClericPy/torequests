@@ -13,10 +13,10 @@ from typing import (Callable, Coroutine, Dict, List, Optional, Sequence, Set,
 from urllib.parse import urlparse
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
-from frequency_controller.async_tools import Frequency
 
 from ._py3_patch import NewResponse, _py36_all_task_patch
 from .exceptions import FailureException
+from .frequency_controller.async_tools import AsyncFrequency as Frequency
 from .main import Error, NewFuture, Pool, ProcessPool
 
 logger = getLogger("torequests")
@@ -28,7 +28,7 @@ try:
 except ImportError:
     logger.debug("Not found uvloop, using the default event loop.")
 
-__all__ = "NewTask Loop Asyncme coros Frequency Requests".split(" ")
+__all__ = "NewTask Loop Asyncme coros Requests".split(" ")
 
 NotSet = object()
 
@@ -178,16 +178,16 @@ class Loop:
         return new_coro_func
 
     def run_in_executor(self, executor=None, func=None, *args):
-        """If `kwargs` needed, try like this: func=lambda: foo(*args, **kwargs)"""
+        """If `kwargs` needed, try like this: `func=lambda: foo(*args, **kwargs)`"""
         return self.loop.run_in_executor(executor, func, *args)
 
     def run_in_thread_pool(self, pool_size=None, func=None, *args):
-        """If `kwargs` needed, try like this: func=lambda: foo(*args, **kwargs)"""
+        """If `kwargs` needed, try like this: `func=lambda: foo(*args, **kwargs)`"""
         executor = Pool(pool_size)
         return self.loop.run_in_executor(executor, func, *args)
 
     def run_in_process_pool(self, pool_size=None, func=None, *args):
-        """If `kwargs` needed, try like this: func=lambda: foo(*args, **kwargs)"""
+        """If `kwargs` needed, try like this: `func=lambda: foo(*args, **kwargs)`"""
         executor = ProcessPool(pool_size)
         return self.loop.run_in_executor(executor, func, *args)
 
@@ -214,9 +214,9 @@ class Loop:
               args: Optional[Sequence] = None,
               kwargs: Optional[dict] = None,
               callback: Optional[Callable] = None):
-        """Submit a coro_function(*args, **kwargs) as NewTask to self.loop with loop.frequncy control.
+        """Submit a `coro_function(*args, **kwargs)` as NewTask to self.loop with loop.frequncy control.
 
-        ::
+        Basic Usage::
 
             from torequests.dummy import Loop
             import asyncio
@@ -244,7 +244,7 @@ class Loop:
     def submit(self, coro, callback: Optional[Callable] = None):
         """Submit a coro as NewTask to self.loop without loop.frequncy control.
 
-        ::
+        Basic Usage::
 
             from torequests.dummy import Loop
             import asyncio
@@ -389,7 +389,7 @@ class Requests(Loop):
     :param default_host_frequency: None, or tuple like: (2, 1). global_frequency is shared by hosts, default_host_frequency will be setdefault as a new one.
     :param kwargs: will used for aiohttp.ClientSession.
 
-    ::
+    Basic Usage::
 
         # ====================== sync environment ======================
         from torequests.dummy import Requests
