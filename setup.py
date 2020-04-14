@@ -18,7 +18,7 @@ rm -rf dist;rm -rf build;rm -rf torequests.egg-info
 #    uvloop: fastest loop for python3.5+ on non-win32 system
 
 py_version = sys.version_info
-install_requires = ["requests", "frequency_controller>=0.0.4"]
+install_requires = ["requests"]
 
 if py_version.major == 2:
     install_requires.append("futures")
