@@ -14,13 +14,13 @@ from threading import Timer
 from time import time as time_time
 from weakref import WeakSet
 
-from frequency_controller.sync_tools import Frequency
 from requests import PreparedRequest, RequestException, Session
 from requests.adapters import HTTPAdapter
 from urllib3 import disable_warnings
 
 from .configs import Config
 from .exceptions import FailureException
+from .frequency_controller.sync_tools import Frequency
 from .versions import PY2, PY3
 
 try:
@@ -31,23 +31,9 @@ if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
 __all__ = [
-    "Pool",
-    "ProcessPool",
-    "NewFuture",
-    "Async",
-    "threads",
-    "get_results_generator",
-    "run_after_async",
-    "tPool",
-    "get",
-    "post",
-    "options",
-    "delete",
-    "put",
-    "head",
-    "patch",
-    "request",
-    "disable_warnings",
+    "Pool", "ProcessPool", "NewFuture", "Async", "threads",
+    "get_results_generator", "run_after_async", "tPool", "get", "post",
+    "options", "delete", "put", "head", "patch", "request", "disable_warnings"
 ]
 logger = getLogger("torequests")
 

@@ -56,3 +56,19 @@ torequests.logs
 .. automodule:: torequests.logs
     :members:
     :undoc-members:
+
+
+torequests.frequency_controller.sync_tools
+--------------------------------------------
+
+.. automodule:: torequests.frequency_controller.sync_tools
+    :members:
+    :undoc-members:
+
+
+torequests.frequency_controller.async_tools
+--------------------------------------------
+
+.. automodule:: torequests.frequency_controller.async_tools
+    :members:
+    :undoc-members:
