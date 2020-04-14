@@ -26,11 +26,21 @@ try:
 
     set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
-    logger.debug("Not found uvloop, using default_event_loop.")
+    logger.debug("Not found uvloop, using the default event loop.")
 
 __all__ = "NewTask Loop Asyncme coros Frequency Requests".split(" ")
 
 NotSet = object()
+
+
+def _exhaust_simple_coro(coro: Coroutine):
+    """Run coroutines without event loop, only support simple coroutines which can run without future.
+    Or it will raise RuntimeError: await wasn't used with future."""
+    while True:
+        try:
+            coro.send(None)
+        except StopIteration as e:
+            return e.value
 
 
 class NewTask(Task):
@@ -90,7 +100,7 @@ class NewTask(Task):
         task.task_cost_time = task.task_end_time - task.task_start_time
 
     @property
-    def _done_callbacks(self) -> list:
+    def _done_callbacks(self):
         """Keep same api for NewFuture."""
         return self._callbacks
 
@@ -483,7 +493,8 @@ class Requests(Loop):
     def session(self) -> Coroutine:
         return self._ensure_session()
 
-    def ensure_frequencies(self, frequencies: Dict[str, Frequency]):
+    @staticmethod
+    def ensure_frequencies(frequencies: Dict[str, Frequency]):
         """Ensure frequencies is dict of host-frequencies."""
         if not frequencies:
             return {}
@@ -498,10 +509,8 @@ class Requests(Loop):
     def set_frequency(self, host: str, n: Optional[int] = None,
                       interval=NotSet) -> Frequency:
         """Set frequency for host with n and interval."""
-        frequency = Frequency(
-            n or self.n,
-            self.interval if interval is NotSet else interval,
-            loop=self.loop)
+        frequency = Frequency(n or self.n,
+                              self.interval if interval is NotSet else interval)
         self.update_frequency({host: frequency})
         return frequency
 
@@ -682,13 +691,3 @@ class Requests(Loop):
 
     async def __aexit__(self, *args):
         await self.close()
-
-
-def _exhaust_simple_coro(coro: Coroutine):
-    """Run coroutines without event loop, only support simple coroutines which can run without future.
-    Or it will raise RuntimeError: await wasn't used with future."""
-    while True:
-        try:
-            coro.send(None)
-        except StopIteration as e:
-            return e.value

@@ -10,7 +10,8 @@ from setuptools import find_packages, setup
 linux:
 rm -rf "dist/*";rm -rf "build/*";python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload "dist/*;rm -rf "dist/*";rm -rf "build/*""
 win32:
-rm -rf dist;rm -rf build;python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload "dist/*";rm -rf dist;rm -rf build;rm -rf torequests.egg-info
+rm -rf dist;rm -rf build;python3 setup.py bdist_wheel;python2 setup.py bdist_wheel;twine upload "dist/*"
+rm -rf dist;rm -rf build;rm -rf torequests.egg-info
 """
 
 # optional_requires:
@@ -36,14 +37,14 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(
         os.path.join(here, 'torequests', '__init__.py'), encoding="u8") as f:
     version = re.search(r'''__version__ = ['"](.*?)['"]''', f.read()).group(1)
-
+desc = "Async wrapper for requests / aiohttp, and some python crawler toolkits. Let synchronization code enjoy the performance of asynchronous programming. Read more: https://github.com/ClericPy/torequests."
+keywords = "requests async multi-thread aiohttp asyncio uvloop asynchronous".split(
+)
 setup(
     name="torequests",
     version=version,
-    keywords=(
-        "requests async multi-thread aiohttp asyncio uvloop asynchronous"),
-    description=
-    "Async wrapper for requests / aiohttp, and some python crawler toolkits. Let synchronization code enjoy the performance of asynchronous programming. Read more: https://github.com/ClericPy/torequests.",
+    keywords=keywords,
+    description=desc,
     long_description=long_description,
     long_description_content_type='text/markdown',
     license="MIT License",
