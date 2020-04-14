@@ -2,17 +2,18 @@ from asyncio import Lock, sleep
 from time import time
 
 
-class Frequency(object):
-    """Frequency controller, means concurrent running n tasks every interval seconds.
+class AsyncFrequency(object):
+    """AsyncFrequency controller, means concurrent running n tasks every interval seconds.
 
         Basic Usage::
 
-            from torequests.frequency_controller.async_tools import Frequency
+            from torequests.frequency_controller.async_tools import AsyncFrequency
             from asyncio import ensure_future, get_event_loop
             from time import time
 
+
             async def test_async():
-                frequency = Frequency(2, 1)
+                frequency = AsyncFrequency(2, 1)
 
                 async def task():
                     async with frequency:
@@ -41,11 +42,11 @@ class Frequency(object):
             self.gen = self.generator(n, interval)
             self._lock = None
             self.__aenter__ = self._acquire
-            self.repr = f"Frequency({n}, {interval})"
+            self.repr = f"AsyncFrequency({n}, {interval})"
         else:
             self.gen = None
             self.__aenter__ = self.__aexit__
-            self.repr = "Frequency(unlimited)"
+            self.repr = "AsyncFrequency(unlimited)"
 
     def to_list(self):
         """Return the [self.n, self.interval]"""
@@ -78,12 +79,12 @@ class Frequency(object):
 
     @classmethod
     def ensure_frequency(cls, frequency):
-        """Ensure the given args is Frequency.
+        """Ensure the given args is AsyncFrequency.
 
-        :param frequency: args to create a Frequency instance.
-        :type frequency: Frequency / dict / list / tuple
-        :return: Frequency instance
-        :rtype: Frequency
+        :param frequency: args to create a AsyncFrequency instance.
+        :type frequency: AsyncFrequency / dict / list / tuple
+        :return: AsyncFrequency instance
+        :rtype: AsyncFrequency
         """
         if isinstance(frequency, cls):
             return frequency
