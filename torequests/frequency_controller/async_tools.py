@@ -3,7 +3,34 @@ from time import time
 
 
 class Frequency(object):
-    """Frequency controller, means concurrent running n tasks every interval seconds."""
+    """Frequency controller, means concurrent running n tasks every interval seconds.
+
+        Basic Usage::
+
+            from torequests.frequency_controller.async_tools import Frequency
+            from asyncio import ensure_future, get_event_loop
+            from time import time
+
+            async def test_async():
+                frequency = Frequency(2, 1)
+
+                async def task():
+                    async with frequency:
+                        return time()
+
+                now = time()
+                tasks = [ensure_future(task()) for _ in range(5)]
+                result = [await task for task in tasks]
+                assert result[0] - now < 1
+                assert result[1] - now < 1
+                assert result[2] - now > 1
+                assert result[3] - now > 1
+                assert result[4] - now > 2
+                assert frequency.to_dict() == {'n': 2, 'interval': 1}
+                assert frequency.to_list() == [2, 1]
+
+            get_event_loop().run_until_complete(test_async())
+    """
     __slots__ = ("gen", "__aenter__", "repr", "_lock", "n", "interval")
     TIMER = time
 
@@ -21,9 +48,11 @@ class Frequency(object):
             self.repr = "Frequency(unlimited)"
 
     def to_list(self):
+        """Return the [self.n, self.interval]"""
         return [self.n, self.interval]
 
     def to_dict(self):
+        """Return the dict {'n': self.n, 'interval': self.interval}"""
         return {'n': self.n, 'interval': self.interval}
 
     @property
@@ -49,6 +78,13 @@ class Frequency(object):
 
     @classmethod
     def ensure_frequency(cls, frequency):
+        """Ensure the given args is Frequency.
+
+        :param frequency: args to create a Frequency instance.
+        :type frequency: Frequency / dict / list / tuple
+        :return: Frequency instance
+        :rtype: Frequency
+        """
         if isinstance(frequency, cls):
             return frequency
         elif isinstance(frequency, dict):
