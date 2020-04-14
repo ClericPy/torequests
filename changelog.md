@@ -1,7 +1,55 @@
 
-
-
 ---
+
+later (4.9.10+) changes view: https://github.com/ClericPy/torequests/releases
+
+- 4.9.9
+    - fix catch_exception error
+
+- 4.9.6 ~ 4.9.8
+    - fix python3.8 contend generator
+    - use asend instead of async for
+    - fix default_host_frequency strategy
+    - new faster and tiny frequency controller
+
+- 4.9.5
+    - fix aiohttp verify param compatible
+
+- 4.9.4
+    - fix aiohttp 4 Compatible issue
+    - update readme and benchmark
+
+- 4.9.3
+    - hotfix setup.py
+
+- 4.9.2
+    - fix bugs
+
+- 4.9.1
+    - add new Frequency implementation
+    - fix python2 queue import error
+    - remove useless parsers, uniparser is the new choice
+    - update benchmarks
+    - cancel frequency put_tasks if `del`
+    - 
+
+- 4.9.0
+    - fix dummy Requests task.cx not return callback result #36
+    - add `__aenter__` for dummy
+    - fix frequency
+    - fix task_cost_time
+
+- 4.8.21
+    - remove nonsense semphore for performance lost
+    - add some extras_requires
+
+- 4.8.20
+    - fix runtime error for running loop
+
+- 4.8.19
+    - Fix curlparse encoding error
+    - add test 3.8
+    - fix aiohttp unclosed connection
 
 - 4.8.18
     - hotfix curlparse issue by backslash string.
