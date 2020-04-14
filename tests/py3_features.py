@@ -189,11 +189,9 @@ def test_retry_async():
 
 def test_async_frequency():
     # for python3.6+ only
-    from torequests.frequency_controller.async_tools import Frequency
+    from torequests.frequency_controller.async_tools import AsyncFrequency
     from asyncio import ensure_future, get_event_loop
     from time import time
-
-    from frequency_controller import AsyncFrequency
 
     async def test_async():
         frequency = AsyncFrequency(2, 1)

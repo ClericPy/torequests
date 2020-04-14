@@ -4,10 +4,9 @@
 import atexit
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed)
-from concurrent.futures._base import (CANCELLED, CANCELLED_AND_NOTIFIED,
-                                      FINISHED, PENDING, RUNNING,
-                                      CancelledError, Error, Executor, Future,
-                                      TimeoutError)
+from concurrent.futures._base import (
+    CANCELLED, CANCELLED_AND_NOTIFIED, FINISHED, PENDING, RUNNING,
+    CancelledError, Error, Executor, Future, TimeoutError)
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
 from logging import getLogger
@@ -32,23 +31,9 @@ if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
 __all__ = [
-    "Pool",
-    "ProcessPool",
-    "NewFuture",
-    "Async",
-    "threads",
-    "get_results_generator",
-    "run_after_async",
-    "tPool",
-    "get",
-    "post",
-    "options",
-    "delete",
-    "put",
-    "head",
-    "patch",
-    "request",
-    "disable_warnings",
+    "Pool", "ProcessPool", "NewFuture", "Async", "threads",
+    "get_results_generator", "run_after_async", "tPool", "get", "post",
+    "options", "delete", "put", "head", "patch", "request", "disable_warnings"
 ]
 logger = getLogger("torequests")
 

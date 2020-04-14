@@ -16,7 +16,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from ._py3_patch import NewResponse, _py36_all_task_patch
 from .exceptions import FailureException
-from .frequency_controller.async_tools import Frequency
+from .frequency_controller.async_tools import AsyncFrequency as Frequency
 from .main import Error, NewFuture, Pool, ProcessPool
 
 logger = getLogger("torequests")
@@ -28,7 +28,7 @@ try:
 except ImportError:
     logger.debug("Not found uvloop, using the default event loop.")
 
-__all__ = "NewTask Loop Asyncme coros Frequency Requests".split(" ")
+__all__ = "NewTask Loop Asyncme coros Requests".split(" ")
 
 NotSet = object()
 
