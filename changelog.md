@@ -31,7 +31,6 @@ later (4.9.10+) changes view: https://github.com/ClericPy/torequests/releases
     - remove useless parsers, uniparser is the new choice
     - update benchmarks
     - cancel frequency put_tasks if `del`
-    - 
 
 - 4.9.0
     - fix dummy Requests task.cx not return callback result #36
