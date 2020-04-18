@@ -12,19 +12,18 @@ def test_dummy_Requests():
     trequests = Requests()
     test_url = "https://httpbin.org/json"
     tasks = [
-        trequests.get(
-            test_url,
-            retry=1,
-            verify=True,
-            callback=lambda r: len(r.content),
-            timeout=(2, 5),
-            referer_info=i) for i in range(3)
+        trequests.get(test_url,
+                      retry=1,
+                      verify=True,
+                      callback=lambda r: len(r.content),
+                      timeout=(2, 5),
+                      referer_info=i) for i in range(3)
     ]
     trequests.x
     cb_results = [i.cx for i in tasks]
     # test and ensure task.cx is callback result
-    assert all(
-        [isinstance(i, int) for i in cb_results]), "fail: test_dummy_Requests"
+    assert all([isinstance(i, int) for i in cb_results
+               ]), "fail: test_dummy_Requests"
     r = tasks[0]
     assert isinstance(r.content, bytes)
     assert isinstance(r.text, str)
@@ -32,6 +31,7 @@ def test_dummy_Requests():
     assert not r.is_redirect
     assert r.ok
     assert r.status_code == 200
+    print(r.url, type(r.url))
     assert isinstance(r.url, str)
     assert r.referer_info == 0
 
@@ -43,12 +43,11 @@ def test_dummy_Requests_async():
         async with Requests() as trequests:
             test_url = "https://httpbin.org/json"
             tasks = [
-                trequests.get(
-                    test_url,
-                    retry=1,
-                    callback=lambda r: len(r.content),
-                    timeout=(2, 5),
-                    referer_info=i) for i in range(3)
+                trequests.get(test_url,
+                              retry=1,
+                              callback=lambda r: len(r.content),
+                              timeout=(2, 5),
+                              referer_info=i) for i in range(3)
             ]
             result = [(await task).text for task in tasks]
             assert all(result), "fail: test_dummy_Requests_async"
@@ -74,8 +73,8 @@ def test_dummy_Requests_time_interval_frequency(capsys):
         ss = [
             trequests.get(
                 "http://p.3.cn",
-                callback=
-                lambda x: (len(x.content), print(trequests.frequencies)),
+                callback=lambda x:
+                (len(x.content), print(trequests.frequencies)),
             ) for i in range(4)
         ]
         trequests.x
@@ -212,3 +211,40 @@ def test_async_frequency():
         assert frequency.to_list() == [2, 1]
 
     get_event_loop().run_until_complete(test_async())
+
+
+def test_aiohttp_dummy():
+    # for python3.6+ only
+    from torequests.aiohttp_dummy import Requests
+    from asyncio import get_event_loop
+
+    async def test1():
+        url = 'http://httpbin.org/get'
+        req = Requests()
+        r = await req.get(url, retry=1)
+        assert r.json()['url'] == url
+        r = await req.get('http://', retry=1)
+        assert isinstance(r, Exception)
+        r = await req.get('http://', retry=1, callback=lambda r: r.text)
+        assert r.startswith('FailureException')
+        async with Requests() as req:
+            r = await req.get(url)
+            assert r.json()['url'] == url
+        # ==================
+        test_url = "https://httpbin.org/json"
+        req = Requests()
+        r = await req.get(test_url,
+                          retry=1,
+                          ssl=True,
+                          timeout=2,
+                          referer_info=0)
+        assert isinstance(r.content, bytes)
+        assert isinstance(r.text, str)
+        assert isinstance(r.json(), dict)
+        assert not r.is_redirect
+        assert r.ok
+        assert r.status_code == 200
+        assert isinstance(r.url, str)
+        assert r.referer_info == 0
+
+    get_event_loop().run_until_complete(test1())

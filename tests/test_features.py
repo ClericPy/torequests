@@ -57,4 +57,4 @@ def test_sync_frequency():
 PY3 = sys.version_info[0] == 3
 # tests for python3 only
 if PY3:
-    from .py3_features import *
+    from ._test_py3_features import *

@@ -1,13 +1,27 @@
 # here for python3 patch avoid of python2 SyntaxError
 import asyncio
-import json
-from typing import Tuple, Type
 from functools import wraps
+from json import loads
+from logging import getLogger
+from typing import Coroutine, Tuple, Type
+
+from aiohttp import ClientResponse
+
 # python3.7+ 's asyncio.all_tasks'
 try:
     _py36_all_task_patch = asyncio.all_tasks
 except (ImportError, AttributeError):
     _py36_all_task_patch = asyncio.Task.all_tasks
+
+logger = getLogger("torequests")
+NotSet = object()
+
+try:
+    import uvloop
+    from asyncio import set_event_loop_policy
+    set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    logger.debug("Not found uvloop, using the default event loop.")
 
 
 def _new_future_await(self):
@@ -18,28 +32,32 @@ def _new_future_await(self):
     return self.x
 
 
-class NewResponse(object):
+class NewResponse(ClientResponse):
     """Wrap aiohttp's ClientResponse like requests's Response."""
-    __slots__ = ('r', 'encoding', 'referer_info')
 
-    def __init__(self, r, encoding=None, referer_info=None):
-        self.r = r
-        self.encoding = encoding or self.r.get_encoding()
-        self.referer_info = referer_info
-
-    def __getattr__(self, name):
-        return getattr(self.r, name)
+    def __init__(self, method, url, *, writer, continue100, timer, request_info,
+                 traces, loop, session) -> None:
+        self._encoding = None
+        super().__init__(method=method,
+                         url=url,
+                         writer=writer,
+                         continue100=continue100,
+                         timer=timer,
+                         request_info=request_info,
+                         traces=traces,
+                         loop=loop,
+                         session=session)
 
     @property
     def url(self):
-        return str(self.r.url)
+        return self._url
 
     @property
     def status_code(self):
-        return self.r.status
+        return self.status
 
     def __repr__(self):
-        return "<NewResponse [%s]>" % (self.status_code)
+        return "<%s [%s]>" % (self.__class__.__name__, self.status)
 
     def __bool__(self):
         return self.ok
@@ -50,26 +68,39 @@ class NewResponse(object):
 
     @property
     def ok(self):
-        return self.status_code in range(200, 400)
+        return self.status in range(200, 400)
 
     @property
     def is_redirect(self):
         """True if this Response is a well-formed HTTP redirect that could have
         been processed automatically (by :meth:`Session.resolve_redirects`).
         """
-        return "location" in self.headers and self.status_code in range(
-            300, 400)
+        return "location" in self.headers and self.status in range(300, 400)
 
     @property
-    def content(self):
-        return self._body
+    def encoding(self):
+        if not self._encoding:
+            self._encoding = self.get_encoding()
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self._encoding = encoding
+        return encoding
 
     @property
     def text(self):
         return self._body.decode(self.encoding)
 
-    def json(self, encoding=None, loads=json.loads):
-        return loads(self.content.decode(encoding or self.encoding))
+    def json(self, encoding=None, loads=loads):
+        return loads(self._body.decode(encoding or self.encoding))
+
+    def release(self) -> None:
+        super().release()
+        # set content as bytes
+        setattr(self, 'content', self._body)
+        # set url as string
+        setattr(self, '_url', str(self._url))
 
 
 def retry(tries=1,
@@ -106,3 +137,13 @@ def retry(tries=1,
             return retry_sync
 
     return wrapper
+
+
+def _exhaust_simple_coro(coro: Coroutine):
+    """Run coroutines without event loop, only support simple coroutines which can run without future.
+    Or it will raise RuntimeError: await wasn't used with future."""
+    while True:
+        try:
+            coro.send(None)
+        except StopIteration as e:
+            return e.value
