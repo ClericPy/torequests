@@ -14,16 +14,9 @@ from .exceptions import FailureException
 class Requests:
     """Lite wrapper for aiohttp for better performance.
 
-    Include:
+    Removes the frequency_controller & sync usage (task.x) & compatible args of requests for good performance, but remains retry / callback / referer_info.
 
-        - retry
-        - callback
-        - referer_info
-
-    Exclude:
-
-        - frequency_controller
-        - sync usage (r.x)
+    referer_info: sometimes used for callback.
     """
 
     def __init__(self,
@@ -47,11 +40,14 @@ class Requests:
                       url: str,
                       retry: int = 0,
                       callback: Optional[Callable] = None,
+                      referer_info=NotSet,
                       **kwargs) -> Union[NewResponse, FailureException]:
         result = await self._request(method=method,
                                      url=url,
                                      retry=retry,
                                      **kwargs)
+        if referer_info is not NotSet:
+            setattr(result, 'referer_info', referer_info)
         if callback:
             result = callback(result)
             if isawaitable(result):
@@ -59,20 +55,12 @@ class Requests:
         return result
 
     async def _request(self, method: str, url: str, retry: int = 0, **kwargs):
-        if "verify" in kwargs:
-            kwargs["ssl"] = kwargs.pop('verify')
-        if "proxies" in kwargs:
-            # only support http proxy
-            kwargs["proxy"] = "http://%s" % kwargs.pop('proxies').popitem()[1]
         encoding = kwargs.pop("encoding", None)
-        referer_info = kwargs.pop("referer_info", NotSet)
         for retries in range(retry + 1):
             try:
                 async with self.session.request(method, url, **kwargs) as resp:
                     if encoding:
                         setattr(resp, 'encoding', encoding)
-                    if referer_info is not NotSet:
-                        setattr(resp, 'referer_info', referer_info)
                     await resp.read()
                     resp.release()
                     return resp
@@ -92,12 +80,14 @@ class Requests:
                   params: Optional[dict] = None,
                   retry: int = 0,
                   callback: Optional[Callable] = None,
+                  referer_info=NotSet,
                   **kwargs):
         return await self.request("get",
                                   url=url,
                                   params=params,
                                   retry=retry,
                                   callback=callback,
+                                  referer_info=referer_info,
                                   **kwargs)
 
     async def post(self,
@@ -105,23 +95,27 @@ class Requests:
                    data=None,
                    retry: int = 0,
                    callback: Optional[Callable] = None,
+                   referer_info=NotSet,
                    **kwargs):
         return await self.request("post",
                                   url=url,
                                   data=data,
                                   retry=retry,
                                   callback=callback,
+                                  referer_info=referer_info,
                                   **kwargs)
 
     async def delete(self,
                      url: str,
                      retry: int = 0,
                      callback: Optional[Callable] = None,
+                     referer_info=NotSet,
                      **kwargs):
         return await self.request("delete",
                                   url=url,
                                   retry=retry,
                                   callback=callback,
+                                  referer_info=referer_info,
                                   **kwargs)
 
     async def put(self,
@@ -129,45 +123,53 @@ class Requests:
                   data=None,
                   retry: int = 0,
                   callback: Optional[Callable] = None,
+                  referer_info=NotSet,
                   **kwargs):
         return await self.request("put",
                                   url=url,
                                   data=data,
                                   retry=retry,
                                   callback=callback,
+                                  referer_info=referer_info,
                                   **kwargs)
 
     async def head(self,
                    url: str,
                    retry: int = 0,
                    callback: Optional[Callable] = None,
+                   referer_info=NotSet,
                    **kwargs):
         return await self.request("head",
                                   url=url,
                                   retry=retry,
                                   callback=callback,
+                                  referer_info=referer_info,
                                   **kwargs)
 
     async def options(self,
                       url: str,
                       retry: int = 0,
                       callback: Optional[Callable] = None,
+                      referer_info=NotSet,
                       **kwargs):
         return await self.request("options",
                                   url=url,
                                   retry=retry,
                                   callback=callback,
+                                  referer_info=referer_info,
                                   **kwargs)
 
     async def patch(self,
                     url: str,
                     retry: int = 0,
                     callback: Optional[Callable] = None,
+                    referer_info=NotSet,
                     **kwargs):
         return await self.request("patch",
                                   url=url,
                                   retry=retry,
                                   callback=callback,
+                                  referer_info=referer_info,
                                   **kwargs)
 
     @property

@@ -166,7 +166,7 @@ if __name__ == "__main__":
         asyncio.run(test_dummy())
         asyncio.run(test_aiohttp_dummy())
         print('=' * 80)
-    # result
+    # show final result
     print(platform.platform())
     print(sys.version)
     print([
