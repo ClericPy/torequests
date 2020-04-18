@@ -13,7 +13,18 @@ from .exceptions import FailureException
 
 class Requests:
     """Lite wrapper for aiohttp for better performance.
-    Including retry & callback & referer_info, but excluding frequency_controller and sync usage (r.x)."""
+
+    Include:
+
+        - retry
+        - callback
+        - referer_info
+
+    Exclude:
+
+        - frequency_controller
+        - sync usage (r.x)
+    """
 
     def __init__(self,
                  session: Optional[ClientSession] = None,
@@ -48,6 +59,11 @@ class Requests:
         return result
 
     async def _request(self, method: str, url: str, retry: int = 0, **kwargs):
+        if "verify" in kwargs:
+            kwargs["ssl"] = kwargs.pop('verify')
+        if "proxies" in kwargs:
+            # only support http proxy
+            kwargs["proxy"] = "http://%s" % kwargs.pop('proxies').popitem()[1]
         encoding = kwargs.pop("encoding", None)
         referer_info = kwargs.pop("referer_info", NotSet)
         for retries in range(retry + 1):
