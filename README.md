@@ -255,6 +255,30 @@ if __name__ == "__main__":
 
 ```
 
+#### 3.3 using torequests.aiohttp_dummy.Requests for better performance.
+
+> This Requests class removes the frequency_controller and sync usage (task.x) for good performance, but remains retry / callback / referer_info.
+
+```python
+# -*- coding: utf-8 -*-
+
+from torequests.aiohttp_dummy import Requests
+from asyncio import get_event_loop
+
+
+async def main():
+    url = 'http://httpbin.org/get'
+    req = Requests()
+    r = await req.get(url, retry=1)
+    print(r.json())
+
+
+if __name__ == "__main__":
+    get_event_loop().run_until_complete(main())
+
+```
+
+
 ### 4. utils: some useful crawler toolkits
 
     ClipboardWatcher: watch your clipboard changing.
@@ -288,31 +312,33 @@ Source code: [go_test_server.go](https://github.com/ClericPy/torequests/blob/mas
 
 Source code: [py_test_client.py](https://github.com/ClericPy/torequests/blob/master/benchmarks/py_test_client.py)
 
-### Test Result on Windows
+### Test Result on Windows (12 logical CPUs without uvloop.)
 
 ```verilog
-Test without uvloop, 12 logical CPUs.
 Windows-10-10.0.18362-SP0
 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
+['aiohttp(3.6.2)', 'torequests(4.9.14)', 'requests(2.23.0)', 'httpx(0.12.1)']
 ================================================================================
-test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 1.158s, 1727 qps, 100.0% standard.
-test_dummy(4.9.4)        : 2000 / 2000 = 100.0%, cost  1.25s, 1600 qps, 92.65% standard.
-test_httpx(0.11.1)       : 2000 / 2000 = 100.0%, cost 3.927s, 509 qps, 29.47% standard.
-test_tPool(4.9.4)        : 2000 / 2000 = 100.0%, cost 4.754s, 421 qps, 24.38% standard.
+test_aiohttp             : 2000 / 2000 = 100.0%, cost 1.295s, 1545 qps, 100% standard.
+test_dummy               : 2000 / 2000 = 100.0%, cost 1.382s, 1448 qps,  94% standard.
+test_aiohttp_dummy       : 2000 / 2000 = 100.0%, cost 1.344s, 1488 qps,  96% standard.
+test_httpx               : 2000 / 2000 = 100.0%, cost 3.976s,  503 qps,  33% standard.
+test_tPool               : 2000 / 2000 = 100.0%, cost 5.054s,  396 qps,  26% standard.
 ```
 
-### Test Result on Linux
+### Test Result on Linux (1 logical CPU with uvloop)
 
 ```verilog
-Test with uvloop, 1 logical CPUs.
 Linux-4.15.0-13-generic-x86_64-with-Ubuntu-18.04-bionic
 3.7.3 (default, Apr  3 2019, 19:16:38)
 [GCC 8.0.1 20180414 (experimental) [trunk revision 259383]]
+['aiohttp(3.6.2)', 'torequests(4.9.14)', 'requests(2.23.0)', 'httpx(0.12.1)']
 ================================================================================
-test_aiohttp(3.6.2)      : 2000 / 2000 = 100.0%, cost 0.698s, 2866 qps, 100.0% standard.
-test_dummy(4.8.21)       : 2000 / 2000 = 100.0%, cost 0.874s, 2288 qps, 79.83% standard.
-test_httpx(0.11.1)       : 2000 / 2000 = 100.0%, cost 2.337s, 856 qps, 29.87% standard.
-test_tPool(4.8.21)       : 2000 / 2000 = 100.0%, cost 3.029s, 660 qps, 23.03% standard.
+test_aiohttp             : 2000 / 2000 = 100.0%, cost 000.7s, 2859 qps, 100% standard.
+test_dummy               : 2000 / 2000 = 100.0%, cost 0.832s, 2405 qps,  84% standard.
+test_aiohttp_dummy       : 2000 / 2000 = 100.0%, cost 00.75s, 2667 qps,  93% standard.
+test_httpx               : 2000 / 2000 = 100.0%, cost 2.367s,  845 qps,  30% standard.
+test_tPool               : 2000 / 2000 = 100.0%, cost 2.448s,  817 qps,  29% standard.
 ```
 
 ### Conclusion
@@ -320,9 +346,12 @@ test_tPool(4.8.21)       : 2000 / 2000 = 100.0%, cost 3.029s, 660 qps, 23.03% st
 1. **aiohttp** is the fastest, for the cython utils
    1. aiohttp's qps is 2866 on 1 cpu linux with uvloop, near to golang's 3300.
 2. **torequests.dummy.Requests** based on **aiohttp**.
-   1. about **2~10%** performance lost **without** uvloop.
-   2. about **20%** performance lost with uvloop.
-3. **httpx** is faster than **requests + Thread,** but not very obviously.
+   1. **6~10%** performance lost **without** uvloop.
+   2. **16~20%** performance lost with uvloop.
+3. **torequests.aiohttp_dummy.Requests** based on **aiohttp**.
+   1. less than **4%** performance lost **without** uvloop.
+   2. less than **7%** performance lost with uvloop.
+4. **httpx** is faster than **requests + threading,** but not very obviously on linux.
 
 #### PS
 

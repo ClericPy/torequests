@@ -230,5 +230,31 @@ def test_aiohttp_dummy():
         async with Requests() as req:
             r = await req.get(url)
             assert r.json()['url'] == url
+        # ==================
+        test_url = "https://httpbin.org/json"
+        trequests = Requests()
+        tasks = [
+            trequests.get(test_url,
+                          retry=1,
+                          verify=True,
+                          callback=lambda r: len(r.content),
+                          timeout=(2, 5),
+                          referer_info=i) for i in range(3)
+        ]
+        trequests.x
+        cb_results = [i.cx for i in tasks]
+        # test and ensure task.cx is callback result
+        assert all([isinstance(i, int) for i in cb_results
+                   ]), "fail: test_dummy_Requests"
+        r = tasks[0]
+        assert isinstance(r.content, bytes)
+        assert isinstance(r.text, str)
+        assert isinstance(r.json(), dict)
+        assert not r.is_redirect
+        assert r.ok
+        assert r.status_code == 200
+        print(r.url, type(r.url))
+        assert isinstance(r.url, str)
+        assert r.referer_info == 0
 
     get_event_loop().run_until_complete(test1())
