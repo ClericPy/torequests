@@ -1,11 +1,10 @@
 # python3.5+ # pip install uvloop aiohttp.
 
 from asyncio import (Task, gather, get_event_loop, iscoroutine, new_event_loop,
-                     set_event_loop_policy, wait)
+                     wait)
 from asyncio.futures import _chain_future
 from concurrent.futures import ALL_COMPLETED
 from functools import wraps
-from logging import getLogger
 from time import sleep as time_sleep
 from time import time as time_time
 from typing import (Callable, Coroutine, Dict, List, Optional, Sequence, Set,
@@ -14,33 +13,13 @@ from urllib.parse import urlparse
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
-from ._py3_patch import NewResponse, _py36_all_task_patch
+from ._py3_patch import (NewResponse, NotSet, _exhaust_simple_coro,
+                         _py36_all_task_patch, logger)
 from .exceptions import FailureException
 from .frequency_controller.async_tools import AsyncFrequency as Frequency
 from .main import Error, NewFuture, Pool, ProcessPool
 
-logger = getLogger("torequests")
-
-try:
-    import uvloop
-
-    set_event_loop_policy(uvloop.EventLoopPolicy())
-except ImportError:
-    logger.debug("Not found uvloop, using the default event loop.")
-
 __all__ = "NewTask Loop Asyncme coros Requests".split(" ")
-
-NotSet = object()
-
-
-def _exhaust_simple_coro(coro: Coroutine):
-    """Run coroutines without event loop, only support simple coroutines which can run without future.
-    Or it will raise RuntimeError: await wasn't used with future."""
-    while True:
-        try:
-            coro.send(None)
-        except StopIteration as e:
-            return e.value
 
 
 class NewTask(Task):
@@ -289,8 +268,10 @@ class Loop:
 
     async def wait(self, fs, timeout=None, return_when=ALL_COMPLETED):
         if fs:
-            return await wait(
-                fs, loop=self.loop, timeout=timeout, return_when=return_when)
+            return await wait(fs,
+                              loop=self.loop,
+                              timeout=timeout,
+                              return_when=return_when)
 
     @property
     def todo_tasks(self) -> List[Task]:
@@ -368,9 +349,10 @@ def coros(n: Optional[int] = None,
           default_callback: Optional[Callable] = None,
           loop=None):
     """Decorator for wrap coro_function into the function return NewTask."""
-    submitter = Loop(
-        n=n, interval=interval, default_callback=default_callback,
-        loop=loop).submitter
+    submitter = Loop(n=n,
+                     interval=interval,
+                     default_callback=default_callback,
+                     loop=loop).submitter
 
     return submitter
 
@@ -479,6 +461,7 @@ class Requests(Loop):
             self._session = session
             if self.n:
                 self._session.connector._limit = self.n
+            self._session._response_class = NewResponse
 
     async def _ensure_session(self) -> ClientSession:
         """ensure using the same loop, lazy init session."""
@@ -487,6 +470,7 @@ class Requests(Loop):
             self._session = ClientSession(**self.session_kwargs)
             if self.n:
                 self._session.connector._limit = self.n
+            self._session._response_class = NewResponse
         return self._session
 
     @property
@@ -506,7 +490,9 @@ class Requests(Loop):
         }
         return frequencies
 
-    def set_frequency(self, host: str, n: Optional[int] = None,
+    def set_frequency(self,
+                      host: str,
+                      n: Optional[int] = None,
                       interval=NotSet) -> Frequency:
         """Set frequency for host with n and interval."""
         frequency = Frequency(n or self.n,
@@ -522,7 +508,7 @@ class Requests(Loop):
                        method: str,
                        url: str,
                        retry: Optional[int] = 0,
-                       **kwargs) -> Union[NewResponse, FailureException]:
+                       **kwargs):
         url = url.strip()
         parsed_url = urlparse(url)
         scheme = parsed_url.scheme
@@ -540,11 +526,11 @@ class Requests(Loop):
             # for timeout=(1,2) and timeout=5
             timeout = kwargs['timeout']
             if isinstance(timeout, (int, float)):
-                kwargs['timeout'] = ClientTimeout(
-                    sock_connect=timeout, sock_read=timeout)
+                kwargs['timeout'] = ClientTimeout(sock_connect=timeout,
+                                                  sock_read=timeout)
             elif isinstance(timeout, (tuple, list)):
-                kwargs['timeout'] = ClientTimeout(
-                    sock_connect=timeout[0], sock_read=timeout[1])
+                kwargs['timeout'] = ClientTimeout(sock_connect=timeout[0],
+                                                  sock_read=timeout[1])
             elif timeout is None or isinstance(timeout, ClientTimeout):
                 pass
             else:
@@ -556,23 +542,26 @@ class Requests(Loop):
         kwargs["url"] = url
         kwargs["method"] = method
         # non-official request args
-        referer_info = kwargs.pop("referer_info", None)
+        referer_info = kwargs.pop("referer_info", NotSet)
         encoding = kwargs.pop("encoding", None)
         for retries in range(retry + 1):
             async with frequency:
                 try:
                     session = await self.session
                     async with session.request(**kwargs) as resp:
+                        if encoding:
+                            resp.encoding = encoding
+                        if referer_info is not NotSet:
+                            resp.referer_info = referer_info
                         await resp.read()
-                        r = NewResponse(
-                            resp, encoding=encoding, referer_info=referer_info)
-                        return r
+                        resp.release()
+                        return resp
                 except (ClientError, Error) as err:
                     error = err
                     continue
         else:
             kwargs["retry"] = retry
-            if referer_info:
+            if referer_info is not NotSet:
                 kwargs["referer_info"] = referer_info
             if encoding:
                 kwargs["encoding"] = encoding
@@ -589,7 +578,7 @@ class Requests(Loop):
                 url: str,
                 callback: Optional[Callable] = None,
                 retry: Optional[int] = 0,
-                **kwargs):
+                **kwargs) -> Union[NewResponse, FailureException]:
         """Submit the coro of self._request to self.loop"""
         return self.submit(
             self._request(method, url=url, retry=retry, **kwargs),
@@ -602,13 +591,12 @@ class Requests(Loop):
             callback: Optional[Callable] = None,
             retry=0,
             **kwargs):
-        return self.request(
-            "get",
-            url=url,
-            params=params,
-            callback=callback,
-            retry=retry,
-            **kwargs)
+        return self.request("get",
+                            url=url,
+                            params=params,
+                            callback=callback,
+                            retry=retry,
+                            **kwargs)
 
     def post(self,
              url: str,
@@ -616,21 +604,23 @@ class Requests(Loop):
              callback: Optional[Callable] = None,
              retry=0,
              **kwargs):
-        return self.request(
-            "post",
-            url=url,
-            data=data,
-            callback=callback,
-            retry=retry,
-            **kwargs)
+        return self.request("post",
+                            url=url,
+                            data=data,
+                            callback=callback,
+                            retry=retry,
+                            **kwargs)
 
     def delete(self,
                url: str,
                callback: Optional[Callable] = None,
                retry: Optional[int] = 0,
                **kwargs):
-        return self.request(
-            "delete", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("delete",
+                            url=url,
+                            callback=callback,
+                            retry=retry,
+                            **kwargs)
 
     def put(self,
             url: str,
@@ -638,32 +628,45 @@ class Requests(Loop):
             callback: Optional[Callable] = None,
             retry: Optional[int] = 0,
             **kwargs):
-        return self.request(
-            "put", url=url, data=data, callback=callback, retry=retry, **kwargs)
+        return self.request("put",
+                            url=url,
+                            data=data,
+                            callback=callback,
+                            retry=retry,
+                            **kwargs)
 
     def head(self,
              url: str,
              callback: Optional[Callable] = None,
              retry: Optional[int] = 0,
              **kwargs):
-        return self.request(
-            "head", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("head",
+                            url=url,
+                            callback=callback,
+                            retry=retry,
+                            **kwargs)
 
     def options(self,
                 url: str,
                 callback: Optional[Callable] = None,
                 retry: Optional[int] = 0,
                 **kwargs):
-        return self.request(
-            "options", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("options",
+                            url=url,
+                            callback=callback,
+                            retry=retry,
+                            **kwargs)
 
     def patch(self,
               url: str,
               callback: Optional[Callable] = None,
               retry: Optional[int] = 0,
               **kwargs):
-        return self.request(
-            "patch", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("patch",
+                            url=url,
+                            callback=callback,
+                            retry=retry,
+                            **kwargs)
 
     async def close(self):
         if self._closed:
