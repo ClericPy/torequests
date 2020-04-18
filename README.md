@@ -257,7 +257,7 @@ if __name__ == "__main__":
 
 #### 3.3 using torequests.aiohttp_dummy.Requests for better performance.
 
-> This Requests class removes the frequency_controller and sync usage (task.x) for good performance, but remains retry / callback / referer_info.
+> Removes the frequency_controller & sync usage (task.x) & compatible args of requests for good performance, but remains retry / callback / referer_info.
 
 ```python
 # -*- coding: utf-8 -*-
@@ -267,14 +267,29 @@ from asyncio import get_event_loop
 
 
 async def main():
-    url = 'http://httpbin.org/get'
+    url = 'http://httpbin.org/json'
+    # simple usage, catch_exception defaults to True
+    async with Requests() as req:
+        r = await req.get(url, retry=1, encoding='u8', timeout=3)
+        print(r.ok)
+        print(r.url)
+        print(r.content[:5])
+        print(r.status_code)
+        print(r.text[:5])
+        print(r.json()['slideshow']['title'])
+        print(r.is_redirect)
+        print(r.encoding)
+    # or use `req = Requests()` without context
     req = Requests()
-    r = await req.get(url, retry=1)
-    print(r.json())
+    r = await req.get(
+        url,
+        referer_info=123,
+        callback=lambda r: r.referer_info + 1,
+    )
+    print(r)  # 124
 
 
-if __name__ == "__main__":
-    get_event_loop().run_until_complete(main())
+get_event_loop().run_until_complete(main())
 
 ```
 
@@ -312,21 +327,25 @@ Source code: [go_test_server.go](https://github.com/ClericPy/torequests/blob/mas
 
 Source code: [py_test_client.py](https://github.com/ClericPy/torequests/blob/master/benchmarks/py_test_client.py)
 
-### Test Result on Windows (12 logical CPUs without uvloop.)
+### Test Result on Windows (without uvloop)
+
+> Intel(R) Core(TM) i7-8750H CPU @ 2.20GHz (12 CPUs), ~2.2GHz; 12 logical CPUs.
 
 ```verilog
 Windows-10-10.0.18362-SP0
 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
 ['aiohttp(3.6.2)', 'torequests(4.9.14)', 'requests(2.23.0)', 'httpx(0.12.1)']
 ================================================================================
-test_aiohttp             : 2000 / 2000 = 100.0%, cost 1.295s, 1545 qps, 100% standard.
-test_dummy               : 2000 / 2000 = 100.0%, cost 1.382s, 1448 qps,  94% standard.
-test_aiohttp_dummy       : 2000 / 2000 = 100.0%, cost 1.344s, 1488 qps,  96% standard.
-test_httpx               : 2000 / 2000 = 100.0%, cost 3.976s,  503 qps,  33% standard.
-test_tPool               : 2000 / 2000 = 100.0%, cost 5.054s,  396 qps,  26% standard.
+test_aiohttp             : 2000 / 2000 = 100.0%, cost 1.289s, 1551 qps, 100% standard.
+test_dummy               : 2000 / 2000 = 100.0%, cost 1.397s, 1432 qps,  92% standard.
+test_aiohttp_dummy       : 2000 / 2000 = 100.0%, cost 1.341s, 1491 qps,  96% standard.
+test_httpx               : 2000 / 2000 = 100.0%, cost 4.065s,  492 qps,  32% standard.
+test_tPool               : 2000 / 2000 = 100.0%, cost 5.161s,  388 qps,  25% standard.
 ```
 
-### Test Result on Linux (1 logical CPU with uvloop)
+### Test Result on Linux (with uvloop)
+
+> Intel(R) Xeon(R) Platinum 8163 CPU @ 2.50GHz; 1 logical CPU.
 
 ```verilog
 Linux-4.15.0-13-generic-x86_64-with-Ubuntu-18.04-bionic
@@ -334,11 +353,11 @@ Linux-4.15.0-13-generic-x86_64-with-Ubuntu-18.04-bionic
 [GCC 8.0.1 20180414 (experimental) [trunk revision 259383]]
 ['aiohttp(3.6.2)', 'torequests(4.9.14)', 'requests(2.23.0)', 'httpx(0.12.1)']
 ================================================================================
-test_aiohttp             : 2000 / 2000 = 100.0%, cost 000.7s, 2859 qps, 100% standard.
-test_dummy               : 2000 / 2000 = 100.0%, cost 0.832s, 2405 qps,  84% standard.
-test_aiohttp_dummy       : 2000 / 2000 = 100.0%, cost 00.75s, 2667 qps,  93% standard.
-test_httpx               : 2000 / 2000 = 100.0%, cost 2.367s,  845 qps,  30% standard.
-test_tPool               : 2000 / 2000 = 100.0%, cost 2.448s,  817 qps,  29% standard.
+test_aiohttp             : 2000 / 2000 = 100.0%, cost 0.652s, 3068 qps, 100% standard.
+test_dummy               : 2000 / 2000 = 100.0%, cost 0.802s, 2495 qps,  81% standard.
+test_aiohttp_dummy       : 2000 / 2000 = 100.0%, cost 0.726s, 2754 qps,  90% standard.
+test_httpx               : 2000 / 2000 = 100.0%, cost 2.349s,  852 qps,  28% standard.
+test_tPool               : 2000 / 2000 = 100.0%, cost 2.708s,  739 qps,  24% standard.
 ```
 
 ### Conclusion
@@ -346,11 +365,11 @@ test_tPool               : 2000 / 2000 = 100.0%, cost 2.448s,  817 qps,  29% sta
 1. **aiohttp** is the fastest, for the cython utils
    1. aiohttp's qps is 2866 on 1 cpu linux with uvloop, near to golang's 3300.
 2. **torequests.dummy.Requests** based on **aiohttp**.
-   1. **6~10%** performance lost **without** uvloop.
-   2. **16~20%** performance lost with uvloop.
+   1. about **8%** performance lost **without** uvloop.
+   2. about **20%** performance lost with uvloop.
 3. **torequests.aiohttp_dummy.Requests** based on **aiohttp**.
    1. less than **4%** performance lost **without** uvloop.
-   2. less than **7%** performance lost with uvloop.
+   2. less than **10%** performance lost with uvloop.
 4. **httpx** is faster than **requests + threading,** but not very obviously on linux.
 
 #### PS
