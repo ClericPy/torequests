@@ -671,6 +671,9 @@ class Requests(Loop):
     async def close(self):
         if self._closed:
             return
+        if self._session is None:
+            self._closed = True
+            return
         try:
             session = await self._ensure_session()
             if session and not session.closed:
