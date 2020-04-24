@@ -26,7 +26,7 @@ class Requests:
                  **kwargs):
         # ensure running loop to use unique loop.
         if not get_event_loop().is_running():
-            raise RuntimeError('Please init Requests in running loop.')
+            raise RuntimeError('Please init Requests in a running loop.')
         self.catch_exception = catch_exception
         self.retry_exceptions = retry_exceptions
         if session:
@@ -174,7 +174,10 @@ class Requests:
 
     @property
     def closed(self):
-        return self.session.closed
+        if hasattr(self, 'session'):
+            return self.session.closed
+        else:
+            return True
 
     async def close(self):
         if self.closed:
