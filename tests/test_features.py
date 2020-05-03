@@ -43,11 +43,11 @@ def test_sync_frequency():
     for _ in range(5):
         tasks.append(pool.submit(test))
     result = [task.result() for task in tasks]
-    assert result[0] - now < 1
-    assert result[1] - now < 1
-    assert result[2] - now > 1
-    assert result[3] - now > 1
-    assert result[4] - now > 2
+    assert result[0] - now <= 1
+    assert result[1] - now <= 1
+    assert result[2] - now >= 1
+    assert result[3] - now >= 1
+    assert result[4] - now >= 2
     assert frequency.to_dict() == {'n': 2, 'interval': 1}
     assert frequency.to_list() == [2, 1]
 
