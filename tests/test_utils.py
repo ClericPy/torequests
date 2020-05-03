@@ -8,6 +8,22 @@ from torequests.utils import *
 # with capsys.disabled():
 
 
+def test_curlparse_with_dollar_sign():
+    # $'\'' for ANSI-C string args
+    curl = r'''curl 'https://abc.com' \
+  -H $'cookie: a=b\'' \
+  --compressed'''
+    result = curlparse(curl)
+    # print(result)
+    assert result == {
+        'url': 'https://abc.com',
+        'headers': {
+            'Cookie': "a=b'"
+        },
+        'method': 'get'
+    }
+
+
 def test_curlparse_get():
     """  test_dummy_utils """
     cmd = """curl 'http://httpbin.org/get?test1=1&test2=2' -H 'Pragma: no-cache' -H 'DNT: 1' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Cache-Control: no-cache' -H 'Connection: keep-alive' --compressed"""
@@ -52,8 +68,8 @@ def test_slice_into_pieces():
 
 
 def test_ttime_ptime():
-    assert time.time() - ptime(
-        ttime(tzone=0), tzone=0) < 2, "fail: ttime / ptime"
+    assert time.time() - ptime(ttime(tzone=0),
+                               tzone=0) < 2, "fail: ttime / ptime"
     assert ttime(1542099747428) == ttime(1542099747428 / 1000)
 
 
@@ -202,8 +218,10 @@ def test_timeago():
         for acc in accuracies:
             for f in formats:
                 args = (sec, acc, f)
-                result = timeago(
-                    seconds=sec, accuracy=acc, format=f, short_name=True)
+                result = timeago(seconds=sec,
+                                 accuracy=acc,
+                                 format=f,
+                                 short_name=True)
                 assert cases[args] == result
 
 
@@ -219,8 +237,8 @@ def test_counts():
 
 
 def test_unique():
-    assert list(
-        unique(list(range(4, 0, -1)) + list(range(5)))) == [4, 3, 2, 1, 0]
+    assert list(unique(list(range(4, 0, -1)) +
+                       list(range(5)))) == [4, 3, 2, 1, 0]
 
 
 def test_regex():
@@ -305,45 +323,44 @@ def test_ensure_request():
                            [["a", "b", "c"], ["d", "e", "f"], ["1", "2", "3"],
                             ["4", "5", "6"]],
                        ]
-        assert split_n(
-            ss, ["\\s+"], reg=1) == [
-                "a",
-                "b",
-                "c",
-                "d",
-                "e",
-                "f",
-                "1",
-                "2",
-                "3",
-                "4",
-                "5",
-                "6",
-                "a",
-                "b",
-                "c",
-                "d",
-                "e",
-                "f",
-                "1",
-                "2",
-                "3",
-                "4",
-                "5",
-                "6",
-                "a",
-                "b",
-                "c",
-                "d",
-                "e",
-                "f",
-                "1",
-                "2",
-                "3",
-                "4",
-                "5",
-                "6",
-            ]
+        assert split_n(ss, ["\\s+"], reg=1) == [
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+        ]
 
     def test_saver():
         ss = Saver("test.json", auto_backup=1)
@@ -433,8 +450,10 @@ def test_get_readable_size():
     assert result == '1.0 KB'
     result = get_readable_size(1024**8 * 1.55, rounded=2)
     assert result == '1.55 YB'
-    result = get_readable_size(
-        10000, rounded=None, units=['A', 'B', 'C'], carry=10)
+    result = get_readable_size(10000,
+                               rounded=None,
+                               units=['A', 'B', 'C'],
+                               carry=10)
     assert result == '100 C'
 
 
@@ -457,3 +476,8 @@ def test_retry_sync():
         test_sync()
     except Exception as err:
         assert isinstance(err, ValueError)
+
+
+def test_encode_decode_base64():
+    assert encode_as_base64('aaaa') == 'YWFhYQ=='
+    assert decode_as_base64('YWFhYQ==') == 'aaaa'
