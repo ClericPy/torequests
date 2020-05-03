@@ -14,10 +14,13 @@ import signal
 import sys
 import time
 import timeit
+from base64 import b64decode, b64encode
 from fractions import Fraction
 from functools import wraps
 from logging import getLogger
 from threading import Lock, Thread
+
+from _codecs import escape_decode
 
 from .configs import Config
 from .exceptions import ImportErrorModule
@@ -84,7 +87,7 @@ elif PY3:
     unicode = str
 else:
     logger.warning('Unhandled python version.')
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64".split(
     " ")
 
 NotSet = object()
@@ -210,8 +213,8 @@ class _Curl:
     parser.add_argument("-F", "--form")
     parser.add_argument("--data-binary")
     parser.add_argument("--connect-timeout", type=float)
-    parser.add_argument(
-        "-H", "--header", action="append", default=[])  # key: value
+    # key: value
+    parser.add_argument("-H", "--header", action="append", default=[])
     parser.add_argument("--compressed", action="store_true")
 
 
@@ -231,46 +234,61 @@ def curlparse(string, encoding="utf-8"):
       >>> requests.request(**request_args)
       <Response [200]>
     """
-    assert "\n" not in string, 'curl-string should not contain \\n, try r"...".'
+
+    def unescape_sig(s):
+        if s.startswith(escape_sig):
+            return decode_as_base64(s[len(escape_sig):], encoding=encoding)
+        else:
+            return s
+
+    escape_sig = 'fac4833e034b6771e5a1c74037e9153e'
     if string.startswith("http"):
         return {"url": string, "method": "get"}
+    # escape $'' ANSI-C strings
+    for arg in re.findall(r"\$'[\s\S]*(?<!\\)'", string):
+        if PY2:
+            _escaped = escape_decode(bytes(arg[2:-1]))[0].decode(encoding)
+        else:
+            _escaped = escape_decode(bytes(arg[2:-1], encoding))[0].decode(encoding)
+        string = string.replace(
+            arg, "'%s'" %
+            (escape_sig + encode_as_base64(_escaped, encoding=encoding)))
     try:
         lex_list = shlex.split(string.strip())
     except ValueError as e:
-        if str(e) == 'No closing quotation' and string.count("'") % 2 != 0:
-            print_info(
-                "If `data` has single-quote ('), the `data` should be quote by double-quote, and add the `backslash`(\\) before original \"."
-            )
+        # if str(e) == 'No closing quotation' and string.count("'") % 2 != 0:
+        #     print_info(
+        #         "If `data` has single-quote ('), the `data` should be quote by double-quote, and add the `backslash`(\\) before original \"."
+        #     )
         raise e
     args, unknown = _Curl.parser.parse_known_args(lex_list)
     requests_args = {}
     headers = {}
-    requests_args["url"] = args.url
+    requests_args["url"] = unescape_sig(args.url)
     for header in args.header:
-        key, value = header.split(":", 1)
+        key, value = unescape_sig(header).split(":", 1)
         headers[key.title()] = value.strip()
     if args.user_agent:
-        headers["User-Agent"] = args.user_agent
+        headers["User-Agent"] = unescape_sig(args.user_agent)
     if headers:
         requests_args["headers"] = headers
     if args.user:
-        requests_args["auth"] = tuple(
-            u for u in args.user.split(":", 1) + [""])[:2]
+        requests_args["auth"] = [
+            u for u in unescape_sig(args.user).split(":", 1) + [""]
+        ][:2]
     # if args.proxy:
-    # pass
+    #     pass
     data = args.data or args.data_binary or args.form
     if data:
-        if data.startswith("$"):
-            data = data[1:]
         args.method = "post"
-        if PY2:
-            # TODO not fix the UnicodeEncodeError, so use `replace`, damn python2.x.
-            data = data.replace(r'\r', '\r').replace(r'\n', '\n')
-        else:
-            data = data.encode(
-                'latin-1',
-                'backslashreplace').decode('unicode-escape').encode(encoding)
-        requests_args["data"] = data
+        # if PY2:
+        #     # not fix the UnicodeEncodeError, so use `replace`, damn python2.x.
+        #     data = data.replace(r'\r', '\r').replace(r'\n', '\n')
+        # else:
+        #     data = data.encode(
+        #         'latin-1',
+        #         'backslashreplace').decode('unicode-escape').encode(encoding)
+        requests_args["data"] = unescape_sig(data).encode(encoding)
     requests_args["method"] = args.method.lower()
     if args.connect_timeout:
         requests_args["timeout"] = args.connect_timeout
@@ -453,9 +471,9 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
     day, hour, minute, second, ms = times
 
     if format == 0:
-        day_str = (
-            "%d %s%s, " % (day, units[0], "s" if day > 1 and is_en else "")
-            if day else "")
+        day_str = ("%d %s%s, " %
+                   (day, units[0], "s" if day > 1 and is_en else "")
+                   if day else "")
         mid_str = ":".join(("%02d" % i for i in (hour, minute, second)))
         if accuracy > 4:
             mid_str += ",%03d" % ms
@@ -472,8 +490,8 @@ def timeago(seconds=0, accuracy=4, format=0, lang="en", short_name=False):
                     tail_index = len(times) - index
                     break
             result_str = [
-                "%d %s%s" % (num, unit,
-                             "s" if is_en and num > 1 and unit != "ms" else "")
+                "%d %s%s" %
+                (num, unit, "s" if is_en and num > 1 and unit != "ms" else "")
                 for num, unit in zip(times, units)
             ][head_index:tail_index][:accuracy]
             result_str = " ".join(result_str)
@@ -875,14 +893,14 @@ class Timer(object):
     """
 
     def __init__(
-            self,
-            name=None,
-            log_func=None,
-            default_timer=None,
-            rounding=None,
-            readable=None,
-            log_after_del=True,
-            stack_level=1,
+        self,
+        name=None,
+        log_func=None,
+        default_timer=None,
+        rounding=None,
+        readable=None,
+        log_after_del=True,
+        stack_level=1,
     ):
         readable = readable or timepass
         self._log_after_del = False
@@ -927,11 +945,10 @@ class Timer(object):
         if self.log_func:
             self.log_func(self)
         else:
-            print_info(
-                "Timer [%(passed)s]: %(name)s, start at %(start)s." % (dict(
-                    name=self.name,
-                    start=ttime(self.start_at),
-                    passed=passed_string)))
+            print_info("Timer [%(passed)s]: %(name)s, start at %(start)s." %
+                       (dict(name=self.name,
+                             start=ttime(self.start_at),
+                             passed=passed_string)))
         return passed_string
 
     @property
@@ -1370,12 +1387,12 @@ def bg(func):
 
 
 def countdown(
-        seconds=None,
-        block=True,
-        interval=1,
-        daemon=True,
-        tick_callback=None,
-        finish_callback=None,
+    seconds=None,
+    block=True,
+    interval=1,
+    daemon=True,
+    tick_callback=None,
+    finish_callback=None,
 ):
     """Run a countdown function to wait something, similar to threading.Timer,
      but will show the detail tick by tick_callback.
@@ -1719,3 +1736,11 @@ def sort_url_query(url, reverse=False, _replace_kwargs=None):
     sorted_parsed = parsed._replace(
         query=unparse_qsl(parse_qsl(parsed.query), sort=True, reverse=reverse))
     return urlunparse(sorted_parsed)
+
+
+def encode_as_base64(string, encoding='utf-8'):
+    return b64encode(string.encode(encoding)).decode(encoding)
+
+
+def decode_as_base64(string, encoding='utf-8'):
+    return b64decode(string.encode(encoding)).decode(encoding)
