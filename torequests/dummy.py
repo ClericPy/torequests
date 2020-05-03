@@ -11,7 +11,7 @@ from typing import (Callable, Coroutine, Dict, List, Optional, Sequence, Set,
                     Union)
 from urllib.parse import urlparse
 
-from aiohttp import ClientError, ClientSession, ClientTimeout
+from aiohttp import BasicAuth, ClientError, ClientSession, ClientTimeout
 
 from ._py3_patch import (NewResponse, NotSet, _exhaust_simple_coro,
                          _py36_all_task_patch, logger)
@@ -539,6 +539,8 @@ class Requests(Loop):
             kwargs["ssl"] = kwargs.pop('verify')
         if "proxies" in kwargs:
             kwargs["proxy"] = "%s://%s" % (scheme, kwargs['proxies'][scheme])
+        if "auth" in kwargs:
+            kwargs["auth"] = BasicAuth(*kwargs['auth'])
         kwargs["url"] = url
         kwargs["method"] = method
         # non-official request args
