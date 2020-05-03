@@ -241,7 +241,7 @@ def curlparse(string, encoding="utf-8"):
         else:
             return s
 
-    escape_sig = 'fac4833e034b6771e5a1c74037e9153e'
+    escape_sig = u'fac4833e034b6771e5a1c74037e9153e'
     if string.startswith("http"):
         return {"url": string, "method": "get"}
     # escape $'' ANSI-C strings
@@ -249,10 +249,11 @@ def curlparse(string, encoding="utf-8"):
         if PY2:
             _escaped = escape_decode(bytes(arg[2:-1]))[0].decode(encoding)
         else:
-            _escaped = escape_decode(bytes(arg[2:-1], encoding))[0].decode(encoding)
+            _escaped = escape_decode(bytes(arg[2:-1],
+                                           encoding))[0].decode(encoding)
         string = string.replace(
-            arg, "'%s'" %
-            (escape_sig + encode_as_base64(_escaped, encoding=encoding)))
+            arg, "'{}{}'".format(escape_sig,
+                                 encode_as_base64(_escaped, encoding=encoding)))
     try:
         lex_list = shlex.split(string.strip())
     except ValueError as e:
