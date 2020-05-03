@@ -539,7 +539,7 @@ class Requests(Loop):
             kwargs["ssl"] = kwargs.pop('verify')
         if "proxies" in kwargs:
             kwargs["proxy"] = "%s://%s" % (scheme, kwargs['proxies'][scheme])
-        if "auth" in kwargs:
+        if "auth" in kwargs and isinstance(kwargs['auth'], (list, tuple)):
             kwargs["auth"] = BasicAuth(*kwargs['auth'])
         kwargs["url"] = url
         kwargs["method"] = method
