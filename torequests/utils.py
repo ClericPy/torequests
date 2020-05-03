@@ -254,14 +254,7 @@ def curlparse(string, encoding="utf-8"):
         string = string.replace(
             arg, "'{}{}'".format(escape_sig,
                                  encode_as_base64(_escaped, encoding=encoding)))
-    try:
-        lex_list = shlex.split(string.strip())
-    except ValueError as e:
-        # if str(e) == 'No closing quotation' and string.count("'") % 2 != 0:
-        #     print_info(
-        #         "If `data` has single-quote ('), the `data` should be quote by double-quote, and add the `backslash`(\\) before original \"."
-        #     )
-        raise e
+    lex_list = shlex.split(string.strip())
     args, unknown = _Curl.parser.parse_known_args(lex_list)
     requests_args = {}
     headers = {}
