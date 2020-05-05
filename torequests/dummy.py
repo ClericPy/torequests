@@ -511,7 +511,6 @@ class Requests(Loop):
                        **kwargs):
         url = url.strip()
         parsed_url = urlparse(url)
-        scheme = parsed_url.scheme
         host = parsed_url.netloc
         # attempt to get a frequency, host > default_host_frequency > global_frequency
         frequency = self.frequencies.get(host)
@@ -538,7 +537,8 @@ class Requests(Loop):
         if "verify" in kwargs:
             kwargs["ssl"] = kwargs.pop('verify')
         if "proxies" in kwargs:
-            kwargs["proxy"] = "%s://%s" % (scheme, kwargs['proxies'][scheme])
+            # aiohttp not support https proxy
+            kwargs["proxy"] = "http://%s" % kwargs.pop('proxies')['http']
         if "auth" in kwargs and isinstance(kwargs['auth'], (list, tuple)):
             kwargs["auth"] = BasicAuth(*kwargs['auth'])
         kwargs["url"] = url
