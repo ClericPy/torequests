@@ -511,7 +511,6 @@ class Requests(Loop):
                        **kwargs):
         url = url.strip()
         parsed_url = urlparse(url)
-        scheme = parsed_url.scheme
         host = parsed_url.netloc
         # attempt to get a frequency, host > default_host_frequency > global_frequency
         frequency = self.frequencies.get(host)
@@ -522,30 +521,12 @@ class Requests(Loop):
                     Frequency.ensure_frequency(self.default_host_frequency))
             else:
                 frequency = self.global_frequency
-        if 'timeout' in kwargs:
-            # for timeout=(1,2) and timeout=5
-            timeout = kwargs['timeout']
-            if isinstance(timeout, (int, float)):
-                kwargs['timeout'] = ClientTimeout(sock_connect=timeout,
-                                                  sock_read=timeout)
-            elif isinstance(timeout, (tuple, list)):
-                kwargs['timeout'] = ClientTimeout(sock_connect=timeout[0],
-                                                  sock_read=timeout[1])
-            elif timeout is None or isinstance(timeout, ClientTimeout):
-                pass
-            else:
-                raise ValueError('Bad timeout type')
-        if "verify" in kwargs:
-            kwargs["ssl"] = kwargs.pop('verify')
-        if "proxies" in kwargs:
-            kwargs["proxy"] = "%s://%s" % (scheme, kwargs['proxies'][scheme])
-        if "auth" in kwargs and isinstance(kwargs['auth'], (list, tuple)):
-            kwargs["auth"] = BasicAuth(*kwargs['auth'])
         kwargs["url"] = url
         kwargs["method"] = method
         # non-official request args
         referer_info = kwargs.pop("referer_info", NotSet)
         encoding = kwargs.pop("encoding", None)
+        kwargs = self.fix_aiohttp_request_args(kwargs)
         for retries in range(retry + 1):
             async with frequency:
                 try:
@@ -699,3 +680,27 @@ class Requests(Loop):
 
     async def __aexit__(self, *args):
         await self.close()
+
+    @staticmethod
+    def fix_aiohttp_request_args(kwargs):
+        if 'timeout' in kwargs:
+            # for timeout=(1,2) and timeout=5
+            timeout = kwargs['timeout']
+            if isinstance(timeout, (int, float)):
+                kwargs['timeout'] = ClientTimeout(sock_connect=timeout,
+                                                  sock_read=timeout)
+            elif isinstance(timeout, (tuple, list)):
+                kwargs['timeout'] = ClientTimeout(sock_connect=timeout[0],
+                                                  sock_read=timeout[1])
+            elif timeout is None or isinstance(timeout, ClientTimeout):
+                pass
+            else:
+                raise ValueError('Bad timeout type')
+        if "verify" in kwargs:
+            kwargs["ssl"] = kwargs.pop('verify')
+        if "proxies" in kwargs:
+            # aiohttp not support https proxy
+            kwargs["proxy"] = "http://%s" % kwargs.pop('proxies')['http']
+        if "auth" in kwargs and isinstance(kwargs['auth'], (list, tuple)):
+            kwargs["auth"] = BasicAuth(*kwargs['auth'])
+        return kwargs

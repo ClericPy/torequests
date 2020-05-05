@@ -481,3 +481,39 @@ def test_retry_sync():
 def test_encode_decode_base64():
     assert encode_as_base64('aaaa') == 'YWFhYQ=='
     assert decode_as_base64('YWFhYQ==') == 'aaaa'
+
+
+def test_check_in_time():
+    from datetime import datetime
+    now = datetime.strptime('2020-03-14 11:47:32', '%Y-%m-%d %H:%M:%S')
+    oks = [
+        '0, 24',
+        '[1, 2, 3, 11]',
+        '[1, 2, 3, 11];%Y==2020',
+        '%d==14',
+        '16, 24|[11]',
+        '16, 24|%M==47',
+        '%M==46|%M==47',
+        '%H!=11|%d!=12',
+        '16, 24|%M!=41',
+    ]
+
+    for time_string in oks:
+        ok = check_in_time(time_string, now)
+        assert ok
+
+    no_oks = [
+        '0, 5',
+        '[1, 2, 3, 5]',
+        '[1, 2, 3, 11];%Y==2021',
+        '%d==11',
+        '16, 24|[12]',
+        '%M==17|16, 24',
+        '%M==46|[1, 2, 3]',
+        '%H!=11&%d!=12',
+        '%M!=46;%M!=47',
+    ]
+
+    for time_string in no_oks:
+        ok = check_in_time(time_string, now)
+        assert not ok
