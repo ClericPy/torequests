@@ -15,6 +15,7 @@ import sys
 import time
 import timeit
 from base64 import b64decode, b64encode
+from datetime import datetime
 from fractions import Fraction
 from functools import wraps
 from logging import getLogger
@@ -87,7 +88,7 @@ elif PY3:
     unicode = str
 else:
     logger.warning('Unhandled python version.')
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64 check_in_time".split(
     " ")
 
 NotSet = object()
@@ -254,14 +255,7 @@ def curlparse(string, encoding="utf-8"):
         string = string.replace(
             arg, "'{}{}'".format(escape_sig,
                                  encode_as_base64(_escaped, encoding=encoding)))
-    try:
-        lex_list = shlex.split(string.strip())
-    except ValueError as e:
-        # if str(e) == 'No closing quotation' and string.count("'") % 2 != 0:
-        #     print_info(
-        #         "If `data` has single-quote ('), the `data` should be quote by double-quote, and add the `backslash`(\\) before original \"."
-        #     )
-        raise e
+    lex_list = shlex.split(string.strip())
     args, unknown = _Curl.parser.parse_known_args(lex_list)
     requests_args = {}
     headers = {}
@@ -1014,11 +1008,96 @@ def ensure_dict_key_title(dict_obj):
     return {key.title(): value for key, value in dict_obj.items()}
 
 
+class TKClipboard(object):
+    """Use tkinter to implement a simple pyperclip. Need python3-tk.
+
+    :: Example
+
+        from torequests.utils import TKClipboard
+        text = '123'
+        pyperclip = TKClipboard()
+        pyperclip.clear()
+        print(repr(pyperclip.paste()))
+        pyperclip.copy(text)
+        print(repr(pyperclip.paste()))
+        pyperclip.append(text)
+        print(repr(pyperclip.paste()))
+        # ''
+        # '123'
+        # '123123'
+        with TKClipboard() as pyperclip:
+            pyperclip.clear()
+            print(repr(pyperclip.paste()))
+            pyperclip.copy(text)
+            print(repr(pyperclip.paste()))
+            pyperclip.append(text)
+            print(repr(pyperclip.paste()))
+            # ''
+            # '123'
+            # '123123'
+"""
+
+    def __init__(self):
+        from tkinter import Tk, TclError
+
+        self.root = Tk()
+        self.root.withdraw()
+        self.TclError = TclError
+        self.closed = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def __del__(self, *args):
+        self.close()
+
+    def close(self):
+        if not self.closed:
+            self.root.destroy()
+        self.closed = True
+
+    def paste(self):
+        try:
+            return self.root.clipboard_get()
+        except self.TclError:
+            return ''
+
+    def copy(self, text):
+        self.clear()
+        self.append(text)
+
+    def append(self, text):
+        return self.root.clipboard_append(text)
+
+    def clear(self):
+        return self.root.clipboard_clear()
+
+
 class ClipboardWatcher(object):
-    """Watch clipboard with `pyperclip`, run callback while changed."""
+    """Watch clipboard with `pyperclip`, run callback while changed.
+
+    :: Example
+
+        from torequests.utils import ClipboardWatcher
+
+        ClipboardWatcher().x
+"""
 
     def __init__(self, interval=0.2, callback=None):
-        self.pyperclip = try_import("pyperclip")
+        try:
+            import pyperclip
+            self.pyperclip = pyperclip
+        except ImportError:
+            try:
+                self.pyperclip = TKClipboard()
+                logger.warning('pyperclip is not installed, using tkinter.')
+            except ImportError:
+                logger.error(
+                    'please install pyperclip or tkinter before using this tool.'
+                )
         self.interval = interval
         self.callback = callback or self.default_callback
         self.temp = self.current
@@ -1745,3 +1824,90 @@ def encode_as_base64(string, encoding='utf-8'):
 
 def decode_as_base64(string, encoding='utf-8'):
     return b64decode(string.encode(encoding)).decode(encoding)
+
+
+def _check_in_time(time_string, now=None):
+    now = now or datetime.now()
+    if '==' in time_string:
+        # check time_string with strftime: %Y==2020
+        fmt, target = time_string.split('==')
+        current = now.strftime(fmt)
+        # check current time format equals to target
+        return current == target
+    elif '!=' in time_string:
+        # check time_string with strftime: %Y!=2020
+        fmt, target = time_string.split('!=')
+        current = now.strftime(fmt)
+        # check current time format equals to target
+        return current != target
+    else:
+        # other hours format: [1, 3, 11, 23]
+        current_hour = now.hour
+        if time_string[0] == '[' and time_string[-1] == ']':
+            time_string_list = sorted(json.loads(time_string))
+        else:
+            nums = [int(num) for num in re.findall(r'\d+', time_string)]
+            time_string_list = sorted(range(*nums))
+        # check if current_hour is work hour
+        return current_hour in time_string_list
+
+
+def check_in_time(time_string, now=None):
+    """Check the datetime whether it fit time_string. Support logic symbol:
+    equal     => '=='
+    not equal => '!='
+    or        => '|'
+    and       => ';' or '&'
+
+    :: Test Code
+
+        from torequests.utils import check_in_time, datetime
+
+        now = datetime.strptime('2020-03-14 11:47:32', '%Y-%m-%d %H:%M:%S')
+
+        oks = [
+            '0, 24',
+            '[1, 2, 3, 11]',
+            '[1, 2, 3, 11];%Y==2020',
+            '%d==14',
+            '16, 24|[11]',
+            '16, 24|%M==47',
+            '%M==46|%M==47',
+            '%H!=11|%d!=12',
+            '16, 24|%M!=41',
+        ]
+
+        for time_string in oks:
+            ok = check_in_time(time_string, now)
+            print(ok, time_string)
+            assert ok
+
+        no_oks = [
+            '0, 5',
+            '[1, 2, 3, 5]',
+            '[1, 2, 3, 11];%Y==2021',
+            '%d==11',
+            '16, 24|[12]',
+            '%M==17|16, 24',
+            '%M==46|[1, 2, 3]',
+            '%H!=11&%d!=12',
+            '%M!=46;%M!=47',
+        ]
+
+        for time_string in no_oks:
+            ok = check_in_time(time_string, now)
+            print(ok, time_string)
+            assert not ok
+
+
+    """
+    if '|' in time_string:
+        if '&' in time_string or ';' in time_string:
+            raise ValueError('| can not use with "&" or ";"')
+        return any((_check_in_time(partial_work_hour, now)
+                    for partial_work_hour in time_string.split('|')))
+    else:
+        if ('&' in time_string or ';' in time_string) and '|' in time_string:
+            raise ValueError('| can not use with "&" or ";"')
+        return all((_check_in_time(partial_work_hour, now)
+                    for partial_work_hour in re.split('&|;', time_string)))
