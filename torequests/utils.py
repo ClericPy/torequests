@@ -1007,11 +1007,94 @@ def ensure_dict_key_title(dict_obj):
     return {key.title(): value for key, value in dict_obj.items()}
 
 
+class TKClipboard(object):
+    """Use tkinter to implement a simple pyperclip. Need python3-tk.
+
+    Example:
+
+        from torequests.utils import TKClipboard
+        text = '123'
+        pyperclip = TKClipboard()
+        pyperclip.clear()
+        print(repr(pyperclip.paste()))
+        pyperclip.copy(text)
+        print(repr(pyperclip.paste()))
+        pyperclip.append(text)
+        print(repr(pyperclip.paste()))
+        # ''
+        # '123'
+        # '123123'
+        with TKClipboard() as pyperclip:
+            pyperclip.clear()
+            print(repr(pyperclip.paste()))
+            pyperclip.copy(text)
+            print(repr(pyperclip.paste()))
+            pyperclip.append(text)
+            print(repr(pyperclip.paste()))
+            # ''
+            # '123'
+            # '123123'
+"""
+
+    def __init__(self):
+        from tkinter import Tk, TclError
+
+        self.root = Tk()
+        self.root.withdraw()
+        self.TclError = TclError
+        self.closed = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def __del__(self, *args):
+        self.close()
+
+    def close(self):
+        if not self.closed:
+            self.root.destroy()
+        self.closed = True
+
+    def paste(self):
+        try:
+            return self.root.clipboard_get()
+        except self.TclError:
+            return ''
+
+    def copy(self, text):
+        self.clear()
+        self.append(text)
+
+    def append(self, text):
+        return self.root.clipboard_append(text)
+
+    def clear(self):
+        return self.root.clipboard_clear()
+
+
 class ClipboardWatcher(object):
-    """Watch clipboard with `pyperclip`, run callback while changed."""
+    """Watch clipboard with `pyperclip`, run callback while changed.
+
+    Usage::
+
+        from torequests.utils import ClipboardWatcher
+
+        ClipboardWatcher().x
+"""
 
     def __init__(self, interval=0.2, callback=None):
-        self.pyperclip = try_import("pyperclip")
+        try:
+            import pyperclip
+            self.pyperclip = pyperclip
+        except ImportError:
+            try:
+                self.pyperclip = TKClipboard()
+                logger.warning('pyperclip is not installed, using tkinter.')
+            except ImportError:
+                logger.error('please install pyperclip or tkinter before using this tool.')
         self.interval = interval
         self.callback = callback or self.default_callback
         self.temp = self.current
