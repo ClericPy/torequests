@@ -537,7 +537,7 @@ class Requests(Loop):
                         if referer_info is not NotSet:
                             resp.referer_info = referer_info
                         await resp.read()
-                        resp.release()
+                        await resp.release()
                         return resp
                 except (ClientError, Error) as err:
                     error = err
