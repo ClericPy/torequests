@@ -1,6 +1,7 @@
 # here for python3 patch avoid of python2 SyntaxError
 import asyncio
 from functools import wraps
+from inspect import isawaitable
 from json import loads
 from logging import getLogger
 from typing import Coroutine, Tuple, Type
@@ -95,8 +96,9 @@ class NewResponse(ClientResponse):
     def json(self, encoding=None, loads=loads):
         return loads(self._body.decode(encoding or self.encoding))
 
-    def release(self) -> None:
-        super().release()
+    async def release(self) -> None:
+        # fix `coroutine 'noop' was never awaited`
+        await _ensure_can_be_await(super().release())
         # set content as bytes
         setattr(self, 'content', self._body)
         # set url as string
@@ -147,3 +149,9 @@ def _exhaust_simple_coro(coro: Coroutine):
             coro.send(None)
         except StopIteration as e:
             return e.value
+
+
+async def _ensure_can_be_await(obj):
+    if isawaitable(obj):
+        return await obj
+    return obj
