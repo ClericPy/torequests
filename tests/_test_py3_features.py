@@ -13,11 +13,11 @@ def test_dummy_Requests():
     test_url = "https://httpbin.org/json"
     tasks = [
         req.get(test_url,
-                      retry=1,
-                      verify=True,
-                      callback=lambda r: len(r.content),
-                      timeout=(2, 5),
-                      referer_info=i) for i in range(3)
+                retry=1,
+                verify=True,
+                callback=lambda r: len(r.content),
+                timeout=(2, 5),
+                referer_info=i) for i in range(3)
     ]
     req.x
     cb_results = [i.cx for i in tasks]
@@ -38,6 +38,10 @@ def test_dummy_Requests():
 
 def test_dummy_Requests_async():
     """use default event loop"""
+
+    async def async_validator(r):
+        await asyncio.sleep(0.001)
+        return r.status_code == 206
 
     async def test_async():
         async with Requests() as req:
@@ -66,6 +70,10 @@ def test_dummy_Requests_async():
             assert not await req.get(
                 'http://httpbin.org/status/206',
                 response_validator=lambda r: r.status_code == 200)
+            assert await req.get('http://httpbin.org/status/206',
+                                 response_validator=async_validator)
+            assert not await req.get('http://httpbin.org/status/201',
+                                     response_validator=async_validator)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(test_async())
@@ -79,8 +87,7 @@ def test_dummy_Requests_time_interval_frequency(capsys):
         ss = [
             req.get(
                 "http://p.3.cn",
-                callback=lambda x:
-                (len(x.content), print(req.frequencies)),
+                callback=lambda x: (len(x.content), print(req.frequencies)),
             ) for i in range(4)
         ]
         req.x
@@ -224,6 +231,10 @@ def test_aiohttp_dummy():
     from torequests.aiohttp_dummy import Requests
     from asyncio import get_event_loop
 
+    async def async_validator(r):
+        await asyncio.sleep(0.001)
+        return r.status_code == 206
+
     async def test1():
         url = 'http://httpbin.org/get'
         req = Requests()
@@ -257,5 +268,9 @@ def test_aiohttp_dummy():
         assert not await req.get(
             'http://httpbin.org/status/206',
             response_validator=lambda r: r.status_code == 200)
+        assert await req.get('http://httpbin.org/status/206',
+                             response_validator=async_validator)
+        assert not await req.get('http://httpbin.org/status/201',
+                                 response_validator=async_validator)
 
     get_event_loop().run_until_complete(test1())
