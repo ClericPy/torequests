@@ -62,7 +62,7 @@ class Requests:
                     if encoding:
                         setattr(resp, 'encoding', encoding)
                     await resp.read()
-                    await resp.release()
+                    resp.release()
                     return resp
             except self.retry_exceptions as err:
                 error = err
