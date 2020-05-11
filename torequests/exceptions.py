@@ -57,3 +57,7 @@ class FailureException(CommonException):
 
 class ImportErrorModule(CommonException, ImportError):
     pass
+
+
+class ValidationError(ValueError):
+    pass

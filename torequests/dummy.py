@@ -13,9 +13,9 @@ from urllib.parse import urlparse
 
 from aiohttp import BasicAuth, ClientError, ClientSession, ClientTimeout
 
-from ._py3_patch import (NewResponse, NotSet, _exhaust_simple_coro,
-                         _py36_all_task_patch, logger)
-from .exceptions import FailureException
+from ._py3_patch import (NewResponse, NotSet, _ensure_can_be_await,
+                         _exhaust_simple_coro, _py36_all_task_patch, logger)
+from .exceptions import FailureException, ValidationError
 from .frequency_controller.async_tools import AsyncFrequency as Frequency
 from .main import Error, NewFuture, Pool, ProcessPool
 
@@ -136,8 +136,12 @@ class Loop:
     def loop(self):
         # lazy init
         if self._loop is None:
-            self._loop = get_event_loop()
-        if self._loop.is_closed():
+            try:
+                self._loop = get_event_loop()
+            except RuntimeError:
+                # fix `There is no current event loop in thread 'MainThread'.`
+                self._loop = new_event_loop()
+        elif self._loop.is_closed():
             self._loop = new_event_loop()
         return self._loop
 
@@ -436,6 +440,7 @@ class Requests(Loop):
                  frequencies: Optional[Dict[str, Frequency]] = None,
                  default_host_frequency: Union[Frequency, None, Sequence,
                                                Dict] = None,
+                 retry_exceptions: tuple = (ClientError, Error),
                  *,
                  loop=None,
                  return_exceptions: Optional[bool] = None,
@@ -450,6 +455,7 @@ class Requests(Loop):
         # be compatible with old version's arg `return_exceptions`
         self.catch_exception = (catch_exception if return_exceptions is None
                                 else return_exceptions)
+        self.retry_exceptions = retry_exceptions
         self.frequencies = self.ensure_frequencies(frequencies)
         self.default_host_frequency = default_host_frequency
         self.global_frequency = Frequency(self.n, self.interval)
@@ -507,7 +513,8 @@ class Requests(Loop):
     async def _request(self,
                        method: str,
                        url: str,
-                       retry: Optional[int] = 0,
+                       retry: int = 0,
+                       response_validator: Optional[Callable] = None,
                        **kwargs):
         url = url.strip()
         parsed_url = urlparse(url)
@@ -538,9 +545,21 @@ class Requests(Loop):
                             resp.referer_info = referer_info
                         await resp.read()
                         resp.release()
+                        if response_validator and not await _ensure_can_be_await(
+                                response_validator(resp)):
+                            raise ValidationError(response_validator.__name__)
                         return resp
-                except (ClientError, Error) as err:
+                except self.retry_exceptions as err:
                     error = err
+                    logger.debug(
+                        "Retry %s for the %s time, Exception: %r . kwargs= %s" %
+                        (url, retries + 1, err, kwargs))
+                    continue
+                except ValidationError as err:
+                    error = err
+                    logger.debug(
+                        "Retry %s for the %s time, Exception: %r . kwargs= %s" %
+                        (url, retries + 1, err, kwargs))
                     continue
         else:
             kwargs["retry"] = retry
@@ -560,11 +579,16 @@ class Requests(Loop):
                 method: str,
                 url: str,
                 callback: Optional[Callable] = None,
-                retry: Optional[int] = 0,
+                retry: int = 0,
+                response_validator: Optional[Callable] = None,
                 **kwargs) -> Union[NewResponse, FailureException]:
         """Submit the coro of self._request to self.loop"""
         return self.submit(
-            self._request(method, url=url, retry=retry, **kwargs),
+            self._request(method,
+                          url=url,
+                          retry=retry,
+                          response_validator=response_validator,
+                          **kwargs),
             callback=(callback or self.default_callback),
         )
 
@@ -572,83 +596,97 @@ class Requests(Loop):
             url: str,
             params: Optional[dict] = None,
             callback: Optional[Callable] = None,
-            retry=0,
+            retry: int = 0,
+            response_validator: Optional[Callable] = None,
             **kwargs):
         return self.request("get",
                             url=url,
                             params=params,
                             callback=callback,
                             retry=retry,
+                            response_validator=response_validator,
                             **kwargs)
 
     def post(self,
              url: str,
              data=None,
              callback: Optional[Callable] = None,
-             retry=0,
+             retry: int = 0,
+             response_validator: Optional[Callable] = None,
              **kwargs):
         return self.request("post",
                             url=url,
                             data=data,
                             callback=callback,
                             retry=retry,
+                            response_validator=response_validator,
                             **kwargs)
 
     def delete(self,
                url: str,
                callback: Optional[Callable] = None,
-               retry: Optional[int] = 0,
+               retry: int = 0,
+               response_validator: Optional[Callable] = None,
                **kwargs):
         return self.request("delete",
                             url=url,
                             callback=callback,
                             retry=retry,
+                            response_validator=response_validator,
                             **kwargs)
 
     def put(self,
             url: str,
             data=None,
             callback: Optional[Callable] = None,
-            retry: Optional[int] = 0,
+            retry: int = 0,
+            response_validator: Optional[Callable] = None,
             **kwargs):
         return self.request("put",
                             url=url,
                             data=data,
                             callback=callback,
                             retry=retry,
+                            response_validator=response_validator,
                             **kwargs)
 
     def head(self,
              url: str,
              callback: Optional[Callable] = None,
-             retry: Optional[int] = 0,
+             retry: int = 0,
+             response_validator: Optional[Callable] = None,
              **kwargs):
         return self.request("head",
                             url=url,
                             callback=callback,
                             retry=retry,
+                            response_validator=response_validator,
                             **kwargs)
 
     def options(self,
                 url: str,
                 callback: Optional[Callable] = None,
-                retry: Optional[int] = 0,
+                retry: int = 0,
+                response_validator: Optional[Callable] = None,
                 **kwargs):
         return self.request("options",
                             url=url,
                             callback=callback,
                             retry=retry,
+                            response_validator=response_validator,
                             **kwargs)
 
     def patch(self,
               url: str,
               callback: Optional[Callable] = None,
-              retry: Optional[int] = 0,
+              retry: int = 0,
+              response_validator: Optional[Callable] = None,
               **kwargs):
         return self.request("patch",
                             url=url,
                             callback=callback,
                             retry=retry,
+                            response_validator=response_validator,
                             **kwargs)
 
     async def close(self):
