@@ -7,8 +7,9 @@ from typing import Callable, Optional, Union
 
 from aiohttp import ClientError, ClientSession
 
-from ._py3_patch import NewResponse, NotSet, _exhaust_simple_coro, logger
-from .exceptions import FailureException
+from ._py3_patch import (NewResponse, NotSet, _ensure_can_be_await,
+                         _exhaust_simple_coro, logger)
+from .exceptions import FailureException, ValidationError
 
 
 class Requests:
@@ -41,10 +42,12 @@ class Requests:
                       retry: int = 0,
                       callback: Optional[Callable] = None,
                       referer_info=NotSet,
+                      response_validator: Optional[Callable] = None,
                       **kwargs) -> Union[NewResponse, FailureException]:
         result = await self._request(method=method,
                                      url=url,
                                      retry=retry,
+                                     response_validator=response_validator,
                                      **kwargs)
         if referer_info is not NotSet:
             setattr(result, 'referer_info', referer_info)
@@ -54,7 +57,12 @@ class Requests:
                 return await result
         return result
 
-    async def _request(self, method: str, url: str, retry: int = 0, **kwargs):
+    async def _request(self,
+                       method: str,
+                       url: str,
+                       retry: int = 0,
+                       response_validator: Optional[Callable] = None,
+                       **kwargs):
         encoding = kwargs.pop("encoding", None)
         for retries in range(retry + 1):
             try:
@@ -63,8 +71,15 @@ class Requests:
                         setattr(resp, 'encoding', encoding)
                     await resp.read()
                     resp.release()
+                    if response_validator and not await _ensure_can_be_await(
+                            response_validator(resp)):
+                        raise ValidationError(
+                            getattr(response_validator, "__name__", ""))
                     return resp
             except self.retry_exceptions as err:
+                error = err
+                continue
+            except ValidationError as err:
                 error = err
                 continue
         else:
@@ -81,6 +96,7 @@ class Requests:
                   retry: int = 0,
                   callback: Optional[Callable] = None,
                   referer_info=NotSet,
+                  response_validator: Optional[Callable] = None,
                   **kwargs):
         return await self.request("get",
                                   url=url,
@@ -88,6 +104,7 @@ class Requests:
                                   retry=retry,
                                   callback=callback,
                                   referer_info=referer_info,
+                                  response_validator=response_validator,
                                   **kwargs)
 
     async def post(self,
@@ -96,6 +113,7 @@ class Requests:
                    retry: int = 0,
                    callback: Optional[Callable] = None,
                    referer_info=NotSet,
+                   response_validator: Optional[Callable] = None,
                    **kwargs):
         return await self.request("post",
                                   url=url,
@@ -103,6 +121,7 @@ class Requests:
                                   retry=retry,
                                   callback=callback,
                                   referer_info=referer_info,
+                                  response_validator=response_validator,
                                   **kwargs)
 
     async def delete(self,
@@ -110,12 +129,14 @@ class Requests:
                      retry: int = 0,
                      callback: Optional[Callable] = None,
                      referer_info=NotSet,
+                     response_validator: Optional[Callable] = None,
                      **kwargs):
         return await self.request("delete",
                                   url=url,
                                   retry=retry,
                                   callback=callback,
                                   referer_info=referer_info,
+                                  response_validator=response_validator,
                                   **kwargs)
 
     async def put(self,
@@ -124,6 +145,7 @@ class Requests:
                   retry: int = 0,
                   callback: Optional[Callable] = None,
                   referer_info=NotSet,
+                  response_validator: Optional[Callable] = None,
                   **kwargs):
         return await self.request("put",
                                   url=url,
@@ -131,6 +153,7 @@ class Requests:
                                   retry=retry,
                                   callback=callback,
                                   referer_info=referer_info,
+                                  response_validator=response_validator,
                                   **kwargs)
 
     async def head(self,
@@ -138,12 +161,14 @@ class Requests:
                    retry: int = 0,
                    callback: Optional[Callable] = None,
                    referer_info=NotSet,
+                   response_validator: Optional[Callable] = None,
                    **kwargs):
         return await self.request("head",
                                   url=url,
                                   retry=retry,
                                   callback=callback,
                                   referer_info=referer_info,
+                                  response_validator=response_validator,
                                   **kwargs)
 
     async def options(self,
@@ -151,12 +176,14 @@ class Requests:
                       retry: int = 0,
                       callback: Optional[Callable] = None,
                       referer_info=NotSet,
+                      response_validator: Optional[Callable] = None,
                       **kwargs):
         return await self.request("options",
                                   url=url,
                                   retry=retry,
                                   callback=callback,
                                   referer_info=referer_info,
+                                  response_validator=response_validator,
                                   **kwargs)
 
     async def patch(self,
@@ -164,12 +191,14 @@ class Requests:
                     retry: int = 0,
                     callback: Optional[Callable] = None,
                     referer_info=NotSet,
+                    response_validator: Optional[Callable] = None,
                     **kwargs):
         return await self.request("patch",
                                   url=url,
                                   retry=retry,
                                   callback=callback,
                                   referer_info=referer_info,
+                                  response_validator=response_validator,
                                   **kwargs)
 
     @property
