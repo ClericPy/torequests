@@ -4,9 +4,10 @@
 import atexit
 from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
                                 as_completed)
-from concurrent.futures._base import (
-    CANCELLED, CANCELLED_AND_NOTIFIED, FINISHED, PENDING, RUNNING,
-    CancelledError, Error, Executor, Future, TimeoutError)
+from concurrent.futures._base import (CANCELLED, CANCELLED_AND_NOTIFIED,
+                                      FINISHED, PENDING, RUNNING,
+                                      CancelledError, Error, Executor, Future,
+                                      TimeoutError)
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
 from logging import getLogger
@@ -19,7 +20,7 @@ from requests.adapters import HTTPAdapter
 from urllib3 import disable_warnings
 
 from .configs import Config
-from .exceptions import FailureException
+from .exceptions import FailureException, ValidationError
 from .frequency_controller.sync_tools import Frequency
 from .versions import PY2, PY3
 
@@ -508,20 +509,20 @@ class tPool(object):
     """
 
     def __init__(
-            self,
-            n=None,
-            interval=0,
-            timeout=None,
-            session=None,
-            catch_exception=True,
-            default_callback=None,
+        self,
+        n=None,
+        interval=0,
+        timeout=None,
+        session=None,
+        catch_exception=True,
+        default_callback=None,
     ):
         self.pool = Pool(n, timeout)
         self.session = session if session else Session()
         self.n = n or 10
         # adapt the concurrent limit.
-        custom_adapter = HTTPAdapter(
-            pool_connections=self.n, pool_maxsize=self.n)
+        custom_adapter = HTTPAdapter(pool_connections=self.n,
+                                     pool_maxsize=self.n)
         self.session.mount("http://", custom_adapter)
         self.session.mount("https://", custom_adapter)
         self.interval = interval
@@ -553,7 +554,7 @@ class tPool(object):
     def __del__(self):
         self.close()
 
-    def _request(self, method, url, retry=0, **kwargs):
+    def _request(self, method, url, retry=0, response_validator=None, **kwargs):
         kwargs["url"] = url
         kwargs["method"] = method
         # non-official request args
@@ -567,11 +568,13 @@ class tPool(object):
                         resp.encoding = encoding
                     logger.debug("%s done, %s" % (url, kwargs))
                     resp.referer_info = referer_info
+                    if response_validator and not response_validator(resp):
+                        raise ValidationError(response_validator.__name__)
                     return resp
                 except (RequestException, Error) as e:
                     error = e
                     logger.debug(
-                        "Retry %s for the %s time, Exception: %s . kwargs= %s" %
+                        "Retry %s for the %s time, Exception: %r . kwargs= %s" %
                         (url, _ + 1, e, kwargs))
                     continue
         # for unofficial request args
@@ -588,96 +591,217 @@ class tPool(object):
         else:
             raise failure
 
-    def request(self, method, url, callback=None, retry=0, **kwargs):
+    def request(self,
+                method,
+                url,
+                callback=None,
+                retry=0,
+                response_validator=None,
+                **kwargs):
         """Similar to `requests.request`, but return as NewFuture."""
-        return self.pool.submit(
-            self._request,
-            method=method,
-            url=url,
-            retry=retry,
-            callback=callback or self.default_callback,
-            **kwargs)
+        return self.pool.submit(self._request,
+                                method=method,
+                                url=url,
+                                retry=retry,
+                                response_validator=response_validator,
+                                callback=callback or self.default_callback,
+                                **kwargs)
 
-    def get(self, url, params=None, callback=None, retry=0, **kwargs):
+    def get(self,
+            url,
+            params=None,
+            callback=None,
+            retry=0,
+            response_validator=None,
+            **kwargs):
         """Similar to `requests.get`, but return as NewFuture."""
         kwargs.setdefault("allow_redirects", True)
-        return self.request(
-            "get",
-            url=url,
-            params=params,
-            callback=callback,
-            retry=retry,
-            **kwargs)
+        return self.request("get",
+                            url=url,
+                            params=params,
+                            callback=callback,
+                            retry=retry,
+                            response_validator=response_validator,
+                            **kwargs)
 
-    def post(self, url, data=None, json=None, callback=None, retry=0, **kwargs):
+    def post(self,
+             url,
+             data=None,
+             json=None,
+             callback=None,
+             retry=0,
+             response_validator=None,
+             **kwargs):
         """Similar to `requests.post`, but return as NewFuture."""
-        return self.request(
-            "post",
-            url=url,
-            data=data,
-            json=json,
-            callback=callback,
-            retry=retry,
-            **kwargs)
+        return self.request("post",
+                            url=url,
+                            data=data,
+                            json=json,
+                            callback=callback,
+                            retry=retry,
+                            response_validator=response_validator,
+                            **kwargs)
 
-    def delete(self, url, callback=None, retry=0, **kwargs):
+    def delete(self,
+               url,
+               callback=None,
+               retry=0,
+               response_validator=None,
+               **kwargs):
         """Similar to `requests.delete`, but return as NewFuture."""
-        return self.request(
-            "delete", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("delete",
+                            url=url,
+                            callback=callback,
+                            retry=retry,
+                            response_validator=response_validator,
+                            **kwargs)
 
-    def put(self, url, data=None, callback=None, retry=0, **kwargs):
+    def put(self,
+            url,
+            data=None,
+            callback=None,
+            retry=0,
+            response_validator=None,
+            **kwargs):
         """Similar to `requests.put`, but return as NewFuture."""
-        return self.request(
-            "put", url=url, data=data, callback=callback, retry=retry, **kwargs)
+        return self.request("put",
+                            url=url,
+                            data=data,
+                            callback=callback,
+                            retry=retry,
+                            response_validator=response_validator,
+                            **kwargs)
 
-    def head(self, url, callback=None, retry=0, **kwargs):
+    def head(self,
+             url,
+             callback=None,
+             retry=0,
+             response_validator=None,
+             **kwargs):
         """Similar to `requests.head`, but return as NewFuture."""
         kwargs.setdefault("allow_redirects", False)
-        return self.request(
-            "head", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("head",
+                            url=url,
+                            callback=callback,
+                            retry=retry,
+                            response_validator=response_validator,
+                            **kwargs)
 
-    def options(self, url, callback=None, retry=0, **kwargs):
+    def options(self,
+                url,
+                callback=None,
+                retry=0,
+                response_validator=None,
+                **kwargs):
         """Similar to `requests.options`, but return as NewFuture."""
         kwargs.setdefault("allow_redirects", True)
-        return self.request(
-            "options", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("options",
+                            url=url,
+                            callback=callback,
+                            retry=retry,
+                            response_validator=response_validator,
+                            **kwargs)
 
-    def patch(self, url, callback=None, retry=0, **kwargs):
+    def patch(self,
+              url,
+              callback=None,
+              retry=0,
+              response_validator=None,
+              **kwargs):
         """Similar to `requests.patch`, but return as NewFuture."""
-        return self.request(
-            "patch", url=url, callback=callback, retry=retry, **kwargs)
+        return self.request("patch",
+                            url=url,
+                            callback=callback,
+                            retry=retry,
+                            response_validator=response_validator,
+                            **kwargs)
 
 
-def get(url, params=None, callback=None, retry=0, **kwargs):
-    return tPool().get(
-        url, params=params, callback=callback, retry=retry, **kwargs)
+def get(url,
+        params=None,
+        callback=None,
+        retry=0,
+        response_validator=None,
+        **kwargs):
+    return tPool().get(url,
+                       params=params,
+                       callback=callback,
+                       retry=retry,
+                       response_validator=response_validator,
+                       **kwargs)
 
 
-def post(url, data=None, json=None, callback=None, retry=0, **kwargs):
-    return tPool().post(
-        url, data=data, json=json, callback=callback, retry=retry, **kwargs)
+def post(url,
+         data=None,
+         json=None,
+         callback=None,
+         retry=0,
+         response_validator=None,
+         **kwargs):
+    return tPool().post(url,
+                        data=data,
+                        json=json,
+                        callback=callback,
+                        retry=retry,
+                        response_validator=response_validator,
+                        **kwargs)
 
 
-def delete(url, callback=None, retry=0, **kwargs):
-    return tPool().delete(url, callback=callback, retry=retry, **kwargs)
+def delete(url, callback=None, retry=0, response_validator=None, **kwargs):
+    return tPool().delete(url,
+                          callback=callback,
+                          retry=retry,
+                          response_validator=response_validator,
+                          **kwargs)
 
 
-def put(url, data=None, callback=None, retry=0, **kwargs):
-    return tPool().put(url, data=data, callback=callback, retry=retry, **kwargs)
+def put(url,
+        data=None,
+        callback=None,
+        retry=0,
+        response_validator=None,
+        **kwargs):
+    return tPool().put(url,
+                       data=data,
+                       callback=callback,
+                       retry=retry,
+                       response_validator=response_validator,
+                       **kwargs)
 
 
-def head(url, callback=None, retry=0, **kwargs):
-    return tPool().head(url, callback=callback, retry=retry, **kwargs)
+def head(url, callback=None, retry=0, response_validator=None, **kwargs):
+    return tPool().head(url,
+                        callback=callback,
+                        retry=retry,
+                        response_validator=response_validator,
+                        **kwargs)
 
 
-def options(url, callback=None, retry=0, **kwargs):
-    return tPool().options(url, callback=callback, retry=retry, **kwargs)
+def options(url, callback=None, retry=0, response_validator=None, **kwargs):
+    return tPool().options(url,
+                           callback=callback,
+                           retry=retry,
+                           response_validator=response_validator,
+                           **kwargs)
 
 
-def patch(url, callback=None, retry=0, **kwargs):
-    return tPool().patch(url, callback=callback, retry=retry, **kwargs)
+def patch(url, callback=None, retry=0, response_validator=None, **kwargs):
+    return tPool().patch(url,
+                         callback=callback,
+                         retry=retry,
+                         response_validator=response_validator,
+                         **kwargs)
 
 
-def request(method, url, callback=None, retry=0, **kwargs):
-    return tPool().request(
-        method, url, callback=callback, retry=retry, **kwargs)
+def request(method,
+            url,
+            callback=None,
+            retry=0,
+            response_validator=None,
+            **kwargs):
+    return tPool().request(method,
+                           url,
+                           callback=callback,
+                           retry=retry,
+                           response_validator=response_validator,
+                           **kwargs)

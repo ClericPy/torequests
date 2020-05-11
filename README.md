@@ -26,7 +26,7 @@ Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-co
 * Simplify aiohttp, make it `requests-like`.
 * Add FailureException to check the context of request failure.
 * Add frequency control, prevent from anti-spider based on frequency check.
-* Add retry for request.
+* Add retry for request. (support `response_validator`)
 * Alenty of common crawler utils.
 * Compatible with [uniparser]( https://github.com/ClericPy/uniparser )
 
