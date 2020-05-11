@@ -9,17 +9,17 @@ from torequests.utils import retry
 
 def test_dummy_Requests():
     """use default event loop"""
-    trequests = Requests()
+    req = Requests()
     test_url = "https://httpbin.org/json"
     tasks = [
-        trequests.get(test_url,
+        req.get(test_url,
                       retry=1,
                       verify=True,
                       callback=lambda r: len(r.content),
                       timeout=(2, 5),
                       referer_info=i) for i in range(3)
     ]
-    trequests.x
+    req.x
     cb_results = [i.cx for i in tasks]
     # test and ensure task.cx is callback result
     assert all([isinstance(i, int) for i in cb_results
@@ -40,14 +40,14 @@ def test_dummy_Requests_async():
     """use default event loop"""
 
     async def test_async():
-        async with Requests() as trequests:
+        async with Requests() as req:
             test_url = "https://httpbin.org/json"
             tasks = [
-                trequests.get(test_url,
-                              retry=1,
-                              callback=lambda r: len(r.content),
-                              timeout=(2, 5),
-                              referer_info=i) for i in range(3)
+                req.get(test_url,
+                        retry=1,
+                        callback=lambda r: len(r.content),
+                        timeout=(2, 5),
+                        referer_info=i) for i in range(3)
             ]
             result = [(await task).text for task in tasks]
             assert all(result), "fail: test_dummy_Requests_async"
@@ -60,6 +60,12 @@ def test_dummy_Requests_async():
             assert r.status_code == 200
             assert isinstance(r.url, str)
             assert r.referer_info == 0
+            assert await req.get(
+                'http://httpbin.org/status/206',
+                response_validator=lambda r: r.status_code == 206)
+            assert not await req.get(
+                'http://httpbin.org/status/206',
+                response_validator=lambda r: r.status_code == 200)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(test_async())
@@ -68,16 +74,16 @@ def test_dummy_Requests_async():
 def test_dummy_Requests_time_interval_frequency(capsys):
     """  test_dummy_Requests_time_interval_frequency"""
     with capsys.disabled():
-        trequests = Requests(frequencies={"p.3.cn": (2, 1)})
+        req = Requests(frequencies={"p.3.cn": (2, 1)})
         print("\n")
         ss = [
-            trequests.get(
+            req.get(
                 "http://p.3.cn",
                 callback=lambda x:
-                (len(x.content), print(trequests.frequencies)),
+                (len(x.content), print(req.frequencies)),
             ) for i in range(4)
         ]
-        trequests.x
+        req.x
         assert ss[-1].task_cost_time >= 1, 'fail test task_cost_time'
         ss = [i.cx for i in ss]
         assert all(ss), "fail: test_dummy_Requests_time_interval_frequency"
@@ -246,5 +252,10 @@ def test_aiohttp_dummy():
         assert r.status_code == 200
         assert isinstance(r.url, str)
         assert r.referer_info == 0
+        assert await req.get('http://httpbin.org/status/206',
+                             response_validator=lambda r: r.status_code == 206)
+        assert not await req.get(
+            'http://httpbin.org/status/206',
+            response_validator=lambda r: r.status_code == 200)
 
     get_event_loop().run_until_complete(test1())
