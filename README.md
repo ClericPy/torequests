@@ -4,25 +4,20 @@
 
 Briefly speaking, requests & aiohttp wrapper for asynchronous programming rookie, to shorten the code quantity. 
 
-## Install:
+# Install:
 
 > pip install torequests -U
 
-#### requirements
+### requirements
 
-##### python2.7 / python3.6+
+python2.7 / python3.6+
 
     | requests			# python
     | futures 			# python2
     | aiohttp >= 3.0.5 	# python3
     | uvloop  			# python3
 
-**optional:**
-
-    | psutil
-    | pyperclip
-
-## Features
+# Features
 
 Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-coding brief & smooth, compatible for win32 / python 2&3.
 
@@ -35,9 +30,9 @@ Inspired by [tomorrow](https://github.com/madisonmay/Tomorrow), to make async-co
 * Alenty of common crawler utils.
 * Compatible with [uniparser]( https://github.com/ClericPy/uniparser )
 
-## Getting started
+# Getting started
 
-### 1. Async, threads - make functions asynchronous
+## 1. Async, threads - make functions asynchronous
 
 ```python
 from torequests import threads, Async
@@ -67,7 +62,7 @@ print(future.x, ', %s s passed' % (int(time.time() - start)))
 # <NewFuture at 0x34b1d30 state=running> , 0 s passed
 # test1 ok , 1 s passed
 ```
-### 2. tPool - thread pool for async-requests
+## 2. tPool - thread pool for async-requests
 
 ```python
 from torequests.main import tPool
@@ -98,7 +93,7 @@ print_info(ss)
 
 ```
 
-#### 2.1 Performance.
+### 2.1 Performance.
 
 ```verilog
 [3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]]: 2000 / 2000, 100.0%, cost 4.2121 seconds, 475.0 qps.
@@ -130,7 +125,7 @@ print(
     .format(**vars()))
 ```
 
-### 3. Requests - aiohttp-wrapper
+## 3. Requests - aiohttp-wrapper
 
 ```python
 from torequests.dummy import Requests
@@ -160,7 +155,7 @@ print_info(ss)
 # [2020-01-21 18:15:34] temp_code.py(20): [(612, None), (612, None), (612, None), (612, None)]
 ```
 
-#### 3.1 Performance.
+### 3.1 Performance.
 
 >  aiohttp is almostly 3 times faster than requests + ThreadPoolExecutor, even without uvloop on windows10.
 
@@ -229,7 +224,7 @@ if __name__ == "__main__":
 
 ```
 
-#### 3.2 using torequests.dummy.Requests in async environment.
+### 3.2 using torequests.dummy.Requests in async environment.
 
 ```python
 import asyncio
@@ -255,7 +250,7 @@ if __name__ == "__main__":
 
 ```
 
-#### 3.3 using torequests.aiohttp_dummy.Requests for better performance.
+### 3.3 using torequests.aiohttp_dummy.Requests for better performance.
 
 > Removes the frequency_controller & sync usage (task.x) & compatible args of requests for good performance, but remains retry / callback / referer_info.
 
@@ -294,7 +289,7 @@ get_event_loop().run_until_complete(main())
 ```
 
 
-### 4. utils: some useful crawler toolkits
+## 4. utils: some useful crawler toolkits
 
     ClipboardWatcher: watch your clipboard changing.
     Counts: counter while every time being called.
@@ -316,18 +311,18 @@ get_event_loop().run_until_complete(main())
     ...
 
 
-## Benchmarks
+# Benchmarks
 > Benchmark of concurrent is not very necessary and accurate, just take a look.
 
-### Test Server: golang net/http
+## Test Server: golang net/http
 
 Source code: [go_test_server.go](https://github.com/ClericPy/torequests/blob/master/benchmarks/go_test_server.go)
 
-### Client Testing Code
+## Client Testing Code
 
 Source code: [py_test_client.py](https://github.com/ClericPy/torequests/blob/master/benchmarks/py_test_client.py)
 
-### Test Result on Windows (without uvloop)
+## Test Result on Windows (without uvloop)
 
 > Intel(R) Core(TM) i7-8750H CPU @ 2.20GHz (12 CPUs), ~2.2GHz; 12 logical CPUs.
 
@@ -343,7 +338,7 @@ test_httpx               : 2000 / 2000 = 100.0%, cost 4.065s,  492 qps,  32% sta
 test_tPool               : 2000 / 2000 = 100.0%, cost 5.161s,  388 qps,  25% standard.
 ```
 
-### Test Result on Linux (with uvloop)
+## Test Result on Linux (with uvloop)
 
 > Intel(R) Xeon(R) Platinum 8163 CPU @ 2.50GHz; 1 logical CPU.
 
@@ -360,7 +355,7 @@ test_httpx               : 2000 / 2000 = 100.0%, cost 2.349s,  852 qps,  28% sta
 test_tPool               : 2000 / 2000 = 100.0%, cost 2.708s,  739 qps,  24% standard.
 ```
 
-### Conclusion
+## Conclusion
 
 1. **aiohttp** is the fastest, for the cython utils
    1. aiohttp's qps is 2866 on 1 cpu linux with uvloop, near to golang's 3300.
@@ -372,7 +367,7 @@ test_tPool               : 2000 / 2000 = 100.0%, cost 2.708s,  739 qps,  24% sta
    2. less than **10%** performance lost with uvloop.
 4. **httpx** is faster than **requests + threading,** but not very obviously on linux.
 
-#### PS
+### PS:
 
 **golang - net/http** 's performance
 
@@ -387,8 +382,8 @@ test_tPool               : 2000 / 2000 = 100.0%, cost 2.708s,  739 qps,  24% sta
 
 [go_test_client.go](https://github.com/ClericPy/torequests/blob/master/benchmarks/go_test_client.go)
 
-## Documentation
+# Documentation
 > [Document & Usage](https://torequests.readthedocs.io/en/latest/)
 
-## License
+# License
 > [MIT license](LICENSE)
