@@ -9,11 +9,10 @@ def test_main_tPool():
     trequests = torequests.tPool(2, 1)
     test_url = "http://p.3.cn"
     tasks = [
-        trequests.get(
-            test_url,
-            retry=2,
-            callback=lambda x: print_info(i) or len(x.content),
-            referer_info=i) for i in range(3)
+        trequests.get(test_url,
+                      retry=2,
+                      callback=lambda x: print_info(i) or len(x.content),
+                      referer_info=i) for i in range(3)
     ]
     # [i.x for i in ss]
     trequests.x
@@ -23,6 +22,9 @@ def test_main_tPool():
     assert tasks[0].referer_info == 0
     r = torequests.get(test_url, retry=1, timeout=3)
     assert "Welcome to nginx!" in r.text
+    assert not trequests.get(
+        'http://httpbin.org/status/206',
+        response_validator=lambda r: r.status_code == 200).x
 
 
 def test_sync_frequency():
