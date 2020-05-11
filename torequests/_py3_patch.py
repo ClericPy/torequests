@@ -96,9 +96,8 @@ class NewResponse(ClientResponse):
     def json(self, encoding=None, loads=loads):
         return loads(self._body.decode(encoding or self.encoding))
 
-    async def release(self) -> None:
-        # fix `coroutine 'noop' was never awaited`
-        await _ensure_can_be_await(super().release())
+    def release(self) -> None:
+        super().release()
         # set content as bytes
         setattr(self, 'content', self._body)
         # set url as string
