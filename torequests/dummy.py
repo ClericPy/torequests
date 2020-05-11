@@ -547,14 +547,19 @@ class Requests(Loop):
                         resp.release()
                         if response_validator and not await _ensure_can_be_await(
                                 response_validator(resp)):
-                            raise ValidationError(
-                                getattr(response_validator, "__name__", ""))
+                            raise ValidationError(response_validator.__name__)
                         return resp
                 except self.retry_exceptions as err:
                     error = err
+                    logger.debug(
+                        "Retry %s for the %s time, Exception: %r . kwargs= %s" %
+                        (url, retries + 1, err, kwargs))
                     continue
                 except ValidationError as err:
                     error = err
+                    logger.debug(
+                        "Retry %s for the %s time, Exception: %r . kwargs= %s" %
+                        (url, retries + 1, err, kwargs))
                     continue
         else:
             kwargs["retry"] = retry
