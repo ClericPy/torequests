@@ -436,6 +436,7 @@ class Requests(Loop):
                  frequencies: Optional[Dict[str, Frequency]] = None,
                  default_host_frequency: Union[Frequency, None, Sequence,
                                                Dict] = None,
+                 retry_exceptions: tuple = (ClientError, Error),
                  *,
                  loop=None,
                  return_exceptions: Optional[bool] = None,
@@ -450,6 +451,7 @@ class Requests(Loop):
         # be compatible with old version's arg `return_exceptions`
         self.catch_exception = (catch_exception if return_exceptions is None
                                 else return_exceptions)
+        self.retry_exceptions = retry_exceptions
         self.frequencies = self.ensure_frequencies(frequencies)
         self.default_host_frequency = default_host_frequency
         self.global_frequency = Frequency(self.n, self.interval)
@@ -539,7 +541,7 @@ class Requests(Loop):
                         await resp.read()
                         resp.release()
                         return resp
-                except (ClientError, Error) as err:
+                except self.retry_exceptions as err:
                     error = err
                     continue
         else:
