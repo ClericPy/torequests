@@ -15,6 +15,7 @@ import sys
 import time
 import timeit
 from base64 import b64decode, b64encode
+from codecs import open
 from datetime import datetime
 from fractions import Fraction
 from functools import wraps
@@ -1239,6 +1240,7 @@ class Saver(object):
         "_instances",
         "_get_home_path",
         "_save_back_up",
+        "_encoding",
     }
     _protected_keys = _protected_keys | set(object.__dict__.keys())
 
@@ -1246,6 +1248,7 @@ class Saver(object):
                 path=None,
                 save_mode="json",
                 auto_backup=False,
+                encoding='utf-8',
                 **saver_args):
         # BORG
         path = path or cls._get_home_path(save_mode=save_mode)
@@ -1255,9 +1258,11 @@ class Saver(object):
                  path=None,
                  save_mode="json",
                  auto_backup=False,
+                 encoding='utf-8',
                  **saver_args):
         super(Saver, self).__init__()
         self._auto_backup = auto_backup
+        self._encoding = encoding
         self._lock = self.__class__._locks.setdefault(path, Lock())
         self._path = path or self._get_home_path(save_mode=save_mode)
         self._saver_args = saver_args
@@ -1285,7 +1290,7 @@ class Saver(object):
     def _save_obj(self, obj):
         mode = "wb" if self._save_mode == "pickle" else "w"
         with self._lock:
-            with open(self._path, mode) as f:
+            with open(self._path, mode, encoding=self._encoding) as f:
                 if self._save_mode == "json":
                     json.dump(obj, f, **self._saver_args)
                 if self._save_mode == "pickle":
@@ -1301,7 +1306,7 @@ class Saver(object):
             return cache
         mode = "rb" if self._save_mode == "pickle" else "r"
         with self._lock:
-            with open(self._path, mode) as f:
+            with open(self._path, mode, encoding=self._encoding) as f:
                 if self._save_mode == "json":
                     return json.load(f)
                 if self._save_mode == "pickle":
