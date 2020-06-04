@@ -15,6 +15,7 @@ import sys
 import time
 import timeit
 from base64 import b64decode, b64encode
+from codecs import open
 from datetime import datetime
 from fractions import Fraction
 from functools import wraps
@@ -205,21 +206,28 @@ class _Curl:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("curl")
-    parser.add_argument("url")
-    parser.add_argument("-X", "--method", default="get")
+    parser.add_argument("--url", default='')
+    parser.add_argument("-X", "--request", default="get")
     parser.add_argument("-A", "--user-agent")
+    parser.add_argument("-e", "--referer")
     parser.add_argument("-u", "--user")  # <user[:password]>
     parser.add_argument("-x", "--proxy")  # proxy.com:port
-    parser.add_argument("-d", "--data")
-    parser.add_argument("-F", "--form")
+    parser.add_argument("-d", "--data", "--data-raw")
+    parser.add_argument("-F", "--form", "--form-string")
     parser.add_argument("--data-binary")
+    parser.add_argument("--data-urlencode")
+    parser.add_argument("-I", "--head", action="store_true")
+    parser.add_argument("-L", "--location", action="store_true")
+    # for retry
+    parser.add_argument("--retry-max-time", type=int, default=0)
     parser.add_argument("--connect-timeout", type=float)
+    parser.add_argument("-m", "--max-time", type=float)
     # key: value
     parser.add_argument("-H", "--header", action="append", default=[])
     parser.add_argument("--compressed", action="store_true")
 
 
-def curlparse(string, encoding="utf-8"):
+def curlparse(string, encoding="utf-8", remain_unknown_args=False):
     """Translate curl-string into dict of request. Do not support file upload which contains @file_path.
         :param string: standard curl-string, like `r'''curl ...'''`.
         :param encoding: encoding for post-data encoding.
@@ -260,11 +268,20 @@ def curlparse(string, encoding="utf-8"):
     requests_args = {}
     headers = {}
     requests_args["url"] = unescape_sig(args.url)
+    if not requests_args["url"]:
+        for arg in unknown:
+            if re.match(r'https?://', arg):
+                requests_args["url"] = arg
+                break
+        # else:
+        #     return None
     for header in args.header:
         key, value = unescape_sig(header).split(":", 1)
         headers[key.title()] = value.strip()
     if args.user_agent:
         headers["User-Agent"] = unescape_sig(args.user_agent)
+    if args.referer:
+        headers["Referer"] = args.referer
     if headers:
         requests_args["headers"] = headers
     if args.user:
@@ -274,8 +291,10 @@ def curlparse(string, encoding="utf-8"):
     # if args.proxy:
     #     pass
     data = args.data or args.data_binary or args.form
+    if args.data_urlencode:
+        data = quote_plus(args.data_urlencode)
     if data:
-        args.method = "post"
+        args.request = "post"
         # if PY2:
         #     # not fix the UnicodeEncodeError, so use `replace`, damn python2.x.
         #     data = data.replace(r'\r', '\r').replace(r'\n', '\n')
@@ -284,9 +303,21 @@ def curlparse(string, encoding="utf-8"):
         #         'latin-1',
         #         'backslashreplace').decode('unicode-escape').encode(encoding)
         requests_args["data"] = unescape_sig(data).encode(encoding)
-    requests_args["method"] = args.method.lower()
-    if args.connect_timeout:
+    requests_args["method"] = args.request.lower()
+    if args.head:
+        requests_args['method'] = 'head'
+    if args.connect_timeout and args.max_time:
+        requests_args["timeout"] = (args.connect_timeout, args.max_time)
+    elif args.connect_timeout:
         requests_args["timeout"] = args.connect_timeout
+    elif args.max_time:
+        requests_args["timeout"] = args.max_time
+    if remain_unknown_args:
+        requests_args['unknown_args'] = unknown
+    if args.location:
+        requests_args['allow_redirects'] = True
+    if args.retry_max_time:
+        requests_args['retry'] = args.retry_max_time
     return requests_args
 
 
@@ -1209,6 +1240,7 @@ class Saver(object):
         "_instances",
         "_get_home_path",
         "_save_back_up",
+        "_encoding",
     }
     _protected_keys = _protected_keys | set(object.__dict__.keys())
 
@@ -1216,6 +1248,7 @@ class Saver(object):
                 path=None,
                 save_mode="json",
                 auto_backup=False,
+                encoding='utf-8',
                 **saver_args):
         # BORG
         path = path or cls._get_home_path(save_mode=save_mode)
@@ -1225,9 +1258,11 @@ class Saver(object):
                  path=None,
                  save_mode="json",
                  auto_backup=False,
+                 encoding='utf-8',
                  **saver_args):
         super(Saver, self).__init__()
         self._auto_backup = auto_backup
+        self._encoding = encoding
         self._lock = self.__class__._locks.setdefault(path, Lock())
         self._path = path or self._get_home_path(save_mode=save_mode)
         self._saver_args = saver_args
@@ -1255,7 +1290,7 @@ class Saver(object):
     def _save_obj(self, obj):
         mode = "wb" if self._save_mode == "pickle" else "w"
         with self._lock:
-            with open(self._path, mode) as f:
+            with open(self._path, mode, encoding=self._encoding) as f:
                 if self._save_mode == "json":
                     json.dump(obj, f, **self._saver_args)
                 if self._save_mode == "pickle":
@@ -1271,7 +1306,7 @@ class Saver(object):
             return cache
         mode = "rb" if self._save_mode == "pickle" else "r"
         with self._lock:
-            with open(self._path, mode) as f:
+            with open(self._path, mode, encoding=self._encoding) as f:
                 if self._save_mode == "json":
                     return json.load(f)
                 if self._save_mode == "pickle":
