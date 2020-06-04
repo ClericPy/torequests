@@ -34,8 +34,8 @@ with codecs.open("README.md", encoding="u8") as f:
     long_description = f.read()
 
 here = os.path.abspath(os.path.dirname(__file__))
-with codecs.open(
-        os.path.join(here, 'torequests', '__init__.py'), encoding="u8") as f:
+with codecs.open(os.path.join(here, 'torequests', '__init__.py'),
+                 encoding="u8") as f:
     version = re.search(r'''__version__ = ['"](.*?)['"]''', f.read()).group(1)
 desc = "Async wrapper for requests / aiohttp, and some python crawler toolkits. Let synchronization code enjoy the performance of asynchronous programming. Read more: https://github.com/ClericPy/torequests."
 keywords = "requests async multi-thread aiohttp asyncio uvloop asynchronous".split(
@@ -59,6 +59,11 @@ setup(
         'all': [
             'pyOpenSSL >= 0.14', 'cryptography>=1.3.4', 'idna>=2.0.0',
             'PySocks>=1.5.6, !=1.5.7', 'psutil', 'pyperclip'
+        ],
+        'speedups': [
+            'aiodns>=1.1',
+            'Brotli',
+            'cchardet',
         ],
     },
     python_requires=python_requires,
