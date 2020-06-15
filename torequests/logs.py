@@ -48,7 +48,7 @@ def init_logger(name="",
         logger = init_logger(
             '',
             [['info.log', 'info']],
-            file_handler_class='RotatingFileHandler',
+            file_handler_class='size',
             maxBytes=10 * 1024 * 1024,
             backupCount=2,
         )
@@ -58,7 +58,7 @@ def init_logger(name="",
         logger = init_logger(
             '',
             [['info.log', 'info']],
-            file_handler_class='TimedRotatingFileHandler',
+            file_handler_class='time',
             when='D',
             interval=1,
             backupCount=7,
