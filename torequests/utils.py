@@ -1232,6 +1232,7 @@ class Saver(object):
         "__module__",
         "_pop",
         "__contains__",
+        "_reload",
         "_load",
         "_save",
         "_update",
@@ -1267,7 +1268,7 @@ class Saver(object):
         self._path = path or self._get_home_path(save_mode=save_mode)
         self._saver_args = saver_args
         self._save_mode = save_mode
-        self._cache = self._load()
+        self._reload()
 
     @classmethod
     def _get_home_path(cls, save_mode=None):
@@ -1298,6 +1299,9 @@ class Saver(object):
             if self._auto_backup:
                 self._save_back_up()
         return obj
+
+    def _reload(self):
+        self._cache = self._load()
 
     def _load(self):
         if not (os.path.isfile(self._path) and os.path.getsize(self._path)):
