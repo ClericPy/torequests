@@ -100,7 +100,7 @@ def init_logger(name="",
     logger = name if isinstance(name, logging.Logger) else logging.getLogger(
         str(name))
     logger.setLevel(level)
-    handler_path_levels = handler_path_levels or [["", "INFO"]]
+    handler_path_levels = handler_path_levels or [["", level]]
     # ---------------------------------------
     for each_handler in handler_path_levels:
         path, handler_level = each_handler
