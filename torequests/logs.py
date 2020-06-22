@@ -9,15 +9,21 @@ from .versions import PY3
 if PY3:
     unicode = str
 
+formatter_str_styles = [
+    "%(asctime)s %(levelname)-5s [%(name)s] %(filename)s(%(lineno)s): %(message)s",
+    "%(asctime)s | %(levelname)-5s | %(filename)s:%(funcName)s(%(lineno)s) | %(name)s: %(message)s"
+]
+
 
 def init_logger(name="",
                 handler_path_levels=None,
                 level=logging.INFO,
                 formatter=None,
-                formatter_str=None,
+                formatter_str=0,
                 datefmt="%Y-%m-%d %H:%M:%S",
                 encoding="utf-8",
                 file_handler_class=None,
+                shorten_level_names=False,
                 **file_handler_kwargs):
     """Add a default handler for logger.
 
@@ -33,7 +39,7 @@ def init_logger(name="",
                 '%(levelname)-7s %(asctime)s %(name)s (%(filename)s: %(lineno)s): %(message)s',
                 "%Y-%m-%d %H:%M:%S")
 
-        formatter_str = '%(levelname)-7s %(asctime)s  %(name)s (%(funcName)s: %(lineno)s): %(message)s'
+        formatter_str string like '%(levelname)-7s %(asctime)s  %(name)s (%(funcName)s: %(lineno)s): %(message)s', or int index to get from formatter_str_styles
 
         custom formatter:
             %(asctime)s  %(created)f  %(filename)s  %(funcName)s  %(levelname)s  %(levelno)s  %(lineno)s   %(message)s   %(module)s    %(name)s   %(pathname)s   %(process)s   %(relativeCreated)s   %(thread)s  %(threadName)s
@@ -67,6 +73,9 @@ def init_logger(name="",
         logger.info('test')
 
     """
+    if shorten_level_names:
+        logging.addLevelName(logging.WARNING, 'WARN')
+        logging.addLevelName(logging.CRITICAL, 'FATAL')
     if file_handler_class is None:
         file_handler_class = logging.FileHandler
     elif isinstance(file_handler_class, unicode):
@@ -93,9 +102,14 @@ def init_logger(name="",
     }
     if not formatter:
         if formatter_str:
-            formatter_str = formatter_str
+            if isinstance(formatter_str, unicode):
+                formatter_str = formatter_str
+            elif isinstance(formatter_str, int):
+                formatter_str = formatter_str_styles[formatter_str]
+            else:
+                formatter_str = formatter_str_styles[0]
         else:
-            formatter_str = "%(asctime)s %(levelname)-5s [%(name)s] %(filename)s(%(lineno)s): %(message)s"
+            formatter_str = formatter_str_styles[0]
         formatter = logging.Formatter(formatter_str, datefmt=datefmt)
     logger = name if isinstance(name, logging.Logger) else logging.getLogger(
         str(name))
@@ -103,18 +117,21 @@ def init_logger(name="",
     handler_path_levels = handler_path_levels or [["", level]]
     # ---------------------------------------
     for each_handler in handler_path_levels:
-        path, handler_level = each_handler
-        if path:
-            handler = file_handler_class(path,
-                                         encoding=encoding,
-                                         **file_handler_kwargs)
+        if isinstance(each_handler, logging.Handler):
+            logger.addHandler(each_handler)
         else:
-            handler = logging.StreamHandler()
-        _level = levels.get(handler_level.upper(), 1) if isinstance(
-            handler_level, str) else handler_level
-        handler.setLevel(_level)
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+            path, handler_level = each_handler
+            if path:
+                handler = file_handler_class(path,
+                                             encoding=encoding,
+                                             **file_handler_kwargs)
+            else:
+                handler = logging.StreamHandler()
+            _level = levels.get(handler_level.upper(), 1) if isinstance(
+                handler_level, str) else handler_level
+            handler.setLevel(_level)
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
     return logger
 
 
