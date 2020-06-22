@@ -11,11 +11,14 @@ if PY3:
 
 formatter_str_styles = [
     "%(asctime)s %(levelname)-5s [%(name)s] %(filename)s(%(lineno)s): %(message)s",
-    "%(asctime)s | %(levelname)-5s | %(filename)s:%(funcName)s(%(lineno)s) | %(name)s: %(message)s"
+    "%(asctime)s | %(levelname)-5s | %(filename)s(%(lineno)s):%(funcName)s | %(name)s: %(message)s",
+    "%(asctime)s | %(levelname)-5s | %(filename)s(%(lineno)s) | %(name)s: %(message)s",
+    "%(asctime)s | %(levelname)-5s | %(name)s | %(filename)s(%(lineno)s): %(message)s",
+    "%(asctime)s | %(levelname)-5s | %(name)s | %(funcName)s(%(lineno)s): %(message)s",
 ]
 
 
-def init_logger(name="",
+def init_logger(name=None,
                 handler_path_levels=None,
                 level=logging.INFO,
                 formatter=None,
@@ -29,7 +32,7 @@ def init_logger(name="",
 
     Args::
 
-        name = '' or logger obj.
+        name = string or logger obj.
 
         handler_path_levels = [['loggerfile.log',13],['','DEBUG'],['','info'],['','notSet']] # [[path,level]]
 
@@ -111,8 +114,10 @@ def init_logger(name="",
         else:
             formatter_str = formatter_str_styles[0]
         formatter = logging.Formatter(formatter_str, datefmt=datefmt)
-    logger = name if isinstance(name, logging.Logger) else logging.getLogger(
-        str(name))
+    if isinstance(name, logging.Logger):
+        logger = logging.getLogger(name.name)
+    else:
+        logger = logging.getLogger(unicode(name))
     logger.setLevel(level)
     handler_path_levels = handler_path_levels or [["", level]]
     # ---------------------------------------
