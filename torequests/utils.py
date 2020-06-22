@@ -89,7 +89,7 @@ elif PY3:
     unicode = str
 else:
     logger.warning('Unhandled python version.')
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64 check_in_time".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem get_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64 check_in_time".split(
     " ")
 
 NotSet = object()
@@ -187,12 +187,18 @@ def print_mem(unit=None, callback=print_info, rounded=2):
 
     :param unit: B, KB, MB, GB.
     """
+    result = get_mem(unit=unit, rounded=rounded)
+    if callback:
+        return callback(result)
+    return result
+
+
+def get_mem(unit=None, callback=print_info, rounded=2, attribute='uss'):
     try:
         import psutil
-
-        B = float(psutil.Process(os.getpid()).memory_info().vms)
+        memory_full_info = psutil.Process(os.getpid()).memory_full_info()
+        B = float(getattr(memory_full_info, attribute, memory_full_info.uss))
         result = get_readable_size(B, unit=unit, rounded=rounded)
-        callback(result)
         return result
     except ImportError:
         print("pip install psutil first.")
@@ -1232,6 +1238,7 @@ class Saver(object):
         "__module__",
         "_pop",
         "__contains__",
+        "_reload",
         "_load",
         "_save",
         "_update",
@@ -1267,7 +1274,7 @@ class Saver(object):
         self._path = path or self._get_home_path(save_mode=save_mode)
         self._saver_args = saver_args
         self._save_mode = save_mode
-        self._cache = self._load()
+        self._reload()
 
     @classmethod
     def _get_home_path(cls, save_mode=None):
@@ -1298,6 +1305,9 @@ class Saver(object):
             if self._auto_backup:
                 self._save_back_up()
         return obj
+
+    def _reload(self):
+        self._cache = self._load()
 
     def _load(self):
         if not (os.path.isfile(self._path) and os.path.getsize(self._path)):
