@@ -35,6 +35,8 @@ def _new_future_await(self):
 
 class NewResponse(ClientResponse):
     """Wrap aiohttp's ClientResponse like requests's Response."""
+    # 'strict' / 'ignore' / 'replace'
+    DEFAULT_DECODE_ERRORS = 'strict'
 
     def __init__(self, method, url, *, writer, continue100, timer, request_info,
                  traces, loop, session) -> None:
@@ -91,10 +93,12 @@ class NewResponse(ClientResponse):
 
     @property
     def text(self):
-        return self._body.decode(self.encoding)
+        return self._body.decode(self.encoding, self.DEFAULT_DECODE_ERRORS)
 
     def json(self, encoding=None, loads=loads):
-        return loads(self._body.decode(encoding or self.encoding))
+        return loads(
+            self._body.decode(encoding or self.encoding,
+                              errors=self.DEFAULT_DECODE_ERRORS))
 
     def release(self) -> None:
         super().release()
