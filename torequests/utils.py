@@ -89,7 +89,7 @@ elif PY3:
     unicode = str
 else:
     logger.warning('Unhandled python version.')
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem get_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64 check_in_time".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem get_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64 check_in_time get_host".split(
     " ")
 
 NotSet = object()
@@ -1956,3 +1956,9 @@ def check_in_time(time_string, now=None):
             raise ValueError('| can not use with "&" or ";"')
         return all((_check_in_time(partial_work_hour, now)
                     for partial_work_hour in re.split('&|;', time_string)))
+
+
+def get_host(url):
+    if not url:
+        return url
+    return urlparse(url).netloc
