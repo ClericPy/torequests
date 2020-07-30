@@ -518,6 +518,7 @@ class tPool(object):
         session=None,
         catch_exception=True,
         default_callback=None,
+        retry_exceptions=(RequestException, Error),
     ):
         self.pool = Pool(n, timeout)
         self.session = session if session else Session()
@@ -531,6 +532,7 @@ class tPool(object):
         self.catch_exception = catch_exception
         self.default_callback = default_callback
         self.frequency = Frequency(self.n, self.interval)
+        self.retry_exceptions = retry_exceptions
 
     @property
     def all_tasks(self):
@@ -573,7 +575,7 @@ class tPool(object):
                     if response_validator and not response_validator(resp):
                         raise ValidationError(response_validator.__name__)
                     return resp
-                except (RequestException, Error) as e:
+                except self.retry_exceptions as e:
                     error = e
                     logger.debug(
                         "Retry %s for the %s time, Exception: %r . kwargs= %s" %
