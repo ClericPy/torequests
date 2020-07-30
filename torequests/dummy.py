@@ -1,7 +1,7 @@
 # python3.5+ # pip install uvloop aiohttp.
 
-from asyncio import (Task, gather, get_event_loop, iscoroutine, new_event_loop,
-                     wait)
+from asyncio import (Future, Queue, QueueEmpty, Task, as_completed, gather,
+                     get_event_loop, iscoroutine, new_event_loop, sleep, wait)
 from asyncio.futures import _chain_future
 from concurrent.futures import ALL_COMPLETED
 from functools import wraps
@@ -19,7 +19,7 @@ from .exceptions import FailureException, ValidationError
 from .frequency_controller.async_tools import AsyncFrequency as Frequency
 from .main import Error, NewFuture, Pool, ProcessPool
 
-__all__ = "NewTask Loop Asyncme coros Requests".split(" ")
+__all__ = "NewTask Loop Asyncme coros Requests Workshop".split(" ")
 
 
 class NewTask(Task):
@@ -725,10 +725,9 @@ class Requests(Loop):
             # for timeout=(1,2) and timeout=5
             timeout = kwargs['timeout']
             if isinstance(timeout, (int, float)):
-                kwargs['timeout'] = ClientTimeout(sock_connect=timeout,
-                                                  sock_read=timeout)
+                kwargs['timeout'] = ClientTimeout(total=timeout)
             elif isinstance(timeout, (tuple, list)):
-                kwargs['timeout'] = ClientTimeout(sock_connect=timeout[0],
+                kwargs['timeout'] = ClientTimeout(connect=timeout[0],
                                                   sock_read=timeout[1])
             elif timeout is None or isinstance(timeout, ClientTimeout):
                 pass
@@ -742,3 +741,156 @@ class Requests(Loop):
         if "auth" in kwargs and isinstance(kwargs['auth'], (list, tuple)):
             kwargs["auth"] = BasicAuth(*kwargs['auth'])
         return kwargs
+
+
+class Workshop:
+    """Simple solution for producer-consumer problem.
+    WARNING: callback should has its own timeout to avoid blocking to long.
+
+    Demo::
+
+        import asyncio
+        from torequests.dummy import Workshop
+
+
+        async def callback(todo, worker_arg):
+            await asyncio.sleep(todo / 10)
+            if worker_arg == 'worker1':
+                return None
+            return [todo, worker_arg]
+
+
+        async def test():
+            ws = Workshop(range(1, 5), ['worker1', 'worker2', 'worker3'], callback)
+            async for i in ws.get_result_as_completed():
+                print(i)
+            # [2, 'worker2']
+            # [3, 'worker3']
+            # [1, 'worker3']
+            # [4, 'worker2']
+            async for i in ws.get_result_as_sequence():
+                print(i)
+            # [1, 'worker3']
+            # [2, 'worker2']
+            # [3, 'worker3']
+            # [4, 'worker2']
+            result = await ws.run()
+            print(result)
+            # [[1, 'worker2'], [2, 'worker2'], [3, 'worker3'], [4, 'worker3']]
+            result = await ws.run(as_completed=True)
+            print(result)
+            # [[2, 'worker2'], [3, 'worker3'], [1, 'worker3'], [4, 'worker2']]
+
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(test())"""
+
+    def __init__(self,
+                 todo_args,
+                 worker_args,
+                 callback,
+                 timeout=None,
+                 wait_empty_secs=1,
+                 handle_exceptions=(),
+                 max_failure=None,
+                 fail_returned=None):
+        """
+        :param todo_args: args to be send to callback
+        :type todo_args: List[Any]
+        :param worker_args: args for launching worker threads, you can use like [worker1, worker1, worker1] for concurrent workers
+        :type worker_args: List[Any]
+        :param callback: callback to consume the todo_arg from queue, handle args like callback(todo_arg, worker_arg)
+        :type callback: Callable
+        :param timeout: timeout for worker running, defaults to None
+        :type timeout: [float, int], optional
+        :param wait_empty_secs: seconds to sleep while queue is Empty, defaults to 1
+        :type wait_empty_secs: float, optional
+        :param handle_exceptions: ignore Exceptions raise from callback, defaults to ()
+        :type handle_exceptions: Tuple[Exception], optional
+        :param max_failure: stop worker while failing too many times, defaults to None
+        :type max_failure: int, optional
+        :param fail_returned: returned from callback will be treated as a failure, defaults to None
+        :type fail_returned: Any, optional
+        """
+        self.q = Queue()
+        self.todo_args = todo_args
+        self.worker_args = worker_args
+        self.callback = callback
+        self.timeout = timeout or float('inf')
+        self.wait_empty_secs = wait_empty_secs
+        self.result = None
+        self.handle_exceptions = handle_exceptions
+        self.max_failure = float('inf') if max_failure is None else max_failure
+        self.fail_returned = fail_returned
+        self._done = False
+
+    async def init_futures(self):
+        self._done = False
+        self.futures = []
+        for arg in self.todo_args:
+            f = Future()
+            f.arg = arg
+            self.futures.append(f)
+            await self.q.put(f)
+        return self.futures
+
+    async def run(self, as_completed=False):
+        """run until all tasks finished"""
+        result = []
+        func = self.get_result_as_completed if as_completed else self.get_result_as_sequence
+        async for item in func():
+            result.append(item)
+        return result
+
+    async def get_result_as_sequence(self):
+        """return a generator of results with same sequence as self.todo_args"""
+        await self.start_workers()
+        for f in self.futures:
+            yield await f
+
+    async def get_result_as_completed(self):
+        """return a generator of results as completed sequence"""
+        await self.start_workers()
+        for f in as_completed(self.futures):
+            yield await f
+
+    @property
+    def done(self):
+        self._done = self._done or all((f.done() for f in self.futures))
+        return self._done
+
+    async def worker(self, worker_arg):
+        fails = 0
+        start_time = time_time()
+        while (time_time() - start_time < self.timeout) and (
+                fails <= self.max_failure) and (not self.done):
+            try:
+                f = self.q.get_nowait()
+            except QueueEmpty:
+                fails += 1
+                await sleep(self.wait_empty_secs)
+                continue
+            try:
+                result = await self.callback(f.arg, worker_arg)
+            except self.handle_exceptions as err:
+                logger.error(
+                    'Raised {err!r}, worker_arg: {worker_arg}, todo_arg: {arg}'.
+                    format_map(
+                        dict(err=err,
+                             worker_arg=repr(worker_arg)[:100],
+                             arg=repr(f.arg)[:100])))
+                result = self.fail_returned
+            if result == self.fail_returned:
+                await self.q.put(f)
+                fails += 1
+                await sleep(self.wait_empty_secs)
+                continue
+            else:
+                f.set_result(result)
+                if fails > 0:
+                    fails -= 1
+
+    async def start_workers(self):
+        await self.init_futures()
+        for worker_arg in self.worker_args:
+            NewTask(self.worker(worker_arg))
