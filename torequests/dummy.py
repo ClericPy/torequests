@@ -782,7 +782,8 @@ class Workshop:
             # [[2, 'worker2'], [3, 'worker3'], [1, 'worker3'], [4, 'worker2']]
 
 
-        asyncio.run(test())"""
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(test())"""
 
     def __init__(self,
                  todo_args,
