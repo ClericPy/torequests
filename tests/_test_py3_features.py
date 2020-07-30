@@ -274,3 +274,24 @@ def test_aiohttp_dummy():
                                  response_validator=async_validator)
 
     get_event_loop().run_until_complete(test1())
+
+
+def test_workshop():
+    import asyncio
+    from torequests.dummy import Workshop
+
+    async def _test():
+
+        async def callback(todo, worker_arg):
+            await asyncio.sleep(todo / 10)
+            if worker_arg == 'worker1':
+                return None
+            return todo
+
+        fc = Workshop(range(1, 10), ['worker1', 'worker2', 'worker3'], callback)
+
+        assert await fc.run() == list(range(1, 10))
+        assert await fc.run(as_completed=True) != list(range(1, 10))
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(_test())
