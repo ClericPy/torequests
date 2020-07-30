@@ -725,10 +725,9 @@ class Requests(Loop):
             # for timeout=(1,2) and timeout=5
             timeout = kwargs['timeout']
             if isinstance(timeout, (int, float)):
-                kwargs['timeout'] = ClientTimeout(sock_connect=timeout,
-                                                  sock_read=timeout)
+                kwargs['timeout'] = ClientTimeout(total=timeout)
             elif isinstance(timeout, (tuple, list)):
-                kwargs['timeout'] = ClientTimeout(sock_connect=timeout[0],
+                kwargs['timeout'] = ClientTimeout(connect=timeout[0],
                                                   sock_read=timeout[1])
             elif timeout is None or isinstance(timeout, ClientTimeout):
                 pass
