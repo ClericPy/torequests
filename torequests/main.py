@@ -11,7 +11,8 @@ from concurrent.futures._base import (CANCELLED, CANCELLED_AND_NOTIFIED,
 from concurrent.futures.thread import _threads_queues, _WorkItem
 from functools import wraps
 from logging import getLogger
-from threading import Timer
+from threading import Thread, Timer
+from time import sleep
 from time import time as time_time
 from weakref import WeakSet
 
@@ -25,16 +26,17 @@ from .frequency_controller.sync_tools import Frequency
 from .versions import PY2, PY3
 
 try:
-    from queue import Queue
+    from queue import Empty, Queue
 except ImportError:
-    from Queue import Queue
+    from Queue import Empty, Queue
 if PY3:
     from concurrent.futures.process import BrokenProcessPool
 
 __all__ = [
     "Pool", "ProcessPool", "NewFuture", "Async", "threads",
     "get_results_generator", "run_after_async", "tPool", "get", "post",
-    "options", "delete", "put", "head", "patch", "request", "disable_warnings"
+    "options", "delete", "put", "head", "patch", "request", "disable_warnings",
+    "Workshop"
 ]
 logger = getLogger("torequests")
 
@@ -805,3 +807,147 @@ def request(method,
                            retry=retry,
                            response_validator=response_validator,
                            **kwargs)
+
+
+class Workshop:
+    """Simple solution for producer-consumer problem.
+    WARNING: callback should has its own timeout to avoid blocking to long.
+
+    Demo::
+
+        import time
+
+        from torequests.main import Workshop
+
+
+        def callback(todo, worker_arg):
+            if worker_arg == 'worker1':
+                return None
+            time.sleep(todo)
+            return [todo, worker_arg]
+
+
+        fc = Workshop(range(1, 5), ['worker1', 'worker2', 'worker3'], callback)
+
+        for i in fc.get_result_as_completed():
+            print(i)
+        # [2, 'worker3']
+        # [1, 'worker3']
+        # [4, 'worker2']
+        # [3, 'worker3']
+        for i in fc.get_result_as_sequence():
+            print(i)
+        # [1, 'worker3']
+        # [2, 'worker3']
+        # [3, 'worker3']
+        # [4, 'worker2']"""
+
+    def __init__(self,
+                 todo_args,
+                 worker_args,
+                 callback,
+                 timeout=None,
+                 wait_empty_secs=1,
+                 log_function=None,
+                 handle_exceptions=(Exception,),
+                 max_failure=None,
+                 fail_returned=None):
+        """
+        :param todo_args: args to be send to callback
+        :type todo_args: List[Any]
+        :param worker_args: args for launching worker threads, you can use like [worker1, worker1, worker1] for concurrent workers
+        :type worker_args: List[Any]
+        :param callback: callback to consume the todo_arg from queue, handle args like callback(todo_arg, worker_arg)
+        :type callback: Callable
+        :param timeout: timeout for worker running, defaults to None
+        :type timeout: [float, int], optional
+        :param wait_empty_secs: seconds to sleep while queue is Empty, defaults to 1
+        :type wait_empty_secs: float, optional
+        :param handle_exceptions: ignore Exceptions raise from callback, defaults to (Exception,)
+        :type handle_exceptions: Tuple[Exception], optional
+        :param max_failure: stop worker while failing too many times, defaults to None
+        :type max_failure: int, optional
+        :param fail_returned: returned from callback will be treated as a failure, defaults to None
+        :type fail_returned: Any, optional
+        """
+        self.q = Queue()
+        self.futures = self.init_futures(todo_args)
+        self.worker_args = worker_args
+        self.callback = callback
+        self.timeout = timeout or float('inf')
+        self.wait_empty_secs = wait_empty_secs
+        self.result = None
+        self.handle_exceptions = handle_exceptions
+        self.max_failure = float('inf') if max_failure is None else max_failure
+        self.fail_returned = fail_returned
+        self._done = False
+
+    def init_futures(self, todo_args):
+        futures = []
+        for arg in todo_args:
+            f = Future()
+            f.arg = arg
+            futures.append(f)
+            self.q.put(f)
+        return futures
+
+    def run(self, return_as='as_sequence'):
+        """run until all tasks finished"""
+        if return_as == 'as_completed':
+            return list(self.get_result_as_completed())
+        return list(self.get_result_as_sequence())
+
+    def get_result_as_sequence(self):
+        """return a generator of results with same sequence as self.todo_args"""
+        self.start_workers()
+        for f in self.futures:
+            yield f.result()
+
+    def get_result_as_completed(self):
+        """return a generator of results as completed sequence"""
+        self.start_workers()
+        for f in as_completed(self.futures):
+            yield f.result()
+
+    @property
+    def done(self):
+        self._done = self._done or all((f.done() for f in self.futures))
+        return self._done
+
+    def worker(self, worker_arg):
+        fails = 0
+        start_time = time_time()
+        while (time_time() - start_time < self.timeout) and (
+                fails <= self.max_failure) and (not self.done):
+            try:
+                f = self.q.get_nowait()
+            except Empty:
+                sleep(self.wait_empty_secs)
+                fails += 1
+                continue
+            try:
+                result = self.callback(f.arg, worker_arg)
+            except KeyboardInterrupt as err:
+                raise err
+            except self.handle_exceptions as err:
+                logger.error(
+                    'Raised {err!r}, worker_arg: {worker_arg}, todo_arg: {arg}'.
+                    format_map(
+                        dict(err=err,
+                             worker_arg=repr(worker_arg)[:100],
+                             arg=repr(f.arg)[:100])))
+                result = self.fail_returned
+            if result == self.fail_returned:
+                self.q.put(f)
+                fails += 1
+                continue
+            else:
+                f.set_result(result)
+                if fails > 0:
+                    fails -= 1
+
+    def start_workers(self):
+        for worker_arg in self.worker_args:
+            t = Thread(target=self.worker, args=(worker_arg,))
+            t.daemon = True
+            t.start()
