@@ -54,7 +54,7 @@ def test_sync_frequency():
     assert frequency.to_list() == [2, 1]
 
 
-def test_factory():
+def test_workshop():
     import time
     from torequests.main import Workshop
 
@@ -67,7 +67,7 @@ def test_factory():
     fc = Workshop(range(1, 10), ['worker1', 'worker2', 'worker3'], callback)
 
     assert fc.run() == list(range(1, 10))
-    assert fc.run('as_completed') != list(range(1, 10))
+    assert fc.run(as_completed=True) != list(range(1, 10))
 
 
 # ================================= PYTHON 3 only ========================

@@ -823,9 +823,9 @@ class Workshop:
 
 
         def callback(todo, worker_arg):
+            time.sleep(todo)
             if worker_arg == 'worker1':
                 return None
-            time.sleep(todo)
             return [todo, worker_arg]
 
 
@@ -833,16 +833,17 @@ class Workshop:
 
         for i in fc.get_result_as_completed():
             print(i)
-        # [2, 'worker3']
-        # [1, 'worker3']
-        # [4, 'worker2']
+        # [2, 'worker2']
         # [3, 'worker3']
+        # [1, 'worker2']
+        # [4, 'worker3']
         for i in fc.get_result_as_sequence():
             print(i)
         # [1, 'worker3']
         # [2, 'worker3']
         # [3, 'worker3']
-        # [4, 'worker2']"""
+        # [4, 'worker2']
+"""
 
     def __init__(self,
                  todo_args,
@@ -850,8 +851,7 @@ class Workshop:
                  callback,
                  timeout=None,
                  wait_empty_secs=1,
-                 log_function=None,
-                 handle_exceptions=(Exception,),
+                 handle_exceptions=(),
                  max_failure=None,
                  fail_returned=None):
         """
@@ -865,7 +865,7 @@ class Workshop:
         :type timeout: [float, int], optional
         :param wait_empty_secs: seconds to sleep while queue is Empty, defaults to 1
         :type wait_empty_secs: float, optional
-        :param handle_exceptions: ignore Exceptions raise from callback, defaults to (Exception,)
+        :param handle_exceptions: ignore Exceptions raise from callback, defaults to ()
         :type handle_exceptions: Tuple[Exception], optional
         :param max_failure: stop worker while failing too many times, defaults to None
         :type max_failure: int, optional
@@ -893,9 +893,9 @@ class Workshop:
             self.q.put(f)
         return futures
 
-    def run(self, return_as='as_sequence'):
+    def run(self, as_completed=False):
         """run until all tasks finished"""
-        if return_as == 'as_completed':
+        if as_completed:
             return list(self.get_result_as_completed())
         return list(self.get_result_as_sequence())
 
@@ -924,13 +924,11 @@ class Workshop:
             try:
                 f = self.q.get_nowait()
             except Empty:
-                sleep(self.wait_empty_secs)
                 fails += 1
+                sleep(self.wait_empty_secs)
                 continue
             try:
                 result = self.callback(f.arg, worker_arg)
-            except KeyboardInterrupt as err:
-                raise err
             except self.handle_exceptions as err:
                 logger.error(
                     'Raised {err!r}, worker_arg: {worker_arg}, todo_arg: {arg}'.
@@ -942,6 +940,7 @@ class Workshop:
             if result == self.fail_returned:
                 self.q.put(f)
                 fails += 1
+                sleep(self.wait_empty_secs)
                 continue
             else:
                 f.set_result(result)
@@ -949,6 +948,7 @@ class Workshop:
                     fails -= 1
 
     def start_workers(self):
+        self._done = False
         for worker_arg in self.worker_args:
             t = Thread(target=self.worker, args=(worker_arg,))
             t.daemon = True
