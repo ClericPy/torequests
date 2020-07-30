@@ -293,4 +293,5 @@ def test_workshop():
         assert await fc.run() == list(range(1, 10))
         assert await fc.run(as_completed=True) != list(range(1, 10))
 
-    asyncio.run(_test())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(test())
