@@ -1,9 +1,10 @@
 # python3.5+ # pip install uvloop aiohttp.
 
 from asyncio import (Future, Queue, QueueEmpty, Task, as_completed, gather,
-                     get_event_loop, iscoroutine, new_event_loop, sleep, wait)
+                     get_event_loop, iscoroutine, new_event_loop, sleep, wait,
+                     wait_for)
 from asyncio.futures import _chain_future
-from concurrent.futures import ALL_COMPLETED
+from concurrent.futures import ALL_COMPLETED, TimeoutError
 from functools import wraps
 from time import sleep as time_sleep
 from time import time as time_time
@@ -823,6 +824,7 @@ class Workshop:
         self.max_failure = float('inf') if max_failure is None else max_failure
         self.fail_returned = fail_returned
         self._done = False
+        self._done_signal = object()
 
     async def init_futures(self):
         self._done = False
@@ -862,11 +864,15 @@ class Workshop:
     async def worker(self, worker_arg):
         fails = 0
         start_time = time_time()
-        while (time_time() - start_time < self.timeout) and (
-                fails <= self.max_failure) and (not self.done):
+        while time_time(
+        ) - start_time < self.timeout and fails <= self.max_failure:
             try:
-                f = self.q.get_nowait()
-            except QueueEmpty:
+                f = await wait_for(self.q.get(), timeout=self.wait_empty_secs)
+                if f is self._done_signal:
+                    break
+            except TimeoutError:
+                if self.done:
+                    break
                 fails += 1
                 await sleep(self.wait_empty_secs)
                 continue
@@ -889,6 +895,7 @@ class Workshop:
                 f.set_result(result)
                 if fails > 0:
                     fails -= 1
+        self.q.put_nowait(self._done_signal)
 
     async def start_workers(self):
         await self.init_futures()

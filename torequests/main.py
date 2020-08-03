@@ -883,6 +883,7 @@ class Workshop:
         self.max_failure = float('inf') if max_failure is None else max_failure
         self.fail_returned = fail_returned
         self._done = False
+        self._done_signal = object()
 
     def init_futures(self, todo_args):
         futures = []
@@ -919,13 +920,16 @@ class Workshop:
     def worker(self, worker_arg):
         fails = 0
         start_time = time_time()
-        while (time_time() - start_time < self.timeout) and (
-                fails <= self.max_failure) and (not self.done):
+        while time_time(
+        ) - start_time < self.timeout and fails <= self.max_failure:
             try:
-                f = self.q.get_nowait()
-            except Empty:
+                f = self.q.get(timeout=self.wait_empty_secs)
+                if f is self._done_signal:
+                    break
+            except TimeoutError:
+                if self.done:
+                    break
                 fails += 1
-                sleep(self.wait_empty_secs)
                 continue
             try:
                 result = self.callback(f.arg, worker_arg)
@@ -946,6 +950,7 @@ class Workshop:
                 f.set_result(result)
                 if fails > 0:
                     fails -= 1
+        self.q.put_nowait
 
     def start_workers(self):
         self._done = False
