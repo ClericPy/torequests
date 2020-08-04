@@ -1,5 +1,3 @@
-# python3.5+ # pip install uvloop aiohttp.
-
 from asyncio import (Future, Queue, QueueEmpty, Task, as_completed, gather,
                      get_event_loop, iscoroutine, new_event_loop, sleep, wait,
                      wait_for)
