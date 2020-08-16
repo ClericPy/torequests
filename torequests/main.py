@@ -559,6 +559,8 @@ class tPool(object):
         self.close()
 
     def _request(self, method, url, retry=0, response_validator=None, **kwargs):
+        if not url:
+            raise ValueError("url should not be null, but given: %s" % url)
         kwargs["url"] = url
         kwargs["method"] = method
         # non-official request args
