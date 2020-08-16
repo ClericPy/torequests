@@ -20,8 +20,7 @@ To start:
 
         | requests
         | futures # python2
-        | aiohttp >= 3.0.5 # python3
-        | uvloop  # python3
+        | aiohttp >= 3.6.2 # python3
 
     **optional:**
 

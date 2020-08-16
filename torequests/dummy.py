@@ -1,8 +1,5 @@
-# python3.5+ # pip install uvloop aiohttp.
-
-from asyncio import (Future, Queue, QueueEmpty, Task, as_completed, gather,
-                     get_event_loop, iscoroutine, new_event_loop, sleep, wait,
-                     wait_for)
+from asyncio import (Future, Queue, Task, as_completed, gather, get_event_loop,
+                     iscoroutine, new_event_loop, sleep, wait, wait_for)
 from asyncio.futures import _chain_future
 from concurrent.futures import ALL_COMPLETED, TimeoutError
 from functools import wraps
@@ -518,6 +515,8 @@ class Requests(Loop):
                        response_validator: Optional[Callable] = None,
                        **kwargs):
         url = url.strip()
+        if not url:
+            raise ValueError("url should not be null, but given: %s" % url)
         parsed_url = urlparse(url)
         host = parsed_url.netloc
         # attempt to get a frequency, host > default_host_frequency > global_frequency
