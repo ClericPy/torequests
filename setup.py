@@ -27,7 +27,7 @@ with codecs.open(os.path.join(here, 'torequests', '__init__.py'),
                  encoding="u8") as f:
     version = re.search(r'''__version__ = ['"](.*?)['"]''', f.read()).group(1)
 desc = "Async wrapper for requests / aiohttp, and some python crawler toolkits. Let synchronization code enjoy the performance of asynchronous programming. Read more: https://github.com/ClericPy/torequests."
-keywords = "requests async multi-thread aiohttp asyncio uvloop asynchronous".split(
+keywords = "requests async multi-thread aiohttp asyncio asynchronous".split(
 )
 setup(
     name="torequests",
