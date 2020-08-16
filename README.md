@@ -357,7 +357,7 @@ test_tPool               : 2000 / 2000 = 100.0%, cost 2.708s,  739 qps,  24% sta
 ## Conclusion
 
 1. **aiohttp** is the fastest, for the cython utils
-   1. aiohttp's qps is 2866 on 1 cpu linux with uvloop, near to golang's 3300.
+   1. aiohttp's qps is 3068 on 1 cpu linux with uvloop, near to golang's 3300.
 2. **torequests.dummy.Requests** based on **aiohttp**.
    1. about **8%** performance lost **without** uvloop.
    2. about **20%** performance lost with uvloop.
