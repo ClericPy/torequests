@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from asyncio import get_event_loop
+from asyncio import TimeoutError, get_event_loop
 from concurrent.futures._base import Error
 from inspect import isawaitable
 from typing import Callable, Optional, Union
