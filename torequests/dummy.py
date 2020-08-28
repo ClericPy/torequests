@@ -1,7 +1,8 @@
-from asyncio import (Future, Queue, Task, as_completed, gather, get_event_loop,
-                     iscoroutine, new_event_loop, sleep, wait, wait_for)
+from asyncio import (Future, Queue, Task, TimeoutError, as_completed, gather,
+                     get_event_loop, iscoroutine, new_event_loop, sleep, wait,
+                     wait_for)
 from asyncio.futures import _chain_future
-from concurrent.futures import ALL_COMPLETED, TimeoutError
+from concurrent.futures import ALL_COMPLETED
 from functools import wraps
 from time import sleep as time_sleep
 from time import time as time_time
@@ -438,7 +439,7 @@ class Requests(Loop):
                  frequencies: Optional[Dict[str, Frequency]] = None,
                  default_host_frequency: Union[Frequency, None, Sequence,
                                                Dict] = None,
-                 retry_exceptions: tuple = (ClientError, Error),
+                 retry_exceptions: tuple = (ClientError, Error, TimeoutError),
                  *,
                  loop=None,
                  return_exceptions: Optional[bool] = None,

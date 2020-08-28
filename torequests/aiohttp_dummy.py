@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from asyncio import get_event_loop
+from asyncio import TimeoutError, get_event_loop
 from concurrent.futures._base import Error
 from inspect import isawaitable
 from typing import Callable, Optional, Union
@@ -23,7 +23,7 @@ class Requests:
     def __init__(self,
                  session: Optional[ClientSession] = None,
                  catch_exception: bool = True,
-                 retry_exceptions: tuple = (ClientError, Error),
+                 retry_exceptions: tuple = (ClientError, Error, TimeoutError),
                  **kwargs):
         # ensure running loop to use unique loop.
         if not get_event_loop().is_running():
