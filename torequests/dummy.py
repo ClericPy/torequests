@@ -656,7 +656,9 @@ class Requests(Loop):
              callback: Optional[Callable] = None,
              retry: int = 0,
              response_validator: Optional[Callable] = None,
+             allow_redirects: bool = False,
              **kwargs):
+        kwargs['allow_redirects'] = allow_redirects
         return self.request("head",
                             url=url,
                             callback=callback,

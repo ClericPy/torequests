@@ -683,9 +683,10 @@ class tPool(object):
              callback=None,
              retry=0,
              response_validator=None,
+             allow_redirects=False,
              **kwargs):
         """Similar to `requests.head`, but return as NewFuture."""
-        kwargs.setdefault("allow_redirects", False)
+        kwargs['allow_redirects'] = allow_redirects
         return self.request("head",
                             url=url,
                             callback=callback,
