@@ -161,7 +161,9 @@ class Requests:
                    callback: Optional[Callable] = None,
                    referer_info=NotSet,
                    response_validator: Optional[Callable] = None,
+                   allow_redirects: bool = False,
                    **kwargs):
+        kwargs['allow_redirects'] = allow_redirects
         return await self.request("head",
                                   url=url,
                                   retry=retry,
