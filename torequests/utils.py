@@ -1666,6 +1666,12 @@ class RegMatch(object):
         except IndexError:
             return ""
 
+    def __bool__(self):
+        return bool(self.item)
+
+    def __nonzero__(self):
+        return bool(self.item)
+
     @classmethod
     def find_one(cls, pattern, string, flags=0):
         """JS-like match object. Use index number to get groups, if not match or no group, will return ''.
