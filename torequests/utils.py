@@ -213,7 +213,7 @@ class _Curl:
     parser = argparse.ArgumentParser()
     parser.add_argument("curl")
     parser.add_argument("--url", default='')
-    parser.add_argument("-X", "--request", default="get")
+    parser.add_argument("-X", "--request", default="")
     parser.add_argument("-A", "--user-agent")
     parser.add_argument("-e", "--referer")
     parser.add_argument("-u", "--user")  # <user[:password]>
@@ -257,6 +257,7 @@ def curlparse(string, encoding="utf-8", remain_unknown_args=False):
             return s
 
     escape_sig = u'fac4833e034b6771e5a1c74037e9153e'
+    string = string.replace('\\\n', ' ')
     if string.startswith("http"):
         return {"url": string, "method": "get"}
     # escape $'' ANSI-C strings
@@ -300,7 +301,6 @@ def curlparse(string, encoding="utf-8", remain_unknown_args=False):
     if args.data_urlencode:
         data = quote_plus(args.data_urlencode)
     if data:
-        args.request = "post"
         # if PY2:
         #     # not fix the UnicodeEncodeError, so use `replace`, damn python2.x.
         #     data = data.replace(r'\r', '\r').replace(r'\n', '\n')
@@ -309,6 +309,8 @@ def curlparse(string, encoding="utf-8", remain_unknown_args=False):
         #         'latin-1',
         #         'backslashreplace').decode('unicode-escape').encode(encoding)
         requests_args["data"] = unescape_sig(data).encode(encoding)
+    if not args.request:
+        args.request = "post" if data else "get"
     requests_args["method"] = args.request.lower()
     if args.head:
         requests_args['method'] = 'head'
