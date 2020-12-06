@@ -64,6 +64,16 @@ def test_curlparse_post2():
     assert rj["data"] == u"中文"
 
 
+def test_curlparse_with_newline():
+    """  test_dummy_utils """
+    cmd = r'''curl -u user -H "Content-Type: text/xml" -H "Test: 1" \
+--data "test" \
+https://www.google.com'''
+    args = curlparse(cmd)
+    assert args.get('data')
+    assert args.get('method') == 'post'
+
+
 def test_slice_by_size():
     assert list(slice_by_size(range(10), 6)) == [
         (0, 1, 2, 3, 4, 5),
