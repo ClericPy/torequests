@@ -386,7 +386,7 @@ def slice_into_pieces(seq, n):
 
 def slice_by_size(seq, size):
     """Slice a sequence into chunks, return as a generation of chunks with `size`."""
-    filling = null
+    filling = NotSet
     for it in zip(*(itertools_chain(seq, [filling] * size),) * size):
         if filling in it:
             it = tuple(i for i in it if i is not filling)

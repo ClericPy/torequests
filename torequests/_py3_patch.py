@@ -37,6 +37,7 @@ class NewResponse(ClientResponse):
     """Wrap aiohttp's ClientResponse like requests's Response."""
     # 'strict' / 'ignore' / 'replace'
     DEFAULT_DECODE_ERRORS = 'strict'
+    referer_info = None
 
     def __init__(self, method, url, *, writer, continue100, timer, request_info,
                  traces, loop, session) -> None:
