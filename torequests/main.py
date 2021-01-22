@@ -566,6 +566,7 @@ class tPool(object):
         # non-official request args
         referer_info = kwargs.pop("referer_info", None)
         encoding = kwargs.pop("encoding", None)
+        error = Exception()
         for _ in range(retry + 1):
             with self.frequency:
                 try:
@@ -589,7 +590,7 @@ class tPool(object):
             kwargs["referer_info"] = referer_info
         if encoding:
             kwargs["encoding"] = encoding
-        logger.debug("Retry %s & failed: %s." % (retry, error))
+        logger.debug("Retry %s times failed again: %s." % (retry, error))
         failure = FailureException(error)
         failure.request = FailedRequest(**kwargs)
         if self.catch_exception:

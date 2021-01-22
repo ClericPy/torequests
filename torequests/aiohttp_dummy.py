@@ -23,7 +23,8 @@ class Requests:
     def __init__(self,
                  session: Optional[ClientSession] = None,
                  catch_exception: bool = True,
-                 retry_exceptions: tuple = (ClientError, Error, TimeoutError),
+                 retry_exceptions: tuple = (ClientError, Error, TimeoutError,
+                                            ValidationError),
                  **kwargs):
         # ensure running loop to use unique loop.
         if not get_event_loop().is_running():
@@ -41,16 +42,17 @@ class Requests:
                       url: str,
                       retry: int = 0,
                       callback: Optional[Callable] = None,
-                      referer_info=NotSet,
                       response_validator: Optional[Callable] = None,
+                      referer_info=NotSet,
+                      encoding=None,
                       **kwargs) -> Union[NewResponse, FailureException]:
         result = await self._request(method=method,
                                      url=url,
                                      retry=retry,
                                      response_validator=response_validator,
+                                     referer_info=referer_info,
+                                     encoding=encoding,
                                      **kwargs)
-        if referer_info is not NotSet:
-            setattr(result, 'referer_info', referer_info)
         if callback:
             result = callback(result)
             if isawaitable(result):
@@ -62,27 +64,27 @@ class Requests:
                        url: str,
                        retry: int = 0,
                        response_validator: Optional[Callable] = None,
+                       referer_info=NotSet,
+                       encoding=None,
                        **kwargs):
-        encoding = kwargs.pop("encoding", None)
+        error = Exception()
         for retries in range(retry + 1):
             try:
                 async with self.session.request(method, url, **kwargs) as resp:
                     if encoding:
                         setattr(resp, 'encoding', encoding)
-                    await resp.read()
-                    resp.release()
+                    setattr(resp, 'referer_info', referer_info)
                     if response_validator and not await _ensure_can_be_await(
                             response_validator(resp)):
                         raise ValidationError(response_validator.__name__)
+                    await resp.read()
+                    resp.release()
                     return resp
             except self.retry_exceptions as err:
                 error = err
                 continue
-            except ValidationError as err:
-                error = err
-                continue
         else:
-            logger.debug("Retry %s & failed: %s." % (retry, error))
+            logger.debug("Retry %s times failed again: %s." % (retry, error))
             failure = FailureException(error)
             if self.catch_exception:
                 return failure

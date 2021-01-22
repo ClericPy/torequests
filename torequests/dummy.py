@@ -439,7 +439,8 @@ class Requests(Loop):
                  frequencies: Optional[Dict[str, Frequency]] = None,
                  default_host_frequency: Union[Frequency, None, Sequence,
                                                Dict] = None,
-                 retry_exceptions: tuple = (ClientError, Error, TimeoutError),
+                 retry_exceptions: tuple = (ClientError, Error, TimeoutError,
+                                            ValidationError),
                  *,
                  loop=None,
                  return_exceptions: Optional[bool] = None,
@@ -514,6 +515,8 @@ class Requests(Loop):
                        url: str,
                        retry: int = 0,
                        response_validator: Optional[Callable] = None,
+                       referer_info=NotSet,
+                       encoding=None,
                        **kwargs):
         url = url.strip()
         if not url:
@@ -531,10 +534,8 @@ class Requests(Loop):
                 frequency = self.global_frequency
         kwargs["url"] = url
         kwargs["method"] = method
-        # non-official request args
-        referer_info = kwargs.pop("referer_info", NotSet)
-        encoding = kwargs.pop("encoding", None)
         kwargs = self.fix_aiohttp_request_args(kwargs)
+        error = Exception()
         for retries in range(retry + 1):
             async with frequency:
                 try:
@@ -542,21 +543,14 @@ class Requests(Loop):
                     async with session.request(**kwargs) as resp:
                         if encoding:
                             resp.encoding = encoding
-                        if referer_info is not NotSet:
-                            resp.referer_info = referer_info
-                        await resp.read()
-                        resp.release()
+                        setattr(resp, 'referer_info', referer_info)
                         if response_validator and not await _ensure_can_be_await(
                                 response_validator(resp)):
                             raise ValidationError(response_validator.__name__)
+                        await resp.read()
+                        resp.release()
                         return resp
                 except self.retry_exceptions as err:
-                    error = err
-                    logger.debug(
-                        "Retry %s for the %s time, Exception: %r . kwargs= %s" %
-                        (url, retries + 1, err, kwargs))
-                    continue
-                except ValidationError as err:
                     error = err
                     logger.debug(
                         "Retry %s for the %s time, Exception: %r . kwargs= %s" %
@@ -568,9 +562,10 @@ class Requests(Loop):
                 kwargs["referer_info"] = referer_info
             if encoding:
                 kwargs["encoding"] = encoding
-            logger.debug("Retry %s & failed: %s." % (retry, error))
+            logger.debug("Retry %s times failed again: %s." % (retry, error))
             failure = FailureException(error)
             setattr(failure, 'request', kwargs)
+            setattr(failure, 'referer_info', referer_info)
             if self.catch_exception:
                 return failure
             else:
@@ -582,6 +577,7 @@ class Requests(Loop):
                 callback: Optional[Callable] = None,
                 retry: int = 0,
                 response_validator: Optional[Callable] = None,
+                referer_info=NotSet,
                 **kwargs) -> Union[NewResponse, FailureException]:
         """Submit the coro of self._request to self.loop"""
         return self.submit(
@@ -589,6 +585,7 @@ class Requests(Loop):
                           url=url,
                           retry=retry,
                           response_validator=response_validator,
+                          referer_info=referer_info,
                           **kwargs),
             callback=(callback or self.default_callback),
         )
