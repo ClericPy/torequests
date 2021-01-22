@@ -271,10 +271,7 @@ class Loop:
 
     async def wait(self, fs, timeout=None, return_when=ALL_COMPLETED):
         if fs:
-            return await wait(fs,
-                              loop=self.loop,
-                              timeout=timeout,
-                              return_when=return_when)
+            return await wait(fs, timeout=timeout, return_when=return_when)
 
     @property
     def todo_tasks(self) -> List[Task]:
