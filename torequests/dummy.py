@@ -734,7 +734,9 @@ class Requests(Loop):
             kwargs["ssl"] = kwargs.pop('verify')
         if "proxies" in kwargs:
             # aiohttp not support https proxy
-            kwargs["proxy"] = "http://%s" % kwargs.pop('proxies')['http']
+            proxies = kwargs.pop('proxies')
+            proxy = proxies.get('http') or proxies.get('all')
+            kwargs["proxy"] = "http://%s" % proxy
         if "auth" in kwargs and isinstance(kwargs['auth'], (list, tuple)):
             kwargs["auth"] = BasicAuth(*kwargs['auth'])
         return kwargs
