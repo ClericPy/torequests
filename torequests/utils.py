@@ -374,7 +374,17 @@ def itertools_chain(*iterables):
 
 
 def slice_into_pieces(seq, n):
-    """Slice a sequence into `n` pieces, return a generation of n pieces"""
+    """Slice a sequence into `n` pieces, return a generation of n pieces.
+
+    ::
+
+        >>> from torequests.utils import slice_into_pieces
+        >>> for chunk in slice_into_pieces(range(10), 3):
+        ...     print(chunk)
+        (0, 1, 2, 3)
+        (4, 5, 6, 7)
+        (8, 9)
+    """
     length = len(seq)
     if length % n == 0:
         size = length // n
@@ -385,8 +395,19 @@ def slice_into_pieces(seq, n):
 
 
 def slice_by_size(seq, size):
-    """Slice a sequence into chunks, return as a generation of chunks with `size`."""
-    filling = NotSet
+    """Slice a sequence into chunks, return as a generation of chunks with `size`.
+
+    ::
+
+        >>> from torequests.utils import slice_by_size
+        >>> for chunk in slice_by_size(range(10), 3):
+        ...     print(chunk)
+        (0, 1, 2)
+        (3, 4, 5)
+        (6, 7, 8)
+        (9,)
+    """
+    filling = object()
     for it in zip(*(itertools_chain(seq, [filling] * size),) * size):
         if filling in it:
             it = tuple(i for i in it if i is not filling)
@@ -1970,3 +1991,66 @@ def get_host(url):
     if not url:
         return url
     return urlparse(url).netloc
+
+
+def find_jsons(string, return_as='json', json_loader=None):
+    """Generator for finding the valid JSON string, only support dict and list.
+    return_as could be 'json' / 'object' / 'index'.
+    ::
+
+        >>> from torequests.utils import find_jsons
+        >>> list(find_jsons('string["123"]123{"a": 1}[{"a": 1, "b": [1,2,3]}]'))
+        ['["123"]', '{"a": 1}', '[{"a": 1, "b": [1,2,3]}]']
+        >>> list(find_jsons('string[]{}{"a": 1}'))
+        ['[]', '{}', '{"a": 1}']
+        >>> list(find_jsons('string[]|{}string{"a": 1}', return_as='index'))
+        [(6, 8), (9, 11), (17, 25)]
+        >>> list(find_jsons('xxxx[{"a": 1, "b": [1,2,3]}]xxxx', return_as='object'))
+        [[{'a': 1, 'b': [1, 2, 3]}]]
+    """
+
+    def find_matched(string, left, right):
+        _stack = []
+        for index, char in enumerate(string):
+            if char == left:
+                _stack.append(index)
+            elif char == right:
+                try:
+                    _stack.pop()
+                except IndexError:
+                    break
+            else:
+                continue
+            if not _stack:
+                return index
+
+    json_loader = json_loader or json.loads
+    search = re.search
+    brackets_map = {'{': '}', '[': ']'}
+    current_start = 0
+    while string and isinstance(string, str):
+        _match = search(r'[\[\{]', string)
+        if not _match:
+            break
+        left = _match.group()
+        right = brackets_map[left]
+        _start = _match.span()[0]
+        sub_string = string[_start:]
+        _end = find_matched(sub_string, left, right)
+        if _end is None:
+            # not found matched, check next left
+            string = sub_string
+            continue
+        string = sub_string[_end + 1:]
+        try:
+            _partial = sub_string[:_end + 1]
+            _loaded_result = json_loader(_partial)
+            yield {
+                'json': _partial,
+                'object': _loaded_result,
+                'index':
+                    (current_start + _start, current_start + _start + _end + 1),
+            }.get(return_as, string)
+        except (ValueError, TypeError):
+            pass
+        current_start += _start + _end + 1

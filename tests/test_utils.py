@@ -541,3 +541,19 @@ def test_check_in_time():
     for time_string in no_oks:
         ok = check_in_time(time_string, now)
         assert not ok
+
+
+def test_find_jsons():
+    assert list(
+        find_jsons('string["123"]123{"a": 1}[{"a": 1, "b": [1,2,3]}]')) == [
+            '["123"]', '{"a": 1}', '[{"a": 1, "b": [1,2,3]}]'
+        ]
+    assert list(find_jsons('string[]{}{"a": 1}')) == ['[]', '{}', '{"a": 1}']
+    assert list(find_jsons('string[]|{}string{"a": 1}',
+                           return_as='index')) == [(6, 8), (9, 11), (17, 25)]
+    assert list(
+        find_jsons('xxxx[{"a": 1, "b": [1,2,3]}]xxxx',
+                   return_as='object')) == [[{
+                       'a': 1,
+                       'b': [1, 2, 3]
+                   }]]
