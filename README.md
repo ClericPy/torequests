@@ -307,6 +307,7 @@ get_event_loop().run_until_complete(main())
     timeago: show the seconds as human-readable.
     unique: unique one sequence.
     find_one: use regex like Javascript to find one string with index(like [0], [1]).
+    find_jsons: find all json substrings from a mass string contains list / dict JSON.
     ...
 
 
