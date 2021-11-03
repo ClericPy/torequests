@@ -240,7 +240,7 @@ def test_aiohttp_dummy():
         req = Requests()
         r = await req.get(url, retry=1)
         assert r.json()['url'] == url
-        r = await req.get('http://', retry=1)
+        r = await req.get('http://', retry=1, retry_interval=1)
         assert isinstance(r, Exception)
         r = await req.get('http://', retry=1, callback=lambda r: r.text)
         assert r.startswith('FailureException')

@@ -12,6 +12,7 @@ def test_main_tPool():
         trequests.get(test_url,
                       retry=2,
                       callback=lambda x: print_info(i) or len(x.content),
+                      retry_interval=1,
                       referer_info=i) for i in range(3)
     ]
     # [i.x for i in ss]

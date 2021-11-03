@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from asyncio import TimeoutError, get_event_loop
+from asyncio import TimeoutError, get_event_loop, sleep
 from concurrent.futures._base import Error
 from inspect import isawaitable
 from typing import Callable, Optional, Union
@@ -66,6 +66,7 @@ class Requests:
                        response_validator: Optional[Callable] = None,
                        referer_info=NotSet,
                        encoding=None,
+                       retry_interval = 0,
                        **kwargs):
         error = Exception()
         for retries in range(retry + 1):
@@ -82,6 +83,8 @@ class Requests:
                     return resp
             except self.retry_exceptions as err:
                 error = err
+                if retry_interval:
+                    await sleep(retry_interval)
                 continue
         else:
             logger.debug("Retry %s times failed again: %s." % (retry, error))
