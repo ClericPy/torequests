@@ -558,7 +558,13 @@ class tPool(object):
     def __del__(self):
         self.close()
 
-    def _request(self, method, url, retry=0, response_validator=None, **kwargs):
+    def _request(self,
+                 method,
+                 url,
+                 retry=0,
+                 response_validator=None,
+                 retry_interval=0,
+                 **kwargs):
         if not url:
             raise ValueError("url should not be null, but given: %s" % url)
         kwargs["url"] = url
@@ -583,6 +589,8 @@ class tPool(object):
                     logger.debug(
                         "Retry %s for the %s time, Exception: %r . kwargs= %s" %
                         (url, _ + 1, e, kwargs))
+                    if retry_interval:
+                        sleep(retry_interval)
                     continue
         # for unofficial request args
         kwargs["retry"] = retry

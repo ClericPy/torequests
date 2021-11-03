@@ -514,6 +514,7 @@ class Requests(Loop):
                        response_validator: Optional[Callable] = None,
                        referer_info=NotSet,
                        encoding=None,
+                       retry_interval = 0,
                        **kwargs):
         url = url.strip()
         if not url:
@@ -552,6 +553,8 @@ class Requests(Loop):
                     logger.debug(
                         "Retry %s for the %s time, Exception: %r . kwargs= %s" %
                         (url, retries + 1, err, kwargs))
+                    if retry_interval:
+                        await sleep(retry_interval)
                     continue
         else:
             kwargs["retry"] = retry
@@ -575,6 +578,7 @@ class Requests(Loop):
                 retry: int = 0,
                 response_validator: Optional[Callable] = None,
                 referer_info=NotSet,
+                retry_interval: float = 0,
                 **kwargs) -> Union[NewResponse, FailureException]:
         """Submit the coro of self._request to self.loop"""
         return self.submit(
@@ -583,6 +587,7 @@ class Requests(Loop):
                           retry=retry,
                           response_validator=response_validator,
                           referer_info=referer_info,
+                          retry_interval=retry_interval,
                           **kwargs),
             callback=(callback or self.default_callback),
         )
