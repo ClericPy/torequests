@@ -89,7 +89,7 @@ elif PY3:
     unicode = str
 else:
     logger.warning('Unhandled python version.')
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem get_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64 check_in_time get_host find_jsons".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem get_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64 check_in_time get_host find_jsons update_url".split(
     " ")
 
 NotSet = object()
@@ -2054,3 +2054,29 @@ def find_jsons(string, return_as='json', json_loader=None):
         except (ValueError, TypeError):
             pass
         current_start += _start + _end + 1
+
+
+def update_url(url, params=None, **_params):
+    """Update your URL with given params.
+
+    :param url: raw URL
+    :type url: str
+    :param params: new params, and skip the keys with value None
+    :type params: dict
+    Basic Usage::
+
+        from torequests.utils import update_url
+        print(update_url('http://httpbin.org/get?a=1&b=2', {'a': '2', 'b': None}, c='3'))
+        # http://httpbin.org/get?a=2&c=3
+    """
+    if params:
+        _params.update(params)
+    parsed_url = urlparse(url)
+    qls_dict = dict(parse_qsl(parsed_url.query))
+    for key, value in _params.items():
+        if value is None:
+            qls_dict.pop(key, None)
+            continue
+        else:
+            qls_dict[key] = str(value)
+    return urlunparse(parsed_url._replace(query=unparse_qsl(qls_dict.items())))
