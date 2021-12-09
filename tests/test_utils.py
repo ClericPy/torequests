@@ -557,3 +557,14 @@ def test_find_jsons():
                        'a': 1,
                        'b': [1, 2, 3]
                    }]]
+
+
+def test_update_url():
+    assert update_url(
+        'http://httpbin.org/get?a=1&b=2',
+        {
+            'a': '2',
+            'b': None
+        },
+        c='3',
+    ) == 'http://httpbin.org/get?a=2&c=3'
