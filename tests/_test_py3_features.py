@@ -200,7 +200,7 @@ def test_retry_async():
 
 
 def test_async_frequency():
-    # for python3.6+ only
+    # for python3.7+ only
     from torequests.frequency_controller.async_tools import AsyncFrequency
     from asyncio import ensure_future, get_event_loop
     from time import time
@@ -227,7 +227,7 @@ def test_async_frequency():
 
 
 def test_aiohttp_dummy():
-    # for python3.6+ only
+    # for python3.7+ only
     from torequests.aiohttp_dummy import Requests
     from asyncio import get_event_loop
 
