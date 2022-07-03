@@ -19,6 +19,7 @@ from codecs import open
 from datetime import datetime
 from fractions import Fraction
 from functools import wraps
+from itertools import groupby
 from logging import getLogger
 from threading import Lock, Thread
 
@@ -33,20 +34,14 @@ from .versions import PY2, PY3
 logger = getLogger("torequests")
 
 if PY2:
+    from cgi import escape
+    from urllib import quote, quote_plus, unquote_plus
+
+    import HTMLParser
     import repr as reprlib
     from Queue import Empty, PriorityQueue
-    from urllib import quote, quote_plus, unquote_plus
-    from urlparse import (
-        parse_qs,
-        parse_qsl,
-        urlparse,
-        unquote,
-        urljoin,
-        urlsplit,
-        urlunparse,
-    )
-    from cgi import escape
-    import HTMLParser
+    from urlparse import (parse_qs, parse_qsl, unquote, urljoin, urlparse,
+                          urlsplit, urlunparse)
 
     unescape = HTMLParser.HTMLParser().unescape
 
@@ -70,26 +65,18 @@ if PY2:
         return wrapper_sync
 elif PY3:
     import reprlib
-    from urllib.parse import (
-        parse_qs,
-        parse_qsl,
-        urlparse,
-        quote,
-        quote_plus,
-        unquote,
-        unquote_plus,
-        urljoin,
-        urlsplit,
-        urlunparse,
-    )
     from html import escape, unescape
     from queue import Empty, PriorityQueue
+    from urllib.parse import (parse_qs, parse_qsl, quote, quote_plus, unquote,
+                              unquote_plus, urljoin, urlparse, urlsplit,
+                              urlunparse)
+
     from ._py3_patch import retry
 
     unicode = str
 else:
     logger.warning('Unhandled python version.')
-__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem get_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64 check_in_time get_host find_jsons update_url".split(
+__all__ = "parse_qs parse_qsl urlparse quote quote_plus unquote unquote_plus urljoin urlsplit urlunparse escape unescape simple_cmd print_mem get_mem curlparse Null null itertools_chain slice_into_pieces slice_by_size ttime ptime split_seconds timeago timepass md5 Counts unique unparse_qs unparse_qsl Regex kill_after UA try_import ensure_request Timer ClipboardWatcher Saver guess_interval split_n find_one register_re_findone Cooldown curlrequests sort_url_query retry get_readable_size encode_as_base64 decode_as_base64 check_in_time get_host find_jsons update_url stagger_sort".split(
     " ")
 
 NotSet = object()
@@ -1098,7 +1085,7 @@ class TKClipboard(object):
 """
 
     def __init__(self):
-        from tkinter import Tk, TclError
+        from tkinter import TclError, Tk
 
         self.root = Tk()
         self.root.withdraw()
@@ -2080,3 +2067,36 @@ def update_url(url, params=None, **_params):
         else:
             qls_dict[key] = str(value)
     return urlunparse(parsed_url._replace(query=unparse_qsl(qls_dict.items())))
+
+
+def stagger_sort(items, group_key, sort_key=None):
+    """Ensure that the same group is ordered and staggered, avoid data skew. Will not affect the original list, return as a generator.
+
+    ::
+
+        items = [('a', 0), ('a', 2), ('a', 1), ('b', 0), ('b', 1)]
+        print(
+            list(
+                stagger_sort(
+                    items,
+                    sort_key=lambda i: (i[0], i[1]),
+                    group_key=lambda i: i[0],
+                )))
+        # [('a', 0), ('b', 0), ('a', 1), ('b', 1), ('a', 2)]
+
+    """
+    if sort_key:
+        items = sorted(items, key=sort_key)
+    buckets = [list(group[1]) for group in groupby(items, group_key)]
+    while True:
+        next_buckets = []
+        for items in buckets:
+            try:
+                yield items.pop(0)
+                next_buckets.append(items)
+            except IndexError:
+                pass
+        if next_buckets:
+            buckets = next_buckets
+        else:
+            break
