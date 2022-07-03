@@ -568,3 +568,14 @@ def test_update_url():
         },
         c='3',
     ) == 'http://httpbin.org/get?a=2&c=3'
+
+
+def test_stagger_sort():
+    items = [('a', 0), ('a', 2), ('a', 1), ('b', 0), ('b', 1)]
+    result = list(
+        stagger_sort(
+            items,
+            sort_key=lambda i: (i[0], i[1]),
+            group_key=lambda i: i[0],
+        ))
+    assert result == [('a', 0), ('b', 0), ('a', 1), ('b', 1), ('a', 2)], result
