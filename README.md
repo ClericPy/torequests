@@ -10,10 +10,9 @@ Briefly speaking, requests & aiohttp wrapper for asynchronous programming rookie
 
 ### requirements
 
-python2.7 / python3.6+
+python3.7+ (follow requests settings)
 
     | requests			# python
-    | futures 			# python2
     | aiohttp >= 3.6.2 	# python3
 
 # Features
@@ -96,7 +95,6 @@ print_info(ss)
 
 ```verilog
 [3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]]: 2000 / 2000, 100.0%, cost 4.2121 seconds, 475.0 qps.
-[2.7.15 (v2.7.15:ca079a3ea3, Apr 30 2018, 16:30:26) [MSC v.1500 64 bit (AMD64)]]: 2000 / 2000, 100%, cost 9.4462 seconds, 212.0 qps.
 ```
 
 ```python

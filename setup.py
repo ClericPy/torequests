@@ -15,15 +15,9 @@ rm -rf dist;rm -rf build;rm -rf torequests.egg-info
 """
 
 install_requires = [
-    "futures;python_version<'3.1'",
+    "requests",
     "aiohttp>=3.6.2;python_version>'3.5'",
 ]
-if sys.version_info[:2] >= (3, 7):
-    install_requires.append('requests')
-else:
-    if sys.version_info[0] == 2:
-        install_requires.append('certifi==2021.10.8')
-    install_requires.append('requests<2.27.0')
 
 with codecs.open("README.md", encoding="u8") as f:
     long_description = f.read()
@@ -47,9 +41,6 @@ setup(
     extras_require={
         'security': ['pyOpenSSL >= 0.14', 'cryptography>=1.3.4', 'idna>=2.0.0'],
         'socks': ['PySocks>=1.5.6, !=1.5.7'],
-        'socks:sys_platform == "win32" and python_version == "2.7"': [
-            'win_inet_pton'
-        ],
         'all': [
             'pyOpenSSL >= 0.14', 'cryptography>=1.3.4', 'idna>=2.0.0',
             'PySocks>=1.5.6, !=1.5.7', 'psutil', 'pyperclip'
@@ -60,15 +51,11 @@ setup(
             'cchardet',
         ],
     },
-    python_requires=
-    ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*",
+    python_requires=">=3.7",
     classifiers=[
         "License :: OSI Approved :: MIT License",
         'Programming Language :: Python',
-        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
