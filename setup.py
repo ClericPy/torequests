@@ -21,7 +21,8 @@ install_requires = [
 if sys.version_info[:2] >= (3, 7):
     install_requires.append('requests')
 else:
-    install_requires.append('certifi==2021.10.8')
+    if sys.version_info[0] == 2:
+        install_requires.append('certifi==2021.10.8')
     install_requires.append('requests<2.27.0')
 
 with codecs.open("README.md", encoding="u8") as f:
