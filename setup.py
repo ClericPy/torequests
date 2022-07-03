@@ -16,7 +16,7 @@ rm -rf dist;rm -rf build;rm -rf torequests.egg-info
 
 install_requires = [
     "requests",
-    "aiohttp>=3.6.2;python_version>'3.5'",
+    "aiohttp>=3.6.2,<4.0.0;python_version>'3.5'",
 ]
 
 with codecs.open("README.md", encoding="u8") as f:
