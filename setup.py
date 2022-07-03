@@ -3,6 +3,7 @@
 import codecs
 import os
 import re
+import sys
 
 from setuptools import find_packages, setup
 """
@@ -14,10 +15,13 @@ rm -rf dist;rm -rf build;rm -rf torequests.egg-info
 """
 
 install_requires = [
-    "requests",
     "futures;python_version<'3.1'",
     "aiohttp>=3.6.2;python_version>'3.5'",
 ]
+if sys.version_info[:2] >= (3, 7):
+    install_requires.append('requests')
+else:
+    install_requires.append('requests<2.28.0')
 
 with codecs.open("README.md", encoding="u8") as f:
     long_description = f.read()
@@ -27,8 +31,7 @@ with codecs.open(os.path.join(here, 'torequests', '__init__.py'),
                  encoding="u8") as f:
     version = re.search(r'''__version__ = ['"](.*?)['"]''', f.read()).group(1)
 desc = "Async wrapper for requests / aiohttp, and some python crawler toolkits. Let synchronization code enjoy the performance of asynchronous programming. Read more: https://github.com/ClericPy/torequests."
-keywords = "requests async multi-thread aiohttp asyncio asynchronous".split(
-)
+keywords = "requests async multi-thread aiohttp asyncio asynchronous".split()
 setup(
     name="torequests",
     version=version,
