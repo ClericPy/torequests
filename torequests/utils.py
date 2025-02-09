@@ -427,7 +427,6 @@ def ttime(timestamp=None, tzone=None, fail="", fmt="%Y-%m-%d %H:%M:%S"):
             # Compatible timestamp with 13-digit milliseconds
             timestamp = timestamp / 1000
     try:
-        timestamp = time.time() if timestamp is None else timestamp
         return time.strftime(fmt, time.gmtime(timestamp + fix_tz))
     except Exception:
         return fail
